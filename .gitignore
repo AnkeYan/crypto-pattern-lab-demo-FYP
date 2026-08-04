@@ -1,0 +1,28 @@
+# Node
+web/node_modules/
+web/.next/
+web/.pnpm-debug.log*
+web/npm-debug.log*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# macOS
+.DS_Store
+
+# Env files (含 API keys，絕對不能 commit)
+web/.env*
+.env*
+
+# Vercel
+web/.vercel
+
+# TypeScript
+web/*.tsbuildinfo
+web/next-env.d.ts
+
+# launchd plist (本地 Mac 專用)
+scripts/com.cryptopatternlab.update.plist

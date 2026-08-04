@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+:root {
+  /* 固定深色背景，避免橫向滾動時出現白色空白區域 */
+  --background: #030712;
+  --foreground: #ededed;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* 防止任何元素超出螢幕寬度造成橫向滾動白邊 */
+  overflow-x: hidden;
+}

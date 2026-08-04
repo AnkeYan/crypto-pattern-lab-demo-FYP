@@ -1,0 +1,60 @@
+name: Update Data
+
+on:
+  schedule:
+    # 每天 UTC 03:00 = 香港時間早上 11:00
+    # 原為 UTC 01:00，因 Yahoo Finance 週末偶爾延遲至 UTC 02:00+ 才入庫，推遲至 03:00 提高成功率
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+    # 允許在 GitHub Actions 頁面手動觸發
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python dependencies
+        run: pip install pandas numpy requests scipy arch statsmodels yfinance
+
+      - name: Run all analysis scripts
+        run: |
+          python3 "scripts/API調取-fetch_prices.py"
+          python3 scripts/analyze_patterns.py
+          python3 scripts/analyze_fear_greed.py
+          python3 scripts/analyze_rolling_correlation.py
+          python3 scripts/analyze_garch.py
+          python3 scripts/analyze_pattern_validation.py
+          python3 scripts/analyze_bollinger.py
+          python3 scripts/analyze_acf.py
+          python3 scripts/analyze_walk_forward.py
+          python3 scripts/analyze_rsi.py
+          python3 scripts/analyze_month_seasonality.py
+          python3 scripts/analyze_signals.py
+          python3 scripts/analyze_regime_transition.py
+          python3 scripts/analyze_multifactor.py
+          python3 scripts/analyze_consecutive_drop.py
+          python3 scripts/analyze_drawdown_recovery.py
+          python3 scripts/analyze_halving.py
+        # 腳本會輸出 CSV 到 data/ 目錄（相對於 repo 根目錄）
+
+      - name: Copy CSVs to web/public/data/
+        run: |
+          mkdir -p web/public/data
+          cp data/*.csv web/public/data/
+
+      - name: Commit and push updated CSVs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/ web/public/data/
+          git diff --staged --quiet || git commit -m "chore: auto-update data [$(date '+%Y-%m-%d')]"
+          git pull --rebase origin main
+          git push

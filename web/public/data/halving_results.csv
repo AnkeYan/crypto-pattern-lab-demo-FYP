@@ -1,0 +1,4 @@
+halving_number,date,btc_price_at_halving,pre_30d_return,pre_30d_available,pre_90d_return,pre_90d_available,pre_180d_return,pre_180d_available,post_30d_return,post_30d_available,post_90d_return,post_90d_available,post_180d_return,post_180d_available,post_365d_return,post_365d_available
+2,2016-07-09,650.96,0.132833,True,0.544155,True,0.451649,True,-0.092027,True,-0.051983,True,0.556747,True,2.868809,True
+3,2020-05-11,8601.8,0.254074,True,-0.157367,True,-0.02344,True,0.147446,True,0.357361,True,0.724495,True,5.592179,True
+4,2024-04-20,64994.44,-0.007588,True,0.564405,True,0.964395,True,0.099297,True,0.026398,True,0.037009,True,0.310486,True
