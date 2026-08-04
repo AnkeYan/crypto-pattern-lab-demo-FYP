@@ -4,7 +4,7 @@
 // 顯示每個 pattern 在不同市場週期（滾動年份）的表現穩定性
 // 圖表：每個 fold 的 test win_rate 折線 + pass_flag 顏色點 + 訓練期 win_rate 對比線
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 type WalkForwardRow = {
   symbol: string;
@@ -64,9 +64,54 @@ function pct(v: number | null, d = 1) {
   if (v == null) return "—";
   return `${(v * 100).toFixed(d)}%`;
 }
-function fmt(v: number | null, d = 3) {
-  if (v == null) return "—";
-  return v.toFixed(d);
+
+// ── 動態 Key Takeaway ──────────────────────────────────────────────────────────
+function buildTakeaway(
+  sym: string,
+  thr: number,
+  hold: number,
+  filtered: WalkForwardRow[],
+  consistentRate: number | null
+) {
+  const dropPct = `${Math.abs(thr * 100).toFixed(0)}%`;
+  const totalFolds = filtered.filter((r) => r.pass_flag !== "low_sample").length;
+  const consistentFolds = filtered.filter((r) => r.pass_flag === "consistent").length;
+  const failedFolds = filtered.filter((r) => r.pass_flag === "failed").length;
+  const allLowSample = filtered.every((r) => r.pass_flag === "low_sample");
+
+  let border = "border-gray-700";
+  let bg = "bg-white/[0.03]";
+  let icon = "~";
+  let enSummary = "";
+  let zhSummary = "";
+
+  if (filtered.length === 0 || allLowSample) {
+    border = "border-yellow-500/30";
+    bg = "bg-yellow-500/5";
+    icon = "⚠";
+    enSummary = `Not enough data to assess walk-forward stability for ${sym} ${dropPct} drop / ${hold}d hold. All folds have low sample counts.`;
+    zhSummary = `${sym} 跌 ${dropPct}／持有 ${hold} 天的組合，所有 fold 樣本數不足，無法評估穩定性。`;
+  } else if (consistentRate !== null && consistentRate >= 0.6) {
+    border = "border-green-500/30";
+    bg = "bg-green-500/5";
+    icon = "✓";
+    enSummary = `${sym}'s ${dropPct} drop / ${hold}d hold pattern is stable across time periods — ${consistentFolds} out of ${totalFolds} valid folds were consistent (${(consistentRate * 100).toFixed(0)}%). This pattern is not just a product of one specific market era.`;
+    zhSummary = `${sym} 跌 ${dropPct}／持有 ${hold} 天的規律跨時期穩定——${totalFolds} 個有效 fold 中有 ${consistentFolds} 個一致（${(consistentRate * 100).toFixed(0)}%）。這個規律不只是某個特定市場環境的偶然產物。`;
+  } else if (consistentRate !== null && consistentRate < 0.4) {
+    border = "border-red-500/20";
+    bg = "bg-red-500/5";
+    icon = "✗";
+    enSummary = `This pattern is unstable across time periods — only ${consistentFolds} out of ${totalFolds} valid folds were consistent (${(consistentRate * 100).toFixed(0)}%)${failedFolds > 0 ? `, with ${failedFolds} fold${failedFolds > 1 ? "s" : ""} failing outright` : ""}. High risk of overfitting to a specific market era.`;
+    zhSummary = `這個規律跨時期不穩定——${totalFolds} 個有效 fold 中只有 ${consistentFolds} 個一致（${(consistentRate * 100).toFixed(0)}%）${failedFolds > 0 ? `，其中 ${failedFolds} 個 fold 完全失效` : ""}。高度懷疑是對特定市場環境的過度擬合。`;
+  } else {
+    border = "border-gray-700";
+    bg = "bg-white/[0.03]";
+    icon = "~";
+    enSummary = `${sym}'s ${dropPct} drop / ${hold}d hold shows mixed stability — ${consistentFolds} of ${totalFolds} valid folds consistent (${consistentRate !== null ? (consistentRate * 100).toFixed(0) : "—"}%). Marginal signal — use alongside other indicators.`;
+    zhSummary = `${sym} 跌 ${dropPct}／持有 ${hold} 天的穩定性偏混合——${totalFolds} 個有效 fold 中有 ${consistentFolds} 個一致（${consistentRate !== null ? (consistentRate * 100).toFixed(0) : "—"}%）。信號邊際，建議配合其他指標使用。`;
+  }
+
+  return { border, bg, icon, enSummary, zhSummary };
 }
 
 // ── SVG 折線圖 ────────────────────────────────────────────────────────────────
@@ -177,9 +222,9 @@ function WalkChart({
 
 // ── 主組件 ────────────────────────────────────────────────────────────────────
 export default function WalkForwardPanel({ data }: { data: WalkForwardRow[] }) {
-  const [sym,     setSym]     = useState("BTC");
-  const [thr,     setThr]     = useState(-0.03);
-  const [hold,    setHold]    = useState(7);
+  const [sym,      setSym]      = useState("BTC");
+  const [thr,      setThr]      = useState(-0.03);
+  const [hold,     setHold]     = useState(7);
   const [showInfo, setShowInfo] = useState(false);
 
   const symKey = `${sym}USDT`;
@@ -194,6 +239,14 @@ export default function WalkForwardPanel({ data }: { data: WalkForwardRow[] }) {
   const consistentRate = validFolds.length > 0
     ? validFolds.filter((r) => r.pass_flag === "consistent").length / validFolds.length
     : null;
+
+  const takeaway = useMemo(
+    () => buildTakeaway(sym, thr, hold, filtered, consistentRate),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [sym, thr, hold, filtered.length, consistentRate]
+  );
+
+  const dropPct = `${Math.abs(thr * 100).toFixed(0)}%`;
 
   return (
     <div className="bg-gray-900 rounded-xl p-6">
@@ -216,36 +269,79 @@ export default function WalkForwardPanel({ data }: { data: WalkForwardRow[] }) {
 
       {/* ── 說明框 ── */}
       {showInfo && (
-        <div className="mt-3 mb-5 rounded-lg border border-white/[0.07] bg-white/[0.03] p-4 text-sm leading-relaxed">
+        <div className="mt-3 mb-5 rounded-lg border border-white/[0.07] bg-white/[0.03] p-4 text-sm leading-relaxed space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* English */}
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">English</p>
               <p className="text-gray-300 mb-2">
+                <em>The core question: does this pattern work consistently across different market years — or did it only happen to work in one specific era?</em>
+              </p>
+              <p className="text-gray-400 mb-2">
                 Walk-forward validation tests a pattern by <strong className="text-white">rolling forward one year at a time</strong>.
                 Each fold trains on 3 years of data and tests on the following year — a much stricter check than a single train/test split.
               </p>
-              <p className="text-gray-400 text-sm">
-                A pattern that only works in one period may be a statistical artefact.
-                A pattern that remains <strong className="text-gray-300">consistent</strong> across multiple folds is more likely to reflect a genuine market inefficiency.
+              <p className="text-gray-400 mb-3">
+                Think of it like a coach drilling a team across multiple seasons instead of just one game.
+                A pattern that <strong className="text-white">holds across 4–5 different years</strong> is much harder to dismiss as luck.
               </p>
+
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">What do the columns mean?</p>
+              <ul className="space-y-1.5 text-gray-400">
+                <li><strong className="text-gray-200">Fold</strong> — one rolling test window (e.g. trained on 2018–2020, tested on 2021).</li>
+                <li><strong className="text-gray-200">Train WR</strong> — win rate during the training period. This is what the model "learned".</li>
+                <li><strong className="text-gray-200">Test WR</strong> — win rate in the unseen test year. The number that actually matters.</li>
+                <li><strong className="text-gray-200">Test Mean Ret</strong> — average return per signal in the test year.</li>
+                <li><strong className="text-gray-200">Consistent rate</strong> — % of valid folds where the pattern held up (test WR ≥ 55% and positive mean return).</li>
+              </ul>
+
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-3">Result labels</p>
+              <ul className="space-y-1.5 text-gray-400">
+                <li><strong className="text-green-400">Consistent</strong> — test WR ≥ 55% and mean return positive. Pattern held.</li>
+                <li><strong className="text-yellow-400">Weakened</strong> — test WR between 50–55% or mean return near zero. Pattern still slightly positive but weaker than training.</li>
+                <li><strong className="text-red-400">Failed</strong> — test WR below 50% or negative mean return. Pattern broke down in this year.</li>
+                <li><strong className="text-gray-400">Low sample</strong> — fewer than 15 signals in the test year. Not enough data to judge; excluded from consistent rate.</li>
+              </ul>
             </div>
+
+            {/* 中文 */}
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">中文</p>
               <p className="text-gray-300 mb-2">
+                <em>核心問題：這個規律在不同的市場年份都有效，還是只在某個特定年代剛好有效？</em>
+              </p>
+              <p className="text-gray-400 mb-2">
                 Walk-forward 驗證以<strong className="text-white">每年滾動一格</strong>的方式測試 pattern：
-                每個 fold 用 3 年數據訓練，測試下一年，比單一 train/test split 更嚴格。
+                每個 fold 用 3 年數據訓練，然後在下一年測試，比單一 train/test split 嚴格得多。
               </p>
-              <p className="text-gray-400 text-sm">
-                只在某一段時期有效的 pattern 可能是統計偶然。
-                在多個 fold 中保持<strong className="text-gray-300">穩定</strong>的 pattern，更有可能反映真實的市場規律。
+              <p className="text-gray-400 mb-3">
+                就像一個教練在多個賽季反覆測試戰術，而不只看一場比賽。
+                一個規律能在<strong className="text-white">4–5 個不同年份都成立</strong>，就很難說只是運氣。
               </p>
+
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">各欄位說明</p>
+              <ul className="space-y-1.5 text-gray-400">
+                <li><strong className="text-gray-200">Fold</strong> — 一個滾動測試窗口（例如：用 2018–2020 訓練，2021 測試）。</li>
+                <li><strong className="text-gray-200">Train WR（訓練期勝率）</strong> — 訓練期間的勝率，即模型「學到」的結果。</li>
+                <li><strong className="text-gray-200">Test WR（測試期勝率）</strong> — 在從未見過的測試年份的勝率。這才是真正重要的數字。</li>
+                <li><strong className="text-gray-200">Test Mean Ret（測試期平均回報）</strong> — 測試年份每次信號的平均回報。</li>
+                <li><strong className="text-gray-200">Consistent rate（穩定率）</strong> — 有效 fold 中，規律成立的比例（測試勝率 ≥ 55% 且平均回報為正）。</li>
+              </ul>
+
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-3">結果標籤說明</p>
+              <ul className="space-y-1.5 text-gray-400">
+                <li><strong className="text-green-400">Consistent（穩定）</strong> — 測試勝率 ≥ 55% 且平均回報為正。規律在這年成立。</li>
+                <li><strong className="text-yellow-400">Weakened（轉弱）</strong> — 測試勝率 50–55% 或平均回報接近零。規律仍略為正面但比訓練期弱。</li>
+                <li><strong className="text-red-400">Failed（失效）</strong> — 測試勝率低於 50% 或平均回報為負。規律在這年失效。</li>
+                <li><strong className="text-gray-400">Low sample（樣本少）</strong> — 測試年份信號不足 15 次，數據不夠，不計入穩定率。</li>
+              </ul>
             </div>
           </div>
         </div>
       )}
 
       {/* ── 篩選器 ── */}
-      <div className="flex flex-wrap items-center gap-4 mt-4 mb-5">
+      <div className="flex flex-wrap items-center gap-4 mt-4 mb-4">
         {/* 幣種 */}
         <div className="flex gap-1 border-b border-gray-700">
           {SYMBOLS.map((s) => (
@@ -307,6 +403,18 @@ export default function WalkForwardPanel({ data }: { data: WalkForwardRow[] }) {
         )}
       </div>
 
+      {/* ── 條件說明行 ── */}
+      <div className="mb-5 px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-sm">
+        <span className="text-gray-400">Showing: </span>
+        <span className="text-white font-medium">every time {sym} dropped {dropPct} in a single day</span>
+        <span className="text-gray-400"> — did the </span>
+        <span className="text-white font-medium">{hold}-day</span>
+        <span className="text-gray-400"> bounce pattern hold up across different market years?</span>
+        <span className="block mt-1 text-gray-500 text-sm">
+          顯示：{sym} 單日跌 {dropPct} 後持有 {hold} 天的規律，在各個不同市場年份是否一致成立
+        </span>
+      </div>
+
       {/* ── 圖表 ── */}
       <div className="rounded-lg border border-gray-800 bg-gray-950/50 p-3 mb-5">
         <WalkChart rows={filtered} color={color} />
@@ -322,6 +430,15 @@ export default function WalkForwardPanel({ data }: { data: WalkForwardRow[] }) {
             Train avg win rate
           </div>
         </div>
+      </div>
+
+      {/* ── Key Takeaway ── */}
+      <div className={`mb-5 rounded-lg border ${takeaway.border} ${takeaway.bg} px-4 py-3`}>
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+          {takeaway.icon} Key Takeaway
+        </p>
+        <p className="text-sm text-gray-200 leading-relaxed">{takeaway.enSummary}</p>
+        <p className="text-sm text-gray-400 leading-relaxed mt-1">{takeaway.zhSummary}</p>
       </div>
 
       {/* ── Fold 明細表 ── */}
@@ -386,7 +503,7 @@ export default function WalkForwardPanel({ data }: { data: WalkForwardRow[] }) {
       {/* ── 底部注釋 ── */}
       <p className="text-gray-600 text-sm mt-4 leading-relaxed">
         Each fold trains on 3 years and tests on the next year. Low sample folds (test n &lt; 15) are excluded from consistent rate calculation.
-        · 每個 fold 以 3 年訓練、1 年測試。測試樣本少於 15 次的 fold 不計入穩定率。
+        <span className="block mt-0.5">每個 fold 以 3 年訓練、1 年測試。測試樣本少於 15 次的 fold 不計入穩定率。</span>
       </p>
     </div>
   );
