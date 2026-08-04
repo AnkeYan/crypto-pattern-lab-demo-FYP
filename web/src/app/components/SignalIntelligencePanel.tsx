@@ -3,7 +3,7 @@
 // Signal Intelligence 面板
 // 三個區塊：Regime Status · Signal Confluence Score · Conditional Return Stats
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { wilsonCILabel } from "../lib/wilson";
 
 // ── 類型定義 ──────────────────────────────────────────────────────────────────
@@ -155,10 +155,10 @@ export default function SignalIntelligencePanel({
   garchContext?: Record<string, GarchContext>;
   latestRc?: RollingCorrSnapshot | null;
 }) {
-  const [sym,     setSym]     = useState("BTC");
-  const [holding, setHolding] = useState(7);
-  const [regime,  setRegime]  = useState("all");
-  const [showInfo, setShowInfo] = useState(true); // 預設展開，讓用戶第一眼就能讀到說明
+  const [sym,      setSym]      = useState("BTC");
+  const [holding,  setHolding]  = useState(7);
+  const [regime,   setRegime]   = useState("all");
+  const [showInfo, setShowInfo] = useState(true);
 
   const symKey  = `${sym}USDT`;
   const symData = summary.find((s) => s.symbol === symKey);
@@ -179,6 +179,60 @@ export default function SignalIntelligencePanel({
     ? (["sig_rsi","sig_bollinger","sig_drop3","sig_vol_spike"] as const)
         .filter((k) => symData[k])
     : [];
+
+  // ── 動態 Key Takeaway ──────────────────────────────────────────────────────
+  const takeaway = useMemo(() => {
+    const baseline = confRows.find((r) => r.signals === "baseline");
+    const baseWr   = baseline?.win_rate ?? null;
+    const baseMean = baseline?.mean_return ?? null;
+
+    // 找非 baseline 中勝率最高且樣本 >= 5 的行
+    const best = confRows
+      .filter((r) => r.signals !== "baseline" && (r.n ?? 0) >= 5 && r.win_rate != null)
+      .sort((a, b) => (b.win_rate ?? 0) - (a.win_rate ?? 0))[0] ?? null;
+
+    const bestWr    = best?.win_rate ?? null;
+    const bestMean  = best?.mean_return ?? null;
+    const bestLabel = best ? (SIGNAL_COMBO_LABEL[best.signals] ?? best.signals) : null;
+    const edge      = bestWr != null && baseWr != null ? bestWr - baseWr : null;
+
+    const regimeLabel = regime === "all" ? "all regimes" : `${regime} regime`;
+    const regimeLabelZh = regime === "all" ? "所有市場狀態" : `${regime === "bull" ? "牛市" : regime === "bear" ? "熊市" : "橫盤"} Regime`;
+
+    let border = "border-gray-700";
+    let bg = "bg-white/[0.03]";
+    let icon = "~";
+    let enSummary = "";
+    let zhSummary = "";
+
+    if (!best || bestWr === null) {
+      border = "border-gray-700";
+      bg = "bg-white/[0.03]";
+      icon = "~";
+      enSummary = `No signal combinations with sufficient historical data for ${sym} / ${holding}d hold / ${regimeLabel}.`;
+      zhSummary = `${sym} 在目前篩選條件下（${holding} 天持有／${regimeLabelZh}）沒有足夠樣本的信號組合。`;
+    } else if (bestWr >= 0.58 && (edge === null || edge >= 0.03)) {
+      border = "border-green-500/30";
+      bg = "bg-green-500/5";
+      icon = "✓";
+      enSummary = `Historically, when ${sym} triggered "${bestLabel}" during ${regimeLabel}, the ${holding}d win rate was ${pct(bestWr)} — ${edge != null ? `+${(edge * 100).toFixed(1)}pp above the no-signal baseline (${pct(baseWr)})` : "above baseline"}. Mean return: ${bestMean != null ? `${bestMean >= 0 ? "+" : ""}${(bestMean * 100).toFixed(2)}%` : "—"}.`;
+      zhSummary = `歷史上 ${sym} 觸發「${bestLabel}」信號（${regimeLabelZh}）後，持有 ${holding} 天的勝率為 ${pct(bestWr)}${edge != null ? `，比無信號基準（${pct(baseWr)}）高 ${(edge * 100).toFixed(1)} 個百分點` : ""}。平均回報：${bestMean != null ? `${bestMean >= 0 ? "+" : ""}${(bestMean * 100).toFixed(2)}%` : "—"}。`;
+    } else if (bestWr >= 0.52) {
+      border = "border-gray-700";
+      bg = "bg-white/[0.03]";
+      icon = "~";
+      enSummary = `The best signal combination for ${sym} / ${holding}d / ${regimeLabel} is "${bestLabel}" with a ${pct(bestWr)} win rate${edge != null ? ` (+${(edge * 100).toFixed(1)}pp vs baseline)` : ""}. Edge is marginal — use alongside other indicators.`;
+      zhSummary = `目前篩選條件下最佳組合為「${bestLabel}」，勝率 ${pct(bestWr)}${edge != null ? `（比基準高 ${(edge * 100).toFixed(1)} 個百分點）` : ""}。優勢偏邊際，建議配合其他指標使用。`;
+    } else {
+      border = "border-red-500/20";
+      bg = "bg-red-500/5";
+      icon = "✗";
+      enSummary = `No signal combination shows a meaningful edge for ${sym} / ${holding}d hold / ${regimeLabel}. Best win rate is only ${pct(bestWr)} — barely above the ${pct(baseWr)} baseline. Consider checking a different regime or holding period.`;
+      zhSummary = `目前篩選條件下（${sym}／${holding} 天／${regimeLabelZh}）沒有信號組合顯示明顯優勢。最高勝率僅 ${pct(bestWr)}，與基準（${pct(baseWr)}）差距很小。可嘗試切換 Regime 或持有天數。`;
+    }
+
+    return { border, bg, icon, enSummary, zhSummary };
+  }, [confRows, sym, holding, regime]);
 
   return (
     <div className="space-y-6">
@@ -634,7 +688,16 @@ export default function SignalIntelligencePanel({
               </table>
             </div>
 
-            <div className="mt-4 rounded-lg border border-white/[0.05] bg-white/[0.02] p-3 text-xs leading-relaxed">
+            {/* ── Key Takeaway ── */}
+            <div className={`mt-4 rounded-lg border ${takeaway.border} ${takeaway.bg} px-4 py-3`}>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                {takeaway.icon} Key Takeaway
+              </p>
+              <p className="text-sm text-gray-200 leading-relaxed">{takeaway.enSummary}</p>
+              <p className="text-sm text-gray-400 leading-relaxed mt-1">{takeaway.zhSummary}</p>
+            </div>
+
+            <div className="mt-3 rounded-lg border border-white/[0.05] bg-white/[0.02] p-3 text-xs leading-relaxed">
               <p className="text-gray-400 mb-1">
                 <strong className="text-gray-300">如何解讀這張表 · How to read this table</strong>
               </p>

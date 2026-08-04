@@ -101,45 +101,63 @@ export default function RegimeTransitionPanel({ data }: { data: RegimeTransition
       </div>
 
       {showInfo && (
-        <div className="mt-3 mb-5 rounded-lg border border-white/[0.07] bg-white/[0.03] p-4 text-sm leading-relaxed">
+        <div className="mt-3 mb-5 rounded-lg border border-white/[0.07] bg-white/[0.03] p-4 text-sm leading-relaxed space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">English</p>
               <p className="text-gray-300 mb-2">
-                A <strong className="text-white">Markov Chain</strong> models regime switches as memoryless transitions.
-                Each time the market left a regime, where did it go next?
+                <em>The core question: given that the market is currently in a Bull / Bear / Sideways regime, what does history say about how long it typically lasts — and where does it tend to go next?</em>
               </p>
-              <p className="text-gray-400 text-sm leading-relaxed">
-                <strong className="text-gray-300">Transition probability</strong>: historical frequency of each regime-to-regime switch.{" "}
-                <strong className="text-gray-300">Avg duration</strong>: how many days each regime typically lasted.{" "}
-                <strong className="text-gray-300">Current streak</strong>: how long the current regime has persisted — and the estimated remaining days based on history.
+              <p className="text-gray-400 mb-2">
+                A <strong className="text-white">Markov Chain</strong> models market regime switches as historical transition frequencies.
+                Think of it like a weather forecast based on seasons — if it's currently winter, how many days does winter typically last, and what's the probability it transitions to spring vs. an unusually long freeze?
+              </p>
+              <p className="text-gray-400 mb-3">
+                This is purely based on historical patterns. Real markets have momentum and news-driven breaks — use this as background context, not a prediction.
+              </p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">What do the terms mean?</p>
+              <ul className="space-y-1.5 text-gray-400">
+                <li><strong className="text-gray-200">Transition probability</strong> — historical frequency of each regime-to-regime switch. e.g. "Bull → Sideways: 100%" means every bull run in history transitioned to Sideways first before Bear.</li>
+                <li><strong className="text-gray-200">Avg duration</strong> — how many days each regime typically lasted (median). P25–P75 gives the typical range.</li>
+                <li><strong className="text-gray-200">Current streak</strong> — how many days the current regime has been active.</li>
+                <li><strong className="text-gray-200">Est. remaining</strong> — estimated remaining days based on historical runs of this length. If streak already exceeds the average, it means this run is already unusually long.</li>
+                <li><strong className="text-gray-200">Next regime probabilities</strong> — based on historical transition matrix: given the current regime, how often did each transition occur?</li>
+              </ul>
+              <p className="text-xs text-blue-400/70 mt-3 pt-2 border-t border-white/[0.05]">
+                <strong className="text-blue-300/80">Why is Bull → Bear = 0%?</strong>{" "}
+                The regime classifier requires Bull → Sideways → Bear. Any day that doesn't fully qualify as Bull or Bear is labelled Sideways first — making direct Bull/Bear flips impossible by construction. This is expected, not a data error.
               </p>
             </div>
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">中文</p>
               <p className="text-gray-300 mb-2">
-                <strong className="text-white">馬可夫鏈</strong>把市場狀態切換建模為無記憶轉換——每次離開某個狀態，歷史上下一個狀態是什麼？
+                <em>核心問題：當前市場處於牛市／熊市／橫盤，歷史上這個狀態通常持續多久，接下來最可能轉向哪裡？</em>
               </p>
-              <p className="text-gray-400 text-sm leading-relaxed">
-                <strong className="text-gray-300">轉換概率</strong>：各 regime 切換的歷史頻率。{" "}
-                <strong className="text-gray-300">平均持續天數</strong>：每個 regime 通常持續多久。{" "}
-                <strong className="text-gray-300">當前連續天數</strong>：目前 regime 已持續多少天，及基於歷史估算的剩餘天數。
+              <p className="text-gray-400 mb-2">
+                <strong className="text-white">馬可夫鏈</strong>把市場狀態切換建模為歷史轉換頻率。
+                就像用季節預測天氣——現在是冬天，冬天通常持續多少天，接下來轉春天的概率是多少？
+              </p>
+              <p className="text-gray-400 mb-3">
+                這純粹基於歷史規律。現實市場有動量效應和突發新聞，僅作背景參考，不是預測。
+              </p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">各術語說明</p>
+              <ul className="space-y-1.5 text-gray-400">
+                <li><strong className="text-gray-200">轉換概率</strong> — 各 regime 切換的歷史頻率。例如「Bull → Sideways: 100%」代表歷史上所有牛市都先轉為橫盤才進入熊市。</li>
+                <li><strong className="text-gray-200">平均持續天數</strong> — 每個 regime 通常持續多久（中位數）。P25–P75 是典型區間。</li>
+                <li><strong className="text-gray-200">當前連續天數</strong> — 目前 regime 已持續了多少天。</li>
+                <li><strong className="text-gray-200">估計剩餘天數</strong> — 根據歷史上同等長度的 regime，估算還有多少天。如果當前 streak 已超過平均值，說明這次 regime 已屬異常偏長。</li>
+                <li><strong className="text-gray-200">下一狀態概率</strong> — 根據歷史轉換矩陣：當前 regime 結束後，各狀態出現的歷史頻率。</li>
+              </ul>
+              <p className="text-xs text-yellow-400/80 mt-3 pt-2 border-t border-white/[0.05]">
+                ⚠ 馬可夫假設轉換無記憶——實際市場有動量效應和路徑依賴。此工具適合作為背景參考，不適合作為獨立交易信號。
               </p>
             </div>
           </div>
-          <p className="text-xs text-blue-400/70 mt-3 border-t border-white/[0.05] pt-3">
-            <strong className="text-blue-300/80">Why Bull → Bear = 0%?</strong>{" "}
-            The regime rules require Bull → Sideways → Bear. A direct flip is impossible by construction: any day that does not fully meet Bull or Bear criteria registers as Sideways first. This is expected behaviour, not a data error.{" "}
-            為何 Bull → Bear = 0%？因為 Regime 規則要求市場必須先經過 Sideways 緩衝帶，直接在 Bull 和 Bear 之間切換在定義上不可能發生，這是預期行為。
-          </p>
-          <p className="text-xs text-yellow-400/80 mt-1">
-            ⚠ Markov assumption: transitions are memoryless. Real markets have momentum and path-dependence. Use as context, not prediction. 馬可夫假設轉換無記憶，實際市場有動量效應，僅供參考。
-          </p>
         </div>
       )}
 
       {/* Symbol tabs */}
-      <div className="flex gap-1 border-b border-gray-700 mt-4 mb-5">
+      <div className="flex gap-1 border-b border-gray-700 mt-4 mb-4">
         {SYMBOLS.map((s) => (
           <button
             key={s}
@@ -151,6 +169,16 @@ export default function RegimeTransitionPanel({ data }: { data: RegimeTransition
             {s}
           </button>
         ))}
+      </div>
+
+      {/* ── 條件說明行 ── */}
+      <div className="mb-5 px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-sm">
+        <span className="text-gray-400">Showing: </span>
+        <span className="text-white font-medium">{sym}</span>
+        <span className="text-gray-400"> market regime history — how long does each state typically last, and where does it tend to transition next?</span>
+        <span className="block mt-1 text-gray-500 text-sm">
+          顯示：{sym} 市場狀態歷史規律——每個狀態通常持續多久，結束後最常轉向哪裡
+        </span>
       </div>
 
       {/* Current streak snapshot */}
@@ -265,7 +293,50 @@ export default function RegimeTransitionPanel({ data }: { data: RegimeTransition
         </div>
       </div>
 
-      <div className="mt-5 pt-4 border-t border-gray-800 bg-gray-800/30 px-4 py-3 rounded-lg -mx-0">
+      {/* ── Key Takeaway ── */}
+      {snapshot && (() => {
+        const regLabel = REGIME_COLOR[currentRegime]?.label ?? currentRegime;
+        const regLabelZh = currentRegime === "bull" ? "牛市" : currentRegime === "bear" ? "熊市" : currentRegime === "sideways" ? "橫盤" : "未知";
+        const avgDur = durations.find((r) => r.from_regime === currentRegime)?.probability ?? null;
+        const alreadyLong = avgDur != null && currentStreak != null && currentStreak > avgDur;
+
+        // 找最可能的下一狀態
+        const nextRegimeProbs = nextProbs.length === 3 ? [
+          { regime: "bull", prob: parseFloat(nextProbs[0] ?? "0"), label: "Bull" },
+          { regime: "bear", prob: parseFloat(nextProbs[1] ?? "0"), label: "Bear" },
+          { regime: "sideways", prob: parseFloat(nextProbs[2] ?? "0"), label: "Sideways" },
+        ].sort((a, b) => b.prob - a.prob) : [];
+        const likelyNext = nextRegimeProbs[0] ?? null;
+
+        let border = "border-gray-700";
+        let bg = "bg-white/[0.03]";
+        const icon = "~";
+        let en = "";
+        let zh = "";
+
+        if (currentRegime === "bull") {
+          border = "border-green-500/30"; bg = "bg-green-500/5";
+          en = `${sym} is currently in a Bull regime${currentStreak != null ? ` (${currentStreak} days)` : ""}${avgDur != null ? `, vs. historical avg of ${avgDur} days` : ""}. ${alreadyLong ? "This run is already longer than average — a transition may be closer than usual." : "Still within the typical duration range."}${likelyNext ? ` Historically, Bull most often transitions to: ${likelyNext.label} (${(likelyNext.prob * 100).toFixed(0)}%).` : ""}`;
+          zh = `${sym} 目前處於牛市 Regime${currentStreak != null ? `（已持續 ${currentStreak} 天）` : ""}${avgDur != null ? `，歷史平均持續 ${avgDur} 天` : ""}。${alreadyLong ? "本次已超過歷史平均，轉換可能比通常更近。" : "仍在典型持續範圍內。"}${likelyNext ? `歷史上牛市最常轉向：${likelyNext.label === "Bull" ? "牛市" : likelyNext.label === "Bear" ? "熊市" : "橫盤"}（${(likelyNext.prob * 100).toFixed(0)}%）。` : ""}`;
+        } else if (currentRegime === "bear") {
+          border = "border-red-500/20"; bg = "bg-red-500/5";
+          en = `${sym} is currently in a Bear regime${currentStreak != null ? ` (${currentStreak} days)` : ""}${avgDur != null ? `, vs. historical avg of ${avgDur} days` : ""}. ${alreadyLong ? "This bear run is already unusually long." : "Within the typical duration range."}${likelyNext ? ` Historically, Bear most often transitions to: ${likelyNext.label} (${(likelyNext.prob * 100).toFixed(0)}%).` : ""}`;
+          zh = `${sym} 目前處於熊市 Regime${currentStreak != null ? `（已持續 ${currentStreak} 天）` : ""}${avgDur != null ? `，歷史平均持續 ${avgDur} 天` : ""}。${alreadyLong ? "本次熊市持續時間已屬異常偏長。" : "仍在典型持續範圍內。"}${likelyNext ? `歷史上熊市最常轉向：${likelyNext.label === "Bull" ? "牛市" : likelyNext.label === "Bear" ? "熊市" : "橫盤"}（${(likelyNext.prob * 100).toFixed(0)}%）。` : ""}`;
+        } else {
+          en = `${sym} is currently in a Sideways regime${currentStreak != null ? ` (${currentStreak} days)` : ""}${avgDur != null ? `, vs. historical avg of ${avgDur} days` : ""}. ${alreadyLong ? "This sideways consolidation is already longer than average." : "Within the typical duration range."}${likelyNext ? ` Historically, Sideways most often transitions to: ${likelyNext.label} (${(likelyNext.prob * 100).toFixed(0)}%).` : ""}`;
+          zh = `${sym} 目前處於橫盤 Regime${currentStreak != null ? `（已持續 ${currentStreak} 天）` : ""}${avgDur != null ? `，歷史平均持續 ${avgDur} 天` : ""}。${alreadyLong ? "本次橫盤已比歷史平均更長。" : "仍在典型持續範圍內。"}${likelyNext ? `歷史上橫盤最常轉向：${likelyNext.label === "Bull" ? "牛市" : likelyNext.label === "Bear" ? "熊市" : "橫盤"}（${(likelyNext.prob * 100).toFixed(0)}%）。` : ""}`;
+        }
+
+        return (
+          <div className={`mt-5 rounded-lg border ${border} ${bg} px-4 py-3`}>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">~ Key Takeaway</p>
+            <p className="text-sm text-gray-200 leading-relaxed">{en}</p>
+            <p className="text-sm text-gray-400 leading-relaxed mt-1">{zh}</p>
+          </div>
+        );
+      })()}
+
+      <div className="mt-4 pt-4 border-t border-gray-800 bg-gray-800/30 px-4 py-3 rounded-lg">
         <p className="text-sm text-gray-400 leading-relaxed">
           <span className="text-purple-400/90 font-semibold">Research note · 研究說明：</span>{" "}
           Regime labels are rule-based (SMA50/200 + 30d momentum). Transition probabilities are historical frequencies, not forecasts. A Markov model assumes each transition is independent of history — suitable for context only. Regime 標籤基於規則分類（SMA50/200 + 30 天動量）。轉換概率為歷史頻率，非預測。馬可夫模型假設轉換互相獨立，僅供背景參考。
