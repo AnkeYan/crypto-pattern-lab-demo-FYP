@@ -1,4 +1,4 @@
-# CryptoPatternLab 項目交接文件 v13.0
+# CryptoPatternLab 項目交接文件 v14.0
 
 ## 產品定位
 AI-powered crypto pattern research assistant。
@@ -235,19 +235,37 @@ analyze_halving.py
 
 ## 部署狀態（已完成 ✅）
 
-### GitHub
-- **帳號**：AnkeYan
-- **Repo**：`https://github.com/AnkeYan/crypto-pattern-lab`（Private）
-- **架構**：整個 `crypto-pattern-lab/` 目錄（含 data/ + scripts/ + web/）都在這個 repo
+### 主項目（商業版）
+- **GitHub**：`https://github.com/AnkeYan/crypto-pattern-lab`（**Private**）
+- **本地路徑**：`/Users/nganyukkuen/Bob/crypto-pattern-lab/`
+- **Vercel 網址**：`https://crypto-pattern-lab.vercel.app` ✅
+- **Root Directory**：`web`
+- **環境變數**：`NEXT_PUBLIC_SITE_URL`、`GEMINI_API_KEY`
+- **特點**：有 Tier 系統（Free/Pro/Research）、收費字眼、DevTierSwitcher
 
-### Vercel
-- **網址**：`https://crypto-pattern-lab.vercel.app` ✅ 已上線
-- **Root Directory**：`web`（在 Vercel Settings → Build and Deployment 設定）
-- **環境變數（已設定）**：
-  - `NEXT_PUBLIC_SITE_URL = https://crypto-pattern-lab.vercel.app`
-  - `GEMINI_API_KEY = <key>`（AI Summary 用）
-  - ~~`NEXT_PUBLIC_DEV_PANEL`~~ ← **已刪除**（安全問題，改用 ?dev=true URL 參數）
-- **自動部署**：push 到 main branch → Vercel 自動重新部署
+### FYP 副本（學術展示版）⚠️ 完全獨立，不要混淆
+- **GitHub**：`https://github.com/AnkeYan/crypto-pattern-lab-demo-FYP`（**Public**）
+- **本地路徑**：`/Users/nganyukkuen/Desktop/crypto-pattern-lab-export/`（✅ 已移至正式路徑，不再是 /tmp/）
+- **Vercel 網址**：`https://crypto-pattern-lab-demo-fyp.vercel.app` ✅
+- **Root Directory**：`web`
+- **環境變數**：`NEXT_PUBLIC_SITE_URL = https://crypto-pattern-lab-demo-fyp.vercel.app`、`GEMINI_API_KEY`
+- **GitHub Actions**：每天 UTC 03:00 自動更新數據（已設定，Read and write permissions ✅）
+- **特點**：無 Tier 系統（`useTier()` 永遠回傳 `"research"`）、無收費字眼、無 Pricing section、無 blur gate、全部 panel 開放
+- **用途**：FYP 提交（Department of Systems Engineering and Engineering Management，題目：Empirical Pattern of Cryptocurrencies）
+- **README**：已加入中英文完整說明（含技術棧、研究問題、Anti-Overfitting 措施、實證發現）
+- **git 狀態**：`.git` 已初始化，upstream 已設為 `origin/main`，可直接 commit + push
+
+### ⚠️ 副本 git push 方式
+```bash
+cd /Users/nganyukkuen/Desktop/crypto-pattern-lab-export
+git add -A && git commit -m "..." && git pull --rebase && git push
+```
+**重要**：副本有 GitHub Actions 每天自動 commit CSV，push 前必須先 `git pull --rebase`，否則會 rejected。
+
+### ⚠️ UI 改動同步原則
+**凡是 UI 相關改動，主文件 + 副本必須同步修改。**
+副本的組件（`PatternValidationPanel`、`WalkForwardPanel` 等純 UI 組件）跟主文件完全一樣。
+有 Tier 邏輯的組件（`useTier`、`TierGate`、`DevTierSwitcher`）副本不需要。
 
 ### baseUrl() 邏輯
 ```typescript
@@ -334,26 +352,26 @@ n < threshold  → lowN（黃）
 </div>
 ```
 
-### 完成狀態
+### 完成狀態（v14 全部完成 ✅）
 | Panel | 雙語說明 | 口語化 | 條件說明行 | Key Takeaway |
 |-------|---------|--------|-----------|-------------|
 | ResultsTable | ✅ | ✅ | — | ✅ Wilson CI |
 | FearGreedPanel | ✅ | ✅ | — | ✅ r/p 動態結論 |
-| RsiPanel | ✅ | ✅ **v11** | ✅ **v11** | ✅ **v11** |
-| BollingerPanel | ✅ | ✅ **v11** | ✅ **v11** | ✅ **v11** |
-| MonthSeasonalityPanel | ✅ | ✅ **v11** | — | ⬜ 待做 |
-| ConsecutiveDropPanel | ✅ | ✅ | — | ⬜ 待做 |
+| RsiPanel | ✅ | ✅ | ✅ | ✅ |
+| BollingerPanel | ✅ | ✅ | ✅ | ✅ |
+| MonthSeasonalityPanel | ✅ | ✅ | — | ✅ **v14** |
+| ConsecutiveDropPanel | ✅ | ✅ | — | ✅ **v14** |
 | RollingCorrelationChart | ✅ | ✅ | — | ✅ 動態解讀 |
-| GarchPanel | ✅ | ✅ **v12** | — | ✅ **v12** |
-| DrawdownRecoveryPanel | ✅ | ✅ **v12** | — | ✅ **v12** |
+| GarchPanel | ✅ | ✅ | — | ✅ |
+| DrawdownRecoveryPanel | ✅ | ✅ | — | ✅ |
 | HalvingPanel | ✅ | ✅ | — | ⚠️ n=4，刻意不做統計推斷 |
 | MonteCarloPanel | ✅ | ✅ | — | ✅ |
-| SignalIntelligencePanel | ✅ | ✅ | — | ✅ |
-| MultiFactorPanel | ✅ | ✅ | — | ✅ |
-| RegimeTransitionPanel | ✅ | ✅ | — | ✅ |
-| PatternValidationPanel | ✅ | ✅ | — | ✅ |
-| WalkForwardPanel | ✅ | ✅ | — | ✅ |
-| AcfPanel | ✅ | ✅ | — | ✅ |
+| SignalIntelligencePanel | ✅ | ✅ | ✅ **v14** | ✅ **v14** |
+| MultiFactorPanel | ✅ | ✅ | ✅ **v14** | ✅ **v14** |
+| RegimeTransitionPanel | ✅ | ✅ | ✅ **v14** | ✅ **v14** |
+| PatternValidationPanel | ✅ | ✅ | ✅ **v14** | ✅ **v14** |
+| WalkForwardPanel | ✅ | ✅ | ✅ **v14** | ✅ **v14** |
+| AcfPanel | ✅ | ✅ | ✅ **v14** | ✅ **v14**（含短/中期交易意義解讀）|
 
 ---
 
@@ -544,9 +562,12 @@ body {
 | F7 Volume Surge | 7% | 放量下跌→高分，放量上漲→低分，縮量→中性 |
 | F8 Price Momentum | 7% | 5d vs 20d relative momentum，負動量→高分 |
 
-### v2 待辦（歷史校準）
+### v2 待辦（歷史校準）— 下一步優先
 - 目標：每個分數區間（0–20、20–40、40–60、60–80、80–100）對應的歷史實際 7d 勝率
-- 前提：先確認用戶真的在用這個功能
+- 方法：新建 `analyze_multifactor_calibration.py`，回測歷史每天的因子分數 + 7天後漲跌
+- GARCH 回測問題：GARCH 無歷史記錄，回測時 F3 固定給 0.5（中性分），標注「未納入校準」
+- 輸出：新 CSV `multifactor_calibration.csv`（schema：symbol, date, score, score_bucket, outcome_7d, win）
+- 前端：MultiFactorPanel 加「Historical Calibration」區塊，顯示各分數區間的歷史勝率
 
 ---
 
@@ -604,16 +625,55 @@ body {
 
 ## 當前未完成 / 下一步（優先順序）
 
-### 🟡 中優先（下次對話優先處理）
-1. **各 Panel 動態 Key Takeaway 補全**
-   - 已完成：RsiPanel ✅、BollingerPanel ✅、DrawdownRecoveryPanel ✅、GarchPanel ✅（動態說明框）
-   - 待做：MonthSeasonalityPanel、ConsecutiveDropPanel
-   - 參考模式：見上方「Key Takeaway 設計模式」章節
-2. **手機 RWD 測試**
-   - overflow-x 和深色背景已修，但各 panel 在小螢幕的排版未全面驗證
-3. **Multi-Factor 歷史校準（v2）**（前提：先確認用戶使用）
-4. **登入系統 + 付費牆**（NextAuth.js + Supabase + Stripe，前提：先有真實用戶）
-5. **API Routes 錯誤處理**（18 個 routes 缺 try/catch，低優先）
+### 🔴 高優先（下次對話立即開始）
+1. **Multi-Factor 歷史校準（v2）**
+   - 新建 Python 腳本 `analyze_multifactor_calibration.py`
+   - 回測歷史每天的 7 個因子分數（F3 GARCH 固定 0.5 中性）+ 7天後漲跌結果
+   - 輸出 `multifactor_calibration.csv`
+   - 加入 `run_update.sh` 和 GitHub Actions
+   - 前端 MultiFactorPanel 加「Historical Calibration」區塊
+   - 驗證目標：高分區間（60–80、80–100）的歷史勝率是否明顯高於低分區間
+   - 校準後決定：是否刪除無效因子、調整權重
+
+### 🟡 中優先
+2. **XGBoost 替換人工權重**（校準完成後才做）
+   - 前提：先確認歷史校準結果有效
+   - 用 8 個因子特徵預測「7天後漲/跌」
+   - walk-forward 防 overfitting
+3. **登入系統 + 付費牆**（NextAuth.js + Supabase + Stripe，前提：先有真實用戶）
+
+### 🔵 ML / 量化 Agent 方向（已討論，記錄在案）
+
+**三步走路線圖：**
+- **Step 1（現在做）**：Multi-Factor Score 歷史校準，純統計，不需要 ML
+- **Step 2（校準後）**：XGBoost 分類器，自動學出最優權重，walk-forward 防 overfitting
+- **Step 3（長期）**：實時數據流 + Gemini 解讀 + Agent 架構 + 交易所 API
+
+**XGBoost 核心原理：**
+- 從歷史數據自動學出「什麼指標組合最預測漲跌」
+- 決策樹疊加（Boosting）：每棵樹專門修正前一棵的錯誤，100棵樹投票
+- 比人工權重更精準原因：自動發現因子交互（如 RSI < 30 在 Bull Regime 下才有效）
+
+**完整量化 Agent 技術棧：**
+```
+數據層 → 特徵工程層（現有 8 因子）→ 預測層（XGBoost）→ 決策層（規則/RL/LLM）→ 風控層 → 執行層（交易所 API）
+```
+
+**其他 ML 方法：**
+- 監督學習：Logistic Regression、Random Forest、XGBoost、LSTM、Transformer
+- 強化學習：DQN、PPO（OpenAI 用的）、SAC — 最適合做量化 Agent
+- 無監督學習：K-Means（市場狀態自動分群）、PCA（因子壓縮）
+
+**因子刪除原則（歷史校準後執行）：**
+- 刪除條件：因子分數高低對 7d 勝率幾乎無差異 + 加入後整體模型準確度無提升 + 與其他因子高度相關
+- 不刪除：因子單獨沒用但與其他組合有用（XGBoost 會發現）
+- 預期最弱：F5 月份季節性（樣本只有 7–12 年）、F3 GARCH（波動率與反彈關係間接）
+- 預期最強：F1 RSI、F2 BB（最多歷史數據支撐）
+
+**動態權重 vs 靜態權重：**
+- 現有 8 個因子人工固定權重（完全是拍腦袋）
+- 路線一（純統計）：按歷史校準結果重新分配靜態權重
+- 路線二（XGBoost）：自動動態學習，發現因子交互效應
 
 ### ⚪ 已確認暫緩
 - CPI / 利率相關性分析（需 FRED API key）
@@ -621,8 +681,24 @@ body {
 
 ---
 
-## 本輪完成的所有改動（v13.0，本次對話）
+## 本輪完成的所有改動（v14.0，本次對話）
 
+### UI 改動（全部同步主文件 + 副本）
+```
+bf7b692  fix: SignalIntelligencePanel — complete all 15 signal combo labels (fix lowercase), add signal definitions + why combine to explainer
+3c0dfe8  feat: SignalIntelligencePanel + MultiFactorPanel + RegimeTransitionPanel — expand explainers, add condition banners, dynamic Key Takeaways
+be6b82b  feat: AcfPanel — improve Key Takeaway with short/mid-term trading implication detail
+ece45a8  feat: AcfPanel — expand explainer with bilingual glossary + rainy day analogy, add condition banner, dynamic Key Takeaway
+11eb9f7  feat: WalkForwardPanel — expand explainer with bilingual glossary + result labels, add condition banner, dynamic Key Takeaway
+a7499a7  feat: PatternValidationPanel — expand explainer with bilingual glossary, add dynamic Key Takeaway, condition banner, bilingual Interpretation + Confidence Breakdown
+```
+
+### 副本 git 初始化
+```
+6dc0405  chore: restore local files before rebase with remote（副本從 /tmp/ 移至 Desktop，重新 git init）
+```
+
+### 歷史改動記錄（v13.0）
 ```
 8bfc920  feat: MonthSeasonalityPanel + ConsecutiveDropPanel — add dynamic Key Takeaway (edge/weak/lowN/marginal, bilingual)
 4d6ae0d  fix: mobile RWD — shrink header logo on mobile, hide search bar on mobile, fix FearGreedPanel badge wrapping
@@ -630,11 +706,14 @@ c2bbf10  fix: mobile RWD — wrap Research Workspace header, fix panel title ove
 f46dee8  fix: mobile RWD — overflow-x-hidden on all pages, fix Unlock all button overflow, fix table width bleed
 5d98aaf  fix: header mobile — reduce logo size, add right padding to nav so Signals tab not clipped
 bf88005  fix: ResultsTable — keep BTC/ETH/SOL tab and Table/Chart toggle in same row, prevents Chart button overflow on mobile
+43c6c47  fix: add try/catch error handling to all 18 CSV API routes
+6bc8244  fix: remove overflow-x-hidden from main — was breaking sticky ResearchTOC sidebar
+baf6e3c  docs: update HANDOVER.md to v13.0
 ```
 
 ---
 
-## 歷史改動記錄（v12.0）
+## 歷史改動記錄（v12.0）（保留供參考）
 
 ```
 425760c  feat: RollingCorrelationChart — add Brush pan/scroll to both charts; range buttons set default brush window instead of slicing data
