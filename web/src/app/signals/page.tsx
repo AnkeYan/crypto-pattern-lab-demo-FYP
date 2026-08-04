@@ -48,14 +48,31 @@ type RollingCorrRow = {
   eth_btc_ratio: number | null;
 };
 
+export type CalibSummaryRow = {
+  symbol:     string;
+  pct_bucket: string;
+  n:          number;
+  win_rate:   number;
+  mean_7d:    number;
+  score_min:  number;
+  score_max:  number;
+};
+
+export type CalibScatterPoint = {
+  score:      number;
+  outcome_7d: number;
+  win:        number;
+};
+
 export default async function SignalsPage() {
   const BASE = baseUrl();
-  const [signalsRes, rtRes, mfRes, garchRes, rcRes] = await Promise.all([
-    fetch(`${BASE}/api/signals`,            { cache: "no-store" }),
-    fetch(`${BASE}/api/regime-transition`,  { cache: "no-store" }),
-    fetch(`${BASE}/api/multifactor`,        { cache: "no-store" }),
-    fetch(`${BASE}/api/garch`,              { cache: "no-store" }),
-    fetch(`${BASE}/api/rolling-correlation`, { cache: "no-store" }),
+  const [signalsRes, rtRes, mfRes, mfCalibRes, garchRes, rcRes] = await Promise.all([
+    fetch(`${BASE}/api/signals`,                  { cache: "no-store" }),
+    fetch(`${BASE}/api/regime-transition`,        { cache: "no-store" }),
+    fetch(`${BASE}/api/multifactor`,              { cache: "no-store" }),
+    fetch(`${BASE}/api/multifactor-calibration`,  { cache: "no-store" }),
+    fetch(`${BASE}/api/garch`,                    { cache: "no-store" }),
+    fetch(`${BASE}/api/rolling-correlation`,      { cache: "no-store" }),
   ]);
 
   const { summary, confluence }: {
@@ -65,6 +82,10 @@ export default async function SignalsPage() {
 
   const rtData: RegimeTransitionRow[] = await rtRes.json();
   const mfData: MultifactorRow[]      = await mfRes.json();
+  const { summary: calibSummary, scatter: calibScatter }: {
+    summary: CalibSummaryRow[];
+    scatter: Record<string, CalibScatterPoint[]>;
+  } = await mfCalibRes.json();
   const garchData: GarchRow[]         = await garchRes.json();
   const rcData: RollingCorrRow[]      = await rcRes.json();
 
@@ -90,7 +111,7 @@ export default async function SignalsPage() {
   const latestRc = rcData.length > 0 ? rcData[rcData.length - 1] : null;
 
   return (
-    <main className="min-h-screen bg-gray-950 text-white overflow-x-hidden">
+    <main className="min-h-screen bg-gray-950 text-white">
       <Suspense>
         <WorkspaceHeader activeView="signals" maxWidthClass="max-w-6xl" />
       </Suspense>
@@ -126,7 +147,11 @@ export default async function SignalsPage() {
           {/* ── 2. Multi-Factor Setup Score — Research ── */}
           <div id="multifactor" className="mt-8">
             <TierGate requiredTier="pro" title="Multi-Factor Setup Score" description="Weighted synthesis of 6 models into a single 0–100 setup quality score: RSI intensity, Bollinger deviation, GARCH vol regime, Fear & Greed zone, seasonality bias, regime favorability. 多因子跨模型加權評分。">
-              <MultiFactorPanel data={mfData} />
+              <MultiFactorPanel
+                data={mfData}
+                calibSummary={calibSummary}
+                calibScatter={calibScatter}
+              />
             </TierGate>
           </div>
 

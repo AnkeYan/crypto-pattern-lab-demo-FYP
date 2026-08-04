@@ -1,9 +1,25 @@
 "use client";
 
 // MultiFactorPanel — Multi-Factor Setup Score
-// 跨模型加權整合：6個因子 → 0-100分的入場設置質量評分
+// 跨模型加權整合：8個因子 → 0-100分的入場設置質量評分 + 歷史校準區塊
 
 import { useMemo, useState } from "react";
+
+export type CalibSummaryRow = {
+  symbol:     string;
+  pct_bucket: string;
+  n:          number;
+  win_rate:   number;
+  mean_7d:    number;
+  score_min:  number;
+  score_max:  number;
+};
+
+export type CalibScatterPoint = {
+  score:      number;
+  outcome_7d: number;
+  win:        number;
+};
 
 export type MultifactorRow = {
   symbol: string;
@@ -94,7 +110,101 @@ function ScoreGauge({ score, color }: { score: number; color: string }) {
   );
 }
 
-export default function MultiFactorPanel({ data }: { data: MultifactorRow[] }) {
+// ── SVG Scatter Plot ────────────────────────────────────────────────────────
+function CalibScatter({
+  points,
+  color,
+}: {
+  points: CalibScatterPoint[];
+  color: string;
+}) {
+  const W = 320, H = 160, PAD = { t: 8, r: 8, b: 28, l: 38 };
+  const IW = W - PAD.l - PAD.r;
+  const IH = H - PAD.t - PAD.b;
+
+  if (points.length === 0) return null;
+
+  const scores   = points.map((p) => p.score);
+  const outcomes = points.map((p) => p.outcome_7d);
+  const xMin = Math.min(...scores),   xMax = Math.max(...scores);
+  const rawYMin = Math.min(...outcomes), rawYMax = Math.max(...outcomes);
+  // Symmetric y-axis around 0, capped at ±40%
+  const yExt  = Math.min(Math.max(Math.abs(rawYMin), Math.abs(rawYMax)) * 1.1, 0.40);
+  const yMin = -yExt, yMax = yExt;
+
+  const toX = (s: number) =>
+    xMax === xMin ? PAD.l + IW / 2 : PAD.l + ((s - xMin) / (xMax - xMin)) * IW;
+  const toY = (o: number) =>
+    PAD.t + ((yMax - o) / (yMax - yMin)) * IH;
+
+  const y0 = toY(0);
+
+  // x-axis ticks (3)
+  const xTicks = [xMin, (xMin + xMax) / 2, xMax];
+  // y-axis ticks: ±yExt and 0
+  const yTickVals = [-yExt, -yExt / 2, 0, yExt / 2, yExt];
+
+  return (
+    <svg width={W} height={H} className="overflow-visible">
+      {/* zero line */}
+      <line x1={PAD.l} x2={PAD.l + IW} y1={y0} y2={y0} stroke="#374151" strokeWidth={1} strokeDasharray="3 3" />
+
+      {/* y-axis ticks */}
+      {yTickVals.map((v) => {
+        const y = toY(v);
+        const lbl = v === 0 ? "0" : `${v > 0 ? "+" : ""}${(v * 100).toFixed(0)}%`;
+        return (
+          <g key={v}>
+            <line x1={PAD.l - 3} x2={PAD.l} y1={y} y2={y} stroke="#4b5563" strokeWidth={1} />
+            <text x={PAD.l - 5} y={y + 4} textAnchor="end" fill="#6b7280" fontSize={9}>
+              {lbl}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* x-axis ticks */}
+      {xTicks.map((v) => {
+        const x = toX(v);
+        return (
+          <g key={v}>
+            <line x1={x} x2={x} y1={PAD.t + IH} y2={PAD.t + IH + 3} stroke="#4b5563" strokeWidth={1} />
+            <text x={x} y={PAD.t + IH + 12} textAnchor="middle" fill="#6b7280" fontSize={9}>
+              {v.toFixed(1)}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* axis labels */}
+      <text x={PAD.l + IW / 2} y={H - 2} textAnchor="middle" fill="#6b7280" fontSize={9}>
+        Score
+      </text>
+
+      {/* dots */}
+      {points.map((p, i) => (
+        <circle
+          key={i}
+          cx={toX(p.score)}
+          cy={toY(p.outcome_7d)}
+          r={2.5}
+          fill={p.win === 1 ? color : "#ef4444"}
+          opacity={0.45}
+        />
+      ))}
+    </svg>
+  );
+}
+
+export default function MultiFactorPanel({
+  data,
+  calibSummary = [],
+  calibScatter = {},
+}: {
+  data: MultifactorRow[];
+  calibSummary?: CalibSummaryRow[];
+  calibScatter?: Record<string, CalibScatterPoint[]>;
+}) {
   const [sym, setSym] = useState("BTC");
   const [showInfo, setShowInfo] = useState(false);
 
@@ -310,6 +420,140 @@ export default function MultiFactorPanel({ data }: { data: MultifactorRow[] }) {
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">{icon} Key Takeaway</p>
             <p className="text-sm text-gray-200 leading-relaxed">{en}</p>
             <p className="text-sm text-gray-400 leading-relaxed mt-1">{zh}</p>
+          </div>
+        );
+      })()}
+
+      {/* ── Historical Calibration ── */}
+      {(() => {
+        const symKey      = `${sym}USDT`;
+        const symSummary  = calibSummary.filter((r) => r.symbol === symKey);
+        const symScatter  = calibScatter[symKey] ?? [];
+        const color       = SYMBOL_COLOR[sym];
+
+        if (symSummary.length === 0) return null;
+
+        const PCT_ORDER = ["bottom 50%", "top 50%", "top 25%", "top 10%"];
+        const PCT_LABELS: Record<string, { en: string; zh: string; color: string }> = {
+          "bottom 50%": { en: "Bottom 50%",  zh: "後 50%",  color: "text-gray-500"  },
+          "top 50%":    { en: "Top 50%",     zh: "前 50%",  color: "text-gray-300"  },
+          "top 25%":    { en: "Top 25%",     zh: "前 25%",  color: "text-yellow-400"},
+          "top 10%":    { en: "Top 10%",     zh: "前 10%",  color: "text-green-400" },
+        };
+
+        // Current score percentile (approximated from calibration data)
+        // Find the closest score_max in each bucket to determine where current score sits
+        const currentScore = totalRow?.raw_value ?? 0;
+        // Find which bucket the current score would fall into based on historical thresholds
+        const sortedBuckets = symSummary.slice().sort((a, b) => a.score_min - b.score_min);
+        let currentPctBucket = "bottom 50%";
+        for (const b of sortedBuckets) {
+          if (currentScore >= b.score_min) currentPctBucket = b.pct_bucket;
+        }
+        const currentBucketRow = symSummary.find((r) => r.pct_bucket === currentPctBucket);
+        const currentPctLabel  = PCT_LABELS[currentPctBucket];
+
+        return (
+          <div className="mt-6 pt-5 border-t border-gray-800">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-200">Historical Calibration · 歷史校準</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  How did similar scores perform historically? · 歷史上相近分數的 7d 結果分布
+                </p>
+              </div>
+            </div>
+
+            {/* Current score percentile banner */}
+            {currentBucketRow && (
+              <div className="mb-4 px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-sm">
+                <span className="text-gray-400">Current {sym} score </span>
+                <span className="text-white font-medium">{currentScore.toFixed(1)}</span>
+                <span className="text-gray-400"> is in the </span>
+                <span className={`font-semibold ${currentPctLabel.color}`}>{currentPctLabel.en}</span>
+                <span className="text-gray-400"> of historical days</span>
+                <span className="text-gray-400"> · Historical win rate: </span>
+                <span className="font-semibold" style={{ color }}>
+                  {(currentBucketRow.win_rate * 100).toFixed(1)}%
+                </span>
+                <span className="text-gray-400"> (n={currentBucketRow.n})</span>
+                <span className="block mt-1 text-gray-500 text-sm">
+                  當前分數屬於歷史上{currentPctLabel.zh}的日子 · 該分位數日子 7d 勝率：{(currentBucketRow.win_rate * 100).toFixed(1)}%
+                </span>
+              </div>
+            )}
+
+            <div className="flex flex-col lg:flex-row gap-5 items-start">
+              {/* Summary table */}
+              <div className="flex-1 min-w-0">
+                <table className="w-full text-sm border-collapse">
+                  <thead>
+                    <tr className="text-left">
+                      <th className="text-xs text-gray-500 font-medium pb-2 pr-3">Percentile</th>
+                      <th className="text-xs text-gray-500 font-medium pb-2 pr-3 text-right">n</th>
+                      <th className="text-xs text-gray-500 font-medium pb-2 pr-3 text-right">Win Rate</th>
+                      <th className="text-xs text-gray-500 font-medium pb-2 pr-3 text-right">Mean 7d</th>
+                      <th className="text-xs text-gray-500 font-medium pb-2 text-right">Score range</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {PCT_ORDER.map((bucket) => {
+                      const row = symSummary.find((r) => r.pct_bucket === bucket);
+                      if (!row) return null;
+                      const lbl      = PCT_LABELS[bucket];
+                      const isCurrent = bucket === currentPctBucket;
+                      return (
+                        <tr
+                          key={bucket}
+                          className={`border-t border-gray-800 ${isCurrent ? "bg-white/[0.04]" : ""}`}
+                        >
+                          <td className={`py-2 pr-3 font-medium text-xs ${lbl.color}`}>
+                            {lbl.en}
+                            {isCurrent && (
+                              <span className="ml-1.5 text-[10px] text-gray-500 font-normal">← now</span>
+                            )}
+                          </td>
+                          <td className="py-2 pr-3 text-right text-gray-400 tabular-nums text-xs">{row.n}</td>
+                          <td className="py-2 pr-3 text-right tabular-nums text-xs">
+                            <span className={row.win_rate >= 0.55 ? "text-green-400" : row.win_rate < 0.50 ? "text-red-400" : "text-gray-300"}>
+                              {(row.win_rate * 100).toFixed(1)}%
+                            </span>
+                          </td>
+                          <td className="py-2 pr-3 text-right tabular-nums text-xs">
+                            <span className={row.mean_7d >= 0 ? "text-green-400" : "text-red-400"}>
+                              {row.mean_7d >= 0 ? "+" : ""}{(row.mean_7d * 100).toFixed(2)}%
+                            </span>
+                          </td>
+                          <td className="py-2 text-right text-gray-500 tabular-nums text-xs">
+                            {row.score_min.toFixed(1)}–{row.score_max.toFixed(1)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Scatter plot */}
+              {symScatter.length > 0 && (
+                <div className="flex-shrink-0">
+                  <p className="text-xs text-gray-500 mb-1.5">Score vs 7d outcome · 分數 vs 7日回報</p>
+                  <div className="rounded-lg border border-gray-800 bg-gray-950/40 p-2 overflow-x-auto">
+                    <CalibScatter points={symScatter} color={color} />
+                  </div>
+                  <p className="text-xs text-gray-600 mt-1.5">
+                    <span style={{ color }} className="opacity-70">●</span> win &nbsp;
+                    <span className="text-red-500/70">●</span> loss &nbsp;·&nbsp;
+                    sample of {symScatter.length} historical days
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <p className="mt-3 text-xs text-gray-600 leading-relaxed">
+              ⚠️ Calibration note: F3 (GARCH) and F4 (Fear & Greed) are excluded from calibration scoring — GARCH has no daily history, and F&G uses a static proxy. Score distribution is right-skewed by design; high scores are intentionally rare.
+              <span className="block mt-0.5">校準說明：F3（GARCH）和 F4（恐懼貪婪）不納入校準評分（GARCH 無逐日歷史，F&G 使用靜態代理）。分數分布右偏屬設計預期，高分本就稀有。</span>
+            </p>
           </div>
         );
       })()}
