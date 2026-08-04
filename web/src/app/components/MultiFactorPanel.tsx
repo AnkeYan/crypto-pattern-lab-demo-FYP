@@ -207,6 +207,7 @@ export default function MultiFactorPanel({
 }) {
   const [sym, setSym] = useState("BTC");
   const [showInfo, setShowInfo] = useState(false);
+  const [showCalibInfo, setShowCalibInfo] = useState(false);
 
   const symKey  = `${sym}USDT`;
   const symData = data.filter((r) => r.symbol === symKey);
@@ -441,10 +442,7 @@ export default function MultiFactorPanel({
           "top 10%":    { en: "Top 10%",     zh: "前 10%",  color: "text-green-400" },
         };
 
-        // Current score percentile (approximated from calibration data)
-        // Find the closest score_max in each bucket to determine where current score sits
         const currentScore = totalRow?.raw_value ?? 0;
-        // Find which bucket the current score would fall into based on historical thresholds
         const sortedBuckets = symSummary.slice().sort((a, b) => a.score_min - b.score_min);
         let currentPctBucket = "bottom 50%";
         for (const b of sortedBuckets) {
@@ -455,14 +453,64 @@ export default function MultiFactorPanel({
 
         return (
           <div className="mt-6 pt-5 border-t border-gray-800">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-start justify-between mb-3">
               <div>
                 <p className="text-sm font-semibold text-gray-200">Historical Calibration · 歷史校準</p>
                 <p className="text-xs text-gray-500 mt-0.5">
                   How did similar scores perform historically? · 歷史上相近分數的 7d 結果分布
                 </p>
               </div>
+              <button
+                onClick={() => setShowCalibInfo((v) => !v)}
+                className="text-xs text-gray-400 hover:text-gray-200 whitespace-nowrap transition-colors flex-shrink-0 ml-4"
+              >
+                {showCalibInfo ? "▾" : "▸"} How to read this?
+              </button>
             </div>
+
+            {/* Explainer dropdown */}
+            {showCalibInfo && (
+              <div className="mb-4 rounded-lg border border-white/[0.07] bg-white/[0.03] p-4 text-sm leading-relaxed">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">English</p>
+                    <p className="text-gray-300 mb-2">
+                      <em>The core question: historically, when the Multi-Factor Score was this high, how often did the price go up 7 days later?</em>
+                    </p>
+                    <p className="text-gray-400 mb-2">
+                      This section back-tests the scoring logic across all historical days. For each day, we compute what the score <em>would have been</em> using that day&apos;s data, then check if the price was higher 7 days later.
+                    </p>
+                    <p className="text-gray-400 mb-2">
+                      The table groups days into <strong className="text-white">percentile buckets</strong> — e.g. &quot;Top 10%&quot; means days when the score was in the top 10% of all historical days. The key insight: do higher-scoring days show a higher win rate?
+                    </p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-3">Important caveats</p>
+                    <ul className="space-y-1 text-gray-400 text-xs">
+                      <li>• <strong className="text-gray-300">Score distribution is right-skewed by design</strong> — high scores are intentionally rare (most days are normal, not extreme).</li>
+                      <li>• <strong className="text-gray-300">F3 (GARCH) and F4 (Fear &amp; Greed) are excluded</strong> from calibration scoring — GARCH has no daily historical record, and F&amp;G uses a static proxy that would not vary day-to-day.</li>
+                      <li>• This is <strong className="text-white">historical frequency, not a guarantee</strong>. Past patterns may not repeat.</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">中文</p>
+                    <p className="text-gray-300 mb-2">
+                      <em>核心問題：歷史上當多因子評分這麼高時，7 天後價格上漲的頻率有多高？</em>
+                    </p>
+                    <p className="text-gray-400 mb-2">
+                      這個區塊對所有歷史日期做回測：對每一天，用當天的數據算出「當天如果用這套評分系統會得多少分」，然後看 7 天後價格漲了還是跌了。
+                    </p>
+                    <p className="text-gray-400 mb-2">
+                      表格按<strong className="text-white">歷史百分位</strong>分組——例如「Top 10%」代表分數在歷史上前 10% 的日子。核心問題：分數越高的日子，7d 勝率是否真的更高？
+                    </p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-3">重要說明</p>
+                    <ul className="space-y-1 text-gray-400 text-xs">
+                      <li>• <strong className="text-gray-300">分數分布右偏屬設計預期</strong>——高分本就稀有，大部分日子都是正常市場，不是極端超賣。</li>
+                      <li>• <strong className="text-gray-300">F3（GARCH）和 F4（恐懼貪婪）不納入校準評分</strong>——GARCH 無逐日歷史記錄，F&G 使用靜態代理，無法逐日變動。</li>
+                      <li>• 這是<strong className="text-white">歷史頻率，不是保證</strong>。過去的模式不一定重複。</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Current score percentile banner */}
             {currentBucketRow && (
