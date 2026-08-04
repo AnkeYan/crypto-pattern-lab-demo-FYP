@@ -207,45 +207,55 @@ function buildTakeaway(
   significantCount: number,
   lbRows: LjungBoxRow[]
 ) {
+  const lb1  = lbRows.find((r) => r.lag === 1);
+  const lb5  = lbRows.find((r) => r.lag === 5);
   const lb10 = lbRows.find((r) => r.lag === 10);
+  const lb1p  = lb1?.lb_pvalue ?? null;
+  const lb5p  = lb5?.lb_pvalue ?? null;
   const lb10p = lb10?.lb_pvalue ?? null;
+
+  // 判斷短期（lag1/5）vs 中期（lag10）是否顯著
+  const shortTermSig = (lb1p !== null && lb1p < 0.05) || (lb5p !== null && lb5p < 0.05);
+  const midTermSig   = lb10p !== null && lb10p < 0.05;
 
   let border = "border-gray-700";
   let bg = "bg-white/[0.03]";
   let icon = "~";
   let enSummary = "";
   let zhSummary = "";
+  let enDetail = "";
+  let zhDetail = "";
 
-  if (significantCount === 0) {
-    // 純白噪聲
+  if (significantCount === 0 || (!shortTermSig && !midTermSig)) {
+    // 純白噪聲 / 近似白噪聲
     border = "border-green-500/30";
     bg = "bg-green-500/5";
     icon = "✓";
-    enSummary = `${sym}'s daily returns show no significant autocorrelation across all ${MAX_LAGS} lags tested — consistent with a near-random-walk market. Past price moves carry little predictive power for the next day.`;
-    zhSummary = `${sym} 的日回報在全部 ${MAX_LAGS} 個 lag 中均無顯著自相關，符合近似隨機漫步假設。過去的漲跌對明天的回報幾乎沒有預測能力。`;
-  } else if (significantCount <= 3 && (lb10p === null || lb10p >= 0.05)) {
-    // 少量顯著但 LB 不顯著 → 邊際
-    border = "border-gray-700";
-    bg = "bg-white/[0.03]";
-    icon = "~";
-    enSummary = `${sym} shows ${significantCount} lag(s) outside the 95% CI, but the Ljung-Box test is not significant at lag 10 — the pattern may be noise. No strong evidence of exploitable serial structure in daily returns.`;
-    zhSummary = `${sym} 有 ${significantCount} 個 lag 超出 95% 信賴區間，但 Ljung-Box 檢定在 lag 10 不顯著，可能只是雜訊。日回報中無強烈的可利用序列結構。`;
-  } else if (lb10p !== null && lb10p < 0.01) {
-    // LB 高度顯著
+    enSummary = `${sym}'s daily returns are close to a random walk — no significant autocorrelation found across all ${MAX_LAGS} lags tested.`;
+    enDetail = `What this means for trading: strategies that try to predict tomorrow's direction based purely on past price moves (e.g. "it went up 3 days in a row, so it'll go up again") have very weak statistical backing for ${sym}. Each day is largely independent.`;
+    zhSummary = `${sym} 的日回報接近隨機漫步——${MAX_LAGS} 個 lag 中均無顯著自相關。`;
+    zhDetail = `對交易的意義：純粹根據過去漲跌預測明天方向的策略（例如「連漲三天所以明天也會漲」），在 ${sym} 上的統計支持很弱。每天基本上都是獨立事件。`;
+  } else if (shortTermSig) {
+    // 短期（1-5天）顯著 → 有動量/均值回歸潛力
     border = "border-yellow-500/30";
     bg = "bg-yellow-500/5";
     icon = "⚠";
-    enSummary = `${sym} shows statistically significant autocorrelation (${significantCount} lags outside CI; Ljung-Box p < 0.01 at lag 10). However, the correlation magnitude is small — statistical significance does not guarantee profitable trading after transaction costs.`;
-    zhSummary = `${sym} 日回報存在統計顯著的自相關（${significantCount} 個 lag 超出 CI；Ljung-Box lag 10 的 p < 0.01）。但自相關係數數值很小——統計顯著不等於考慮交易成本後仍能獲利。`;
+    enSummary = `${sym} shows statistically significant short-term autocorrelation (lag 1–5 significant). This means yesterday's return has some detectable relationship with today's.`;
+    enDetail = `What this means for trading: there is a measurable short-term pattern, but the correlation coefficient is typically very small (< 0.1). In theory this could support very short-term momentum or mean-reversion strategies — but after transaction costs, this edge is extremely difficult to profit from in practice. Do not overinterpret "statistically significant" as "easy to trade."`;
+    zhSummary = `${sym} 存在統計顯著的短期自相關（lag 1–5 顯著）。昨天的漲跌對今天有一定可偵測的關聯。`;
+    zhDetail = `對交易的意義：存在可測量的短期規律，但相關係數通常非常小（< 0.1）。理論上可支持超短線動量或均值回歸策略，但考慮交易成本後這個優勢極難轉化為實際獲利。「統計顯著」不等於「容易交易」。`;
   } else {
+    // 只有中期（lag10）顯著，短期不顯著 → BTC 的典型情況
     border = "border-yellow-500/30";
     bg = "bg-yellow-500/5";
     icon = "⚠";
-    enSummary = `${sym} shows some autocorrelation structure (${significantCount} lags outside CI). The Ljung-Box test suggests the series is not pure white noise, but the economic significance of these autocorrelations remains uncertain.`;
-    zhSummary = `${sym} 存在一定自相關結構（${significantCount} 個 lag 超出 CI）。Ljung-Box 檢定顯示序列不是純白噪聲，但這些自相關的實際交易意義仍不確定。`;
+    enSummary = `${sym} shows no significant short-term autocorrelation (lag 1–5 not significant), but some mid-term structure appears at lag 10 (Ljung-Box p ≈ ${lb10p?.toFixed(3) ?? "—"}).`;
+    enDetail = `What this means for trading: the next 1–5 days are largely unpredictable from past returns alone — short-term momentum or mean-reversion strategies have weak statistical support. The mid-term signal at lag 10 is statistically detectable but the magnitude is small. This pattern is consistent with a near-efficient market where simple pattern-following strategies struggle to beat costs.`;
+    zhSummary = `${sym} 短期（lag 1–5）自相關不顯著，但中期（lag 10）有一定結構（Ljung-Box p ≈ ${lb10p?.toFixed(3) ?? "—"}）。`;
+    zhDetail = `對交易的意義：未來 1–5 天的走向單純從過去回報來看基本上難以預測，短線動量或均值回歸策略的統計支持偏弱。lag 10 的中期信號雖然統計上可偵測，但係數很小。這與「近似有效市場」的結論一致——簡單規律跟蹤策略難以在扣除成本後獲利。`;
   }
 
-  return { border, bg, icon, enSummary, zhSummary };
+  return { border, bg, icon, enSummary, zhSummary, enDetail, zhDetail };
 }
 
 // ── 主組件 ────────────────────────────────────────────────────────────────────
@@ -421,8 +431,12 @@ export default function AcfPanel({
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
           {takeaway.icon} Key Takeaway
         </p>
-        <p className="text-sm text-gray-200 leading-relaxed">{takeaway.enSummary}</p>
-        <p className="text-sm text-gray-400 leading-relaxed mt-1">{takeaway.zhSummary}</p>
+        <p className="text-sm text-gray-200 leading-relaxed font-medium">{takeaway.enSummary}</p>
+        <p className="text-sm text-gray-300 leading-relaxed mt-1.5">{takeaway.enDetail}</p>
+        <div className="mt-2.5 pt-2.5 border-t border-white/[0.06]">
+          <p className="text-sm text-gray-400 leading-relaxed">{takeaway.zhSummary}</p>
+          <p className="text-sm text-gray-500 leading-relaxed mt-1">{takeaway.zhDetail}</p>
+        </div>
       </div>
 
       {/* ── Ljung-Box 結果表 ── */}
