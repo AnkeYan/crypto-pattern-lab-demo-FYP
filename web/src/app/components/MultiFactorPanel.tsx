@@ -1,9 +1,35 @@
 "use client";
 
 // MultiFactorPanel — Multi-Factor Setup Score
-// 跨模型加權整合：8個因子 → 0-100分的入場設置質量評分 + 歷史校準區塊
+// 跨模型加權整合：8個因子 → 0-100分的入場設置質量評分 + 歷史校準 + XGBoost 區塊
 
 import { useMemo, useState } from "react";
+
+export type XgbFold = {
+  symbol:      string;
+  test_year:   number | null;
+  n_train:     number | null;
+  n_test:      number | null;
+  auc:         number | null;
+  accuracy:    number | null;
+  train_start: string | null;
+  train_end:   string | null;
+};
+
+export type XgbImportance = {
+  symbol:       string;
+  feature:      string | null;
+  feature_name: string | null;
+  importance:   number | null;
+  rank:         number | null;
+};
+
+export type XgbPrediction = {
+  symbol:       string;
+  date:         string;
+  xgb_win_prob: number | null;
+  calib_score:  number | null;
+};
 
 export type CalibSummaryRow = {
   symbol:     string;
@@ -198,16 +224,23 @@ function CalibScatter({
 
 export default function MultiFactorPanel({
   data,
-  calibSummary = [],
-  calibScatter = {},
+  calibSummary    = [],
+  calibScatter    = {},
+  xgbFolds        = [],
+  xgbImportance   = [],
+  xgbPredictions  = [],
 }: {
-  data: MultifactorRow[];
-  calibSummary?: CalibSummaryRow[];
-  calibScatter?: Record<string, CalibScatterPoint[]>;
+  data:             MultifactorRow[];
+  calibSummary?:    CalibSummaryRow[];
+  calibScatter?:    Record<string, CalibScatterPoint[]>;
+  xgbFolds?:        XgbFold[];
+  xgbImportance?:   XgbImportance[];
+  xgbPredictions?:  XgbPrediction[];
 }) {
   const [sym, setSym] = useState("BTC");
   const [showInfo, setShowInfo] = useState(false);
   const [showCalibInfo, setShowCalibInfo] = useState(false);
+  const [showXgbInfo, setShowXgbInfo] = useState(false);
 
   const symKey  = `${sym}USDT`;
   const symData = data.filter((r) => r.symbol === symKey);
@@ -601,6 +634,194 @@ export default function MultiFactorPanel({
             <p className="mt-3 text-xs text-gray-600 leading-relaxed">
               ⚠️ Calibration note: F3 (GARCH) and F4 (Fear & Greed) are excluded from calibration scoring — GARCH has no daily history, and F&G uses a static proxy. Score distribution is right-skewed by design; high scores are intentionally rare.
               <span className="block mt-0.5">校準說明：F3（GARCH）和 F4（恐懼貪婪）不納入校準評分（GARCH 無逐日歷史，F&G 使用靜態代理）。分數分布右偏屬設計預期，高分本就稀有。</span>
+            </p>
+          </div>
+        );
+      })()}
+
+      {/* ── XGBoost Section ── */}
+      {(() => {
+        const symKey       = `${sym}USDT`;
+        const symFolds     = xgbFolds.filter((r) => r.symbol === symKey);
+        const symImportance = xgbImportance
+          .filter((r) => r.symbol === symKey)
+          .sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99));
+        const symPred      = xgbPredictions.find((r) => r.symbol === symKey);
+        const color        = SYMBOL_COLOR[sym];
+
+        if (symFolds.length === 0 && !symPred) return null;
+
+        const avgAuc = symFolds.length > 0
+          ? symFolds.reduce((s, r) => s + (r.auc ?? 0), 0) / symFolds.length
+          : null;
+        const consistentFolds = symFolds.filter((r) => (r.auc ?? 0) > 0.52).length;
+        const prob = symPred?.xgb_win_prob ?? null;
+
+        // Prob colour
+        const probColor = prob == null ? "text-gray-400"
+          : prob >= 0.58 ? "text-green-400"
+          : prob <= 0.45 ? "text-red-400"
+          : "text-gray-300";
+
+        return (
+          <div className="mt-6 pt-5 border-t border-gray-800">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-200">XGBoost Factor Validation · 因子重要性驗證</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Walk-forward back-test of predictive power · 機器學習驗證各因子對 7d 漲跌的預測能力
+                </p>
+              </div>
+              <button
+                onClick={() => setShowXgbInfo((v) => !v)}
+                className="text-xs text-gray-400 hover:text-gray-200 whitespace-nowrap transition-colors flex-shrink-0 ml-4"
+              >
+                {showXgbInfo ? "▾" : "▸"} How to read this?
+              </button>
+            </div>
+
+            {showXgbInfo && (
+              <div className="mb-4 rounded-lg border border-white/[0.07] bg-white/[0.03] p-4 text-sm leading-relaxed">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">English</p>
+                    <p className="text-gray-300 mb-2">
+                      <em>The core question: which of the 8 factors actually has predictive power for 7-day returns? And does the model generalise out-of-sample?</em>
+                    </p>
+                    <p className="text-gray-400 mb-2">
+                      <strong className="text-white">XGBoost</strong> is a machine learning model that learns the optimal combination of the 8 factors to predict whether the price will be higher 7 days later. Unlike the static weighted score above, XGBoost discovers factor interactions automatically — e.g. RSI&lt;30 may only matter when Volume is also surging.
+                    </p>
+                    <p className="text-gray-400 mb-2">
+                      <strong className="text-white">Walk-Forward validation</strong> prevents look-ahead bias: each year&apos;s test fold is predicted using only data from prior years. This mimics real-world deployment.
+                    </p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-2">Reading the results</p>
+                    <ul className="space-y-1 text-gray-400 text-xs">
+                      <li>• <strong className="text-gray-300">Feature Importance</strong> — how much each factor contributed to the model&apos;s decisions (0 = unused).</li>
+                      <li>• <strong className="text-gray-300">AUC &gt; 0.52</strong> means the model has meaningful predictive power in that year. AUC = 0.50 is random.</li>
+                      <li>• <strong className="text-gray-300">Win Probability</strong> — the model&apos;s current estimate of 7d upside probability based on today&apos;s factor values.</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">中文</p>
+                    <p className="text-gray-300 mb-2">
+                      <em>核心問題：8 個因子中哪些真的有預測力？模型在樣本外是否仍然有效？</em>
+                    </p>
+                    <p className="text-gray-400 mb-2">
+                      <strong className="text-white">XGBoost</strong> 是機器學習模型，自動學習 8 個因子的最優組合來預測 7 天後漲跌。與上方固定權重評分不同，XGBoost 能發現因子之間的交互效應——例如 RSI&lt;30 只在成交量同時放大時才有效。
+                    </p>
+                    <p className="text-gray-400 mb-2">
+                      <strong className="text-white">Walk-Forward 驗證</strong>防止未來數據洩漏：每年的測試只使用該年之前的數據訓練，模擬真實部署場景。
+                    </p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-2">如何看結果</p>
+                    <ul className="space-y-1 text-gray-400 text-xs">
+                      <li>• <strong className="text-gray-300">因子重要性</strong> — 每個因子對模型決策的貢獻程度（0 = 模型完全不使用該因子）。</li>
+                      <li>• <strong className="text-gray-300">AUC &gt; 0.52</strong> 代表該年模型有實際預測能力，AUC = 0.50 等同隨機猜測。</li>
+                      <li>• <strong className="text-gray-300">當前預測勝率</strong> — 模型根據今天的因子數值，估計 7 天後上漲的概率。</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Current prediction + avg AUC banner */}
+            <div className="mb-4 px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-sm">
+              {prob != null && (
+                <>
+                  <span className="text-gray-400">XGBoost 7d win probability: </span>
+                  <span className={`font-bold text-base ${probColor}`}>{(prob * 100).toFixed(1)}%</span>
+                  <span className="text-gray-500 ml-2 text-xs">
+                    ({prob >= 0.58 ? "↑ model sees edge" : prob <= 0.45 ? "↓ model cautious" : "→ neutral"})
+                  </span>
+                </>
+              )}
+              {avgAuc != null && (
+                <span className="ml-3 text-gray-500 text-xs">
+                  · avg walk-forward AUC: <span className={avgAuc >= 0.52 ? "text-green-400" : "text-gray-400"}>{avgAuc.toFixed(3)}</span>
+                  {" "}({consistentFolds}/{symFolds.length} folds AUC&gt;0.52)
+                </span>
+              )}
+              {prob != null && (
+                <span className="block mt-1 text-gray-500 text-sm">
+                  XGBoost 預測 {sym} 7 天後上漲概率：{(prob * 100).toFixed(1)}%
+                  {avgAuc != null && `　平均樣本外 AUC：${avgAuc.toFixed(3)}`}
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-col lg:flex-row gap-5 items-start">
+              {/* Feature importance bars */}
+              {symImportance.length > 0 && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-500 mb-2">Feature Importance · 因子重要性（全歷史訓練）</p>
+                  <div className="space-y-1.5">
+                    {symImportance.map((row) => {
+                      const imp    = row.importance ?? 0;
+                      const isZero = imp === 0;
+                      return (
+                        <div key={row.feature ?? ""} className="flex items-center gap-2">
+                          <span className="text-xs text-gray-400 w-44 flex-shrink-0 truncate">
+                            {row.feature_name ?? row.feature}
+                          </span>
+                          <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full"
+                              style={{
+                                width: `${(imp * 100).toFixed(1)}%`,
+                                background: isZero ? "#374151" : color,
+                                opacity: isZero ? 0.3 : 0.85,
+                              }}
+                            />
+                          </div>
+                          <span className={`text-xs tabular-nums w-10 text-right ${isZero ? "text-gray-600" : "text-gray-300"}`}>
+                            {isZero ? "—" : (imp * 100).toFixed(1) + "%"}
+                          </span>
+                          {isZero && (
+                            <span className="text-[10px] text-red-400/70">unused</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Walk-forward AUC table */}
+              {symFolds.length > 0 && (
+                <div className="flex-shrink-0 w-full lg:w-64">
+                  <p className="text-xs text-gray-500 mb-2">Walk-Forward AUC by Year</p>
+                  <table className="w-full text-xs border-collapse">
+                    <thead>
+                      <tr>
+                        <th className="text-left text-gray-500 font-medium pb-1.5 pr-2">Year</th>
+                        <th className="text-right text-gray-500 font-medium pb-1.5 pr-2">AUC</th>
+                        <th className="text-right text-gray-500 font-medium pb-1.5">Acc</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {symFolds.map((fold) => {
+                        const auc = fold.auc ?? 0;
+                        const hasEdge = auc > 0.52;
+                        return (
+                          <tr key={fold.test_year} className="border-t border-gray-800/60">
+                            <td className="py-1 pr-2 text-gray-400">{fold.test_year}</td>
+                            <td className={`py-1 pr-2 text-right tabular-nums font-medium ${hasEdge ? "text-green-400" : auc < 0.48 ? "text-red-400/80" : "text-gray-400"}`}>
+                              {auc.toFixed(3)}
+                            </td>
+                            <td className="py-1 text-right tabular-nums text-gray-500">
+                              {fold.accuracy != null ? (fold.accuracy * 100).toFixed(1) + "%" : "—"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            <p className="mt-3 text-xs text-gray-600 leading-relaxed">
+              ⚠️ F3 (GARCH) and F4 (Fear &amp; Greed) show 0% importance — consistent with calibration findings. These factors do not predict 7d direction and will be candidates for removal in the next model iteration.
+              <span className="block mt-0.5">F3（GARCH）和 F4（恐懼貪婪）重要性為 0%，與校準結果一致。這兩個因子對 7d 漲跌方向無預測力，下一輪模型迭代時將考慮移除。</span>
             </p>
           </div>
         );

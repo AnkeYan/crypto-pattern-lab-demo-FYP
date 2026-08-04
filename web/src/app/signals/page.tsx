@@ -48,6 +48,32 @@ type RollingCorrRow = {
   eth_btc_ratio: number | null;
 };
 
+export type XgbFold = {
+  symbol:      string;
+  test_year:   number | null;
+  n_train:     number | null;
+  n_test:      number | null;
+  auc:         number | null;
+  accuracy:    number | null;
+  train_start: string | null;
+  train_end:   string | null;
+};
+
+export type XgbImportance = {
+  symbol:       string;
+  feature:      string | null;
+  feature_name: string | null;
+  importance:   number | null;
+  rank:         number | null;
+};
+
+export type XgbPrediction = {
+  symbol:       string;
+  date:         string;
+  xgb_win_prob: number | null;
+  calib_score:  number | null;
+};
+
 export type CalibSummaryRow = {
   symbol:     string;
   pct_bucket: string;
@@ -66,11 +92,12 @@ export type CalibScatterPoint = {
 
 export default async function SignalsPage() {
   const BASE = baseUrl();
-  const [signalsRes, rtRes, mfRes, mfCalibRes, garchRes, rcRes] = await Promise.all([
+  const [signalsRes, rtRes, mfRes, mfCalibRes, xgbRes, garchRes, rcRes] = await Promise.all([
     fetch(`${BASE}/api/signals`,                  { cache: "no-store" }),
     fetch(`${BASE}/api/regime-transition`,        { cache: "no-store" }),
     fetch(`${BASE}/api/multifactor`,              { cache: "no-store" }),
     fetch(`${BASE}/api/multifactor-calibration`,  { cache: "no-store" }),
+    fetch(`${BASE}/api/xgboost`,                  { cache: "no-store" }),
     fetch(`${BASE}/api/garch`,                    { cache: "no-store" }),
     fetch(`${BASE}/api/rolling-correlation`,      { cache: "no-store" }),
   ]);
@@ -86,6 +113,11 @@ export default async function SignalsPage() {
     summary: CalibSummaryRow[];
     scatter: Record<string, CalibScatterPoint[]>;
   } = await mfCalibRes.json();
+  const { folds: xgbFolds, importance: xgbImportance, predictions: xgbPredictions }: {
+    folds:       XgbFold[];
+    importance:  XgbImportance[];
+    predictions: XgbPrediction[];
+  } = await xgbRes.json();
   const garchData: GarchRow[]         = await garchRes.json();
   const rcData: RollingCorrRow[]      = await rcRes.json();
 
@@ -151,6 +183,9 @@ export default async function SignalsPage() {
                 data={mfData}
                 calibSummary={calibSummary}
                 calibScatter={calibScatter}
+                xgbFolds={xgbFolds}
+                xgbImportance={xgbImportance}
+                xgbPredictions={xgbPredictions}
               />
             </TierGate>
           </div>
