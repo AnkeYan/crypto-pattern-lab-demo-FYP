@@ -1,28 +1,28 @@
 symbol,factor,raw_value,normalized_score,weight,weighted_score,description
-BTCUSDT,rsi_intensity,43.823274,0.4706,0.2,0.0941,RSI-14 = 43.8
-BTCUSDT,bollinger_deviation,0.488096,0.3024,0.15,0.0454,BB deviation = 0.49σ
-BTCUSDT,garch_vol_regime,0.117419,0.2652,0.12,0.0318,"Vol trend = ↑ expanding (+11.7%), persistence=1.000"
-BTCUSDT,fear_greed_zone,0.149,0.947,0.13,0.1231,"F&G: EF wr=69% vs baseline 54% (edge=+15%), EF mean=+2.8%, n=94"
+BTCUSDT,rsi_intensity,47.503152,0.3888,0.2,0.0778,RSI-14 = 47.5
+BTCUSDT,bollinger_deviation,1.011369,0.1977,0.15,0.0297,BB deviation = 1.01σ
+BTCUSDT,garch_vol_regime,0.121387,0.2572,0.12,0.0309,"Vol trend = ↑ expanding (+12.1%), persistence=1.000"
+BTCUSDT,fear_greed_zone,0.1491,0.9473,0.13,0.1231,"F&G: EF wr=69% vs baseline 54% (edge=+15%), EF mean=+2.8%, n=94"
 BTCUSDT,month_seasonality,-0.073945,0.0339,0.13,0.0044,"Month 8: median=-7.4%, wr=18%, n=11"
-BTCUSDT,regime_favorability,0.098,0.794,0.13,0.1032,"Regime=sideways: baseline wr=51%, avg signal edge=+9.8%"
-BTCUSDT,volume_surge,0.548216,0.4452,0.07,0.0312,"Vol ratio = 0.55x 20d avg, 3d price = -1.8%"
-BTCUSDT,price_momentum,0.000515,0.4487,0.07,0.0314,"5d mom = -1.5%, 20d mom = -1.6%, rel = +0.1%"
-BTCUSDT,__total__,46.5,0.4646,1.0,0.4646,regime=sideways
-ETHUSDT,rsi_intensity,48.706877,0.3621,0.2,0.0724,RSI-14 = 48.7
-ETHUSDT,bollinger_deviation,1.00116,0.1998,0.15,0.03,BB deviation = 1.00σ
-ETHUSDT,garch_vol_regime,0.135182,0.2296,0.12,0.0276,"Vol trend = ↑ expanding (+13.5%), persistence=1.000"
-ETHUSDT,fear_greed_zone,0.0255,0.5765,0.13,0.0749,"F&G: EF wr=54% vs baseline 51% (edge=+3%), EF mean=+0.7%, n=137"
+BTCUSDT,regime_favorability,0.0983,0.7949,0.13,0.1033,"Regime=sideways: baseline wr=51%, avg signal edge=+9.8%"
+BTCUSDT,volume_surge,0.672803,0.4327,0.07,0.0303,"Vol ratio = 0.67x 20d avg, 3d price = -1.9%"
+BTCUSDT,price_momentum,-0.026065,0.5152,0.07,0.0361,"5d mom = -0.6%, 20d mom = +2.0%, rel = -2.6%"
+BTCUSDT,__total__,43.6,0.4355,1.0,0.4355,regime=sideways
+ETHUSDT,rsi_intensity,53.082175,0.2648,0.2,0.053,RSI-14 = 53.1
+ETHUSDT,bollinger_deviation,1.770264,0.0459,0.15,0.0069,BB deviation = 1.77σ
+ETHUSDT,garch_vol_regime,0.135905,0.2282,0.12,0.0274,"Vol trend = ↑ expanding (+13.6%), persistence=1.000"
+ETHUSDT,fear_greed_zone,0.0256,0.5768,0.13,0.075,"F&G: EF wr=54% vs baseline 51% (edge=+3%), EF mean=+0.7%, n=137"
 ETHUSDT,month_seasonality,-0.085335,0.143,0.13,0.0186,"Month 8: median=-8.5%, wr=38%, n=8"
-ETHUSDT,regime_favorability,0.0423,0.6269,0.13,0.0815,"Regime=sideways: baseline wr=49%, avg signal edge=+4.2%"
-ETHUSDT,volume_surge,0.495521,0.4504,0.07,0.0315,"Vol ratio = 0.50x 20d avg, 3d price = -3.4%"
-ETHUSDT,price_momentum,-0.045802,0.5645,0.07,0.0395,"5d mom = -2.5%, 20d mom = +2.1%, rel = -4.6%"
-ETHUSDT,__total__,37.6,0.376,1.0,0.376,regime=sideways
-SOLUSDT,rsi_intensity,39.647101,0.5634,0.2,0.1127,RSI-14 = 39.6
-SOLUSDT,bollinger_deviation,0.076278,0.3847,0.15,0.0577,BB deviation = 0.08σ
-SOLUSDT,garch_vol_regime,0.186463,0.1271,0.12,0.0152,"Vol trend = ↑ expanding (+18.6%), persistence=0.978"
-SOLUSDT,fear_greed_zone,-0.0103,0.4691,0.13,0.061,"F&G: EF wr=48% vs baseline 49% (edge=-1%), EF mean=-1.1%, n=110"
+ETHUSDT,regime_favorability,0.0427,0.6281,0.13,0.0817,"Regime=sideways: baseline wr=49%, avg signal edge=+4.3%"
+ETHUSDT,volume_surge,0.604884,0.4395,0.07,0.0308,"Vol ratio = 0.60x 20d avg, 3d price = -1.8%"
+ETHUSDT,price_momentum,-0.080966,0.6524,0.07,0.0457,"5d mom = -1.9%, 20d mom = +6.1%, rel = -8.1%"
+ETHUSDT,__total__,33.9,0.3389,1.0,0.3389,regime=sideways
+SOLUSDT,rsi_intensity,45.094808,0.4423,0.2,0.0885,RSI-14 = 45.1
+SOLUSDT,bollinger_deviation,1.013159,0.1974,0.15,0.0296,BB deviation = 1.01σ
+SOLUSDT,garch_vol_regime,0.182775,0.1344,0.12,0.0161,"Vol trend = ↑ expanding (+18.3%), persistence=0.978"
+SOLUSDT,fear_greed_zone,-0.01,0.47,0.13,0.0611,"F&G: EF wr=48% vs baseline 49% (edge=-1%), EF mean=-1.1%, n=110"
 SOLUSDT,month_seasonality,-0.177662,0.0134,0.13,0.0017,"Month 8: median=-17.8%, wr=40%, n=5"
 SOLUSDT,regime_favorability,0.083375,0.7501,0.13,0.0975,"Regime=bear: baseline wr=46%, avg signal edge=+8.3%"
-SOLUSDT,volume_surge,0.719885,0.428,0.07,0.03,"Vol ratio = 0.72x 20d avg, 3d price = -2.4%"
-SOLUSDT,price_momentum,0.034448,0.3639,0.07,0.0255,"5d mom = -3.1%, 20d mom = -6.5%, rel = +3.4%"
-SOLUSDT,__total__,40.1,0.4013,1.0,0.4013,regime=bear
+SOLUSDT,volume_surge,0.66998,0.433,0.07,0.0303,"Vol ratio = 0.67x 20d avg, 3d price = -1.4%"
+SOLUSDT,price_momentum,0.015473,0.4113,0.07,0.0288,"5d mom = -0.3%, 20d mom = -1.9%, rel = +1.5%"
+SOLUSDT,__total__,35.4,0.3537,1.0,0.3537,regime=bear
