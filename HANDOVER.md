@@ -1,4 +1,4 @@
-# CryptoPatternLab 項目交接文件 v14.0
+# CryptoPatternLab 項目交接文件 v15.0
 
 ## 產品定位
 AI-powered crypto pattern research assistant。
@@ -591,12 +591,14 @@ body {
 /api/regime
 /api/regime-transition
 /api/multifactor
+/api/multifactor-calibration  → summary（percentile bucket 統計）+ scatter（400點樣本）
+/api/xgboost                  → folds（walk-forward AUC）+ importance（因子重要性）+ predictions（當前預測概率）
 /api/consecutive-drop
 /api/drawdown-recovery
 /api/halving
 ```
 
-**注意**：18 個 CSV 類 routes 目前沒有 try/catch。只有 `/api/summary` 和 `/api/monte-carlo` 有錯誤處理。
+**注意**：所有 CSV 類 routes 都有 try/catch（v13 已全部加入）。
 
 ---
 
@@ -612,6 +614,18 @@ body {
 - 當前市場：三幣種皆為 Sideways regime
 - Fear & Greed 與回報相關性：r≈0.007, p≈0.896（不顯著）
 
+### Multi-Factor 歷史校準發現（v15 新增）
+- 觸發式評分分布：BTC top 25% 勝率 **62.9%**（n=663）、top 10% 勝率 59.2%（n=434）
+- ETH top 50% 勝率 56.9%，但 top 25% 勝率反跌至 50.0%（因子對 ETH 效果不穩定）
+- SOL 樣本不足，top 10% n=218，勝率 58.3%
+
+### XGBoost Walk-Forward 發現（v15 新增）
+- BTC avg AUC = **0.530**（11 folds，5/11 folds AUC>0.52）— 有輕微正 edge
+- ETH avg AUC = 0.467、SOL avg AUC = 0.474 — 低於 0.50，現有因子對 ETH/SOL 預測力弱
+- **F3 GARCH / F4 Fear&Greed / F6 Regime 重要性全部 = 0%** — 對 7d 漲跌方向無預測力，下輪迭代候選移除
+- **F1 RSI / F8 動量** 三幣種均排前列，最穩定
+- F5 月份季節性：BTC #1，但 SOL = 0%（幣種差異大）
+
 ---
 
 ## Validation / Anti-overfitting 設計決策
@@ -626,27 +640,28 @@ body {
 ## 當前未完成 / 下一步（優先順序）
 
 ### 🔴 高優先（下次對話立即開始）
-1. **Multi-Factor 歷史校準（v2）**
-   - 新建 Python 腳本 `analyze_multifactor_calibration.py`
-   - 回測歷史每天的 7 個因子分數（F3 GARCH 固定 0.5 中性）+ 7天後漲跌結果
-   - 輸出 `multifactor_calibration.csv`
+1. **新增 3 個因子（F9/F10/F11）**
+   - **F9 Funding Rate**：Binance 期貨 API（免費，無地理限制）
+     - 邏輯：Funding Rate 極度負值 → 空頭過多 → 軋空反彈概率高
+     - 新建 `analyze_funding_rate.py` → `funding_rate_results.csv`
+   - **F10 Exchange Netflow**（大戶行為）：CryptoQuant API（有免費層）
+     - 邏輯：交易所淨流出（大戶提幣到冷錢包）→ 看漲信號
+     - 新建 `analyze_exchange_netflow.py` → `exchange_netflow_results.csv`
+   - **F11 Google Trends**（散戶情緒）：`pytrends`（完全免費）
+     - 邏輯：搜索量暴跌 → 散戶恐慌離場 → 歷史上常見底部特徵
+     - 新建 `analyze_google_trends.py` → `google_trends_results.csv`
+   - 加入 `analyze_multifactor.py`、`analyze_multifactor_calibration.py`、`analyze_xgboost.py`
    - 加入 `run_update.sh` 和 GitHub Actions
-   - 前端 MultiFactorPanel 加「Historical Calibration」區塊
-   - 驗證目標：高分區間（60–80、80–100）的歷史勝率是否明顯高於低分區間
-   - 校準後決定：是否刪除無效因子、調整權重
+   - 前端 MultiFactorPanel 新增 3 個因子顯示
 
 ### 🟡 中優先
-2. **XGBoost 替換人工權重**（校準完成後才做）
-   - 前提：先確認歷史校準結果有效
-   - 用 8 個因子特徵預測「7天後漲/跌」
-   - walk-forward 防 overfitting
-3. **登入系統 + 付費牆**（NextAuth.js + Supabase + Stripe，前提：先有真實用戶）
+2. **登入系統 + 付費牆**（NextAuth.js + Supabase + Stripe，前提：先有真實用戶）
 
 ### 🔵 ML / 量化 Agent 方向（已討論，記錄在案）
 
 **三步走路線圖：**
-- **Step 1（現在做）**：Multi-Factor Score 歷史校準，純統計，不需要 ML
-- **Step 2（校準後）**：XGBoost 分類器，自動學出最優權重，walk-forward 防 overfitting
+- **Step 1 ✅ 完成**：Multi-Factor Score 歷史校準 + XGBoost Walk-Forward 驗證
+- **Step 2（進行中）**：擴充因子（F9/F10/F11），重跑 XGBoost，觀察 AUC 是否提升
 - **Step 3（長期）**：實時數據流 + Gemini 解讀 + Agent 架構 + 交易所 API
 
 **XGBoost 核心原理：**
@@ -681,9 +696,15 @@ body {
 
 ---
 
-## 本輪完成的所有改動（v14.0，本次對話）
+## 本輪完成的所有改動（v15.0，本次對話）
 
-### UI 改動（全部同步主文件 + 副本）
+```
+556baa7  feat: XGBoost factor validation — analyze_xgboost.py (walk-forward CV), /api/xgboost route, XGBoost section in MultiFactorPanel (feature importance, AUC table, win probability)
+7d5661d  feat: MultiFactorPanel Historical Calibration — add bilingual How to read this? explainer dropdown
+1b6a20b  feat: Multi-Factor Historical Calibration — calibration script (trigger-based scoring), /api/multifactor-calibration route, Historical Calibration section in MultiFactorPanel (percentile rank, summary table, SVG scatter plot)
+```
+
+### 歷史改動記錄（v14.0）
 ```
 bf7b692  fix: SignalIntelligencePanel — complete all 15 signal combo labels (fix lowercase), add signal definitions + why combine to explainer
 3c0dfe8  feat: SignalIntelligencePanel + MultiFactorPanel + RegimeTransitionPanel — expand explainers, add condition banners, dynamic Key Takeaways
@@ -691,11 +712,6 @@ be6b82b  feat: AcfPanel — improve Key Takeaway with short/mid-term trading imp
 ece45a8  feat: AcfPanel — expand explainer with bilingual glossary + rainy day analogy, add condition banner, dynamic Key Takeaway
 11eb9f7  feat: WalkForwardPanel — expand explainer with bilingual glossary + result labels, add condition banner, dynamic Key Takeaway
 a7499a7  feat: PatternValidationPanel — expand explainer with bilingual glossary, add dynamic Key Takeaway, condition banner, bilingual Interpretation + Confidence Breakdown
-```
-
-### 副本 git 初始化
-```
-6dc0405  chore: restore local files before rebase with remote（副本從 /tmp/ 移至 Desktop，重新 git init）
 ```
 
 ### 歷史改動記錄（v13.0）
