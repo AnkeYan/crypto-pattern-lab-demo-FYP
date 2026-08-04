@@ -61,15 +61,27 @@ const SIGNAL_META: Record<string, { label: string; zh: string; desc: string }> =
 };
 
 const SIGNAL_COMBO_LABEL: Record<string, string> = {
-  "rsi":                  "RSI < 30",
-  "bollinger":            "Bollinger Breakdown",
-  "drop3":                "Drop ≥ 3%",
-  "vol_spike":            "Volume Spike",
-  "rsi+bollinger":        "RSI + Bollinger",
-  "rsi+drop3":            "RSI + Drop ≥ 3%",
-  "bollinger+drop3":      "Bollinger + Drop",
-  "rsi+bollinger+drop3":  "RSI + Bollinger + Drop",
-  "baseline":             "No signal (baseline)",
+  // Single signals
+  "rsi":                          "RSI < 30",
+  "bollinger":                    "BB Breakdown",
+  "drop3":                        "Drop ≥ 3%",
+  "vol_spike":                    "Volume Spike",
+  // 2-signal combos
+  "rsi+bollinger":                "RSI + BB",
+  "rsi+drop3":                    "RSI + Drop ≥ 3%",
+  "rsi+vol_spike":                "RSI + Vol Spike",
+  "bollinger+drop3":              "BB + Drop ≥ 3%",
+  "bollinger+vol_spike":          "BB + Vol Spike",
+  "drop3+vol_spike":              "Drop ≥ 3% + Vol Spike",
+  // 3-signal combos
+  "rsi+bollinger+drop3":          "RSI + BB + Drop ≥ 3%",
+  "rsi+bollinger+vol_spike":      "RSI + BB + Vol Spike",
+  "rsi+drop3+vol_spike":          "RSI + Drop ≥ 3% + Vol Spike",
+  "bollinger+drop3+vol_spike":    "BB + Drop ≥ 3% + Vol Spike",
+  // 4-signal combo
+  "rsi+bollinger+drop3+vol_spike":"RSI + BB + Drop ≥ 3% + Vol Spike",
+  // baseline
+  "baseline":                     "No signal (baseline)",
 };
 
 // ── 輔助 ──────────────────────────────────────────────────────────────────────
@@ -255,49 +267,77 @@ export default function SignalIntelligencePanel({
         </div>
 
         {showInfo && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-3 border-t border-white/[0.05]">
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">English</p>
-              <p className="text-gray-200 text-sm mb-2">
-                Signal Intelligence answers one question:{" "}
-                <strong className="text-white">"Given today's market conditions, what does history say about the next few days?"</strong>
-              </p>
-              <p className="text-gray-400 text-sm leading-relaxed mb-2">
-                It is <em>not</em> a price prediction. It is a <strong className="text-gray-300">conditional historical analysis</strong> —
-                looking at past instances when similar signals appeared, and summarising the outcomes.
-              </p>
-              <div className="space-y-1.5 text-sm text-gray-400">
-                <p><strong className="text-gray-200">① Regime (Market State)</strong><br />
-                  Is the overall market in an uptrend, downtrend, or going sideways?
-                  Defined by price position relative to SMA50 / SMA200 and 30-day momentum.</p>
-                <p><strong className="text-gray-200">② Confluence Score (0–100)</strong><br />
-                  How many of the 4 oversold signals are active right now?
-                  Each signal adds 25 points. Score 75–100 = historically rare and often stronger setups.</p>
-                <p><strong className="text-gray-200">③ Conditional Return Table</strong><br />
-                  When each signal combination appeared in history, what was the actual win rate and average return over the next 1/3/7 days?
-                  Compare to the Baseline row (no signal) to see the edge.</p>
+          <div className="space-y-5 pt-3 border-t border-white/[0.05]">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">English</p>
+                <p className="text-gray-200 text-sm mb-2">
+                  Signal Intelligence answers one question:{" "}
+                  <strong className="text-white">"Given today's market conditions, what does history say about the next few days?"</strong>
+                </p>
+                <p className="text-gray-400 text-sm leading-relaxed mb-2">
+                  It is <em>not</em> a price prediction. It is a <strong className="text-gray-300">conditional historical analysis</strong> —
+                  looking at past instances when similar signals appeared, and summarising the outcomes.
+                </p>
+                <div className="space-y-1.5 text-sm text-gray-400">
+                  <p><strong className="text-gray-200">① Regime (Market State)</strong><br />
+                    Is the overall market in an uptrend, downtrend, or going sideways?
+                    Defined by price position relative to SMA50 / SMA200 and 30-day momentum.</p>
+                  <p><strong className="text-gray-200">② Confluence Score (0–100)</strong><br />
+                    How many of the 4 oversold signals are active right now?
+                    Each signal adds 25 points. Score 75–100 = historically rare and often stronger setups.</p>
+                  <p><strong className="text-gray-200">③ Conditional Return Table</strong><br />
+                    When each signal combination appeared in history, what was the actual win rate and average return over the next 1/3/7 days?
+                    Compare to the Baseline row (no signal) to see the edge.</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">中文</p>
+                <p className="text-gray-200 text-sm mb-2">
+                  Signal Intelligence 回答一個問題：
+                  <strong className="text-white">「在當前市場條件下，歷史數據告訴我們接下來幾天會怎樣？」</strong>
+                </p>
+                <p className="text-gray-400 text-sm leading-relaxed mb-2">
+                  這<em>不是</em>價格預測。它是<strong className="text-gray-300">條件歷史統計</strong>——
+                  回顧過去出現類似信號時的市場表現，匯總成可參考的概率數據。
+                </p>
+                <div className="space-y-1.5 text-sm text-gray-400">
+                  <p><strong className="text-gray-200">① Regime（市場狀態）</strong><br />
+                    整體市場是上升趨勢、下跌趨勢，還是橫盤整理？
+                    判斷依據：收盤價相對 SMA50 / SMA200 的位置，以及 30 天動量方向。</p>
+                  <p><strong className="text-gray-200">② Confluence Score（信號匯聚評分，0–100）</strong><br />
+                    當前有多少個超賣信號同時觸發？每個信號貢獻 25 分。
+                    75–100 分代表歷史上罕見的多重超賣，反彈設置往往更強。</p>
+                  <p><strong className="text-gray-200">③ 條件回報統計表</strong><br />
+                    歷史上每種信號組合出現時，接下來 1/3/7 天的真實勝率和平均回報是多少？
+                    對比 Baseline（無信號）一行，即可看出信號帶來的額外優勢。</p>
+                </div>
               </div>
             </div>
-            <div>
-              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">中文</p>
-              <p className="text-gray-200 text-sm mb-2">
-                Signal Intelligence 回答一個問題：
-                <strong className="text-white">「在當前市場條件下，歷史數據告訴我們接下來幾天會怎樣？」</strong>
-              </p>
-              <p className="text-gray-400 text-sm leading-relaxed mb-2">
-                這<em>不是</em>價格預測。它是<strong className="text-gray-300">條件歷史統計</strong>——
-                回顧過去出現類似信號時的市場表現，匯總成可參考的概率數據。
-              </p>
-              <div className="space-y-1.5 text-sm text-gray-400">
-                <p><strong className="text-gray-200">① Regime（市場狀態）</strong><br />
-                  整體市場是上升趨勢、下跌趨勢，還是橫盤整理？
-                  判斷依據：收盤價相對 SMA50 / SMA200 的位置，以及 30 天動量方向。</p>
-                <p><strong className="text-gray-200">② Confluence Score（信號匯聚評分，0–100）</strong><br />
-                  當前有多少個超賣信號同時觸發？每個信號貢獻 25 分。
-                  75–100 分代表歷史上罕見的多重超賣，反彈設置往往更強。</p>
-                <p><strong className="text-gray-200">③ 條件回報統計表</strong><br />
-                  歷史上每種信號組合出現時，接下來 1/3/7 天的真實勝率和平均回報是多少？
-                  對比 Baseline（無信號）一行，即可看出信號帶來的額外優勢。</p>
+
+            {/* 4個信號說明 + 為什麼組合 */}
+            <div className="pt-4 border-t border-white/[0.05] grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">The 4 signals — what they mean</p>
+                <ul className="space-y-2 text-sm text-gray-400">
+                  <li><strong className="text-gray-200">RSI &lt; 30</strong> — the coin is in "oversold" territory. It has fallen so fast that the RSI momentum indicator dropped below 30 — historically a level where bounces become more likely.</li>
+                  <li><strong className="text-gray-200">BB Breakdown</strong> — price closed below the Bollinger Band lower band. Like a rubber band being stretched too far — the further it stretches, the more likely it snaps back.</li>
+                  <li><strong className="text-gray-200">Drop ≥ 3%</strong> — the coin dropped 3%+ in a single day. A sharp one-day move that historically triggers mean-reversion interest from buyers.</li>
+                  <li><strong className="text-gray-200">Volume Spike</strong> — trading volume is unusually high (z-score &gt; 2). High volume on a down day can signal panic selling or capitulation — often a contrarian buy signal.</li>
+                </ul>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 mt-3">Why combine signals?</p>
+                <p className="text-sm text-gray-400">Each signal alone is noisy. But when 2–3 signals trigger simultaneously, it means the market is oversold from multiple independent angles at once. Historically, these overlapping conditions produce stronger and more consistent bounce probabilities than any single signal alone.</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">4 個信號各是什麼意思</p>
+                <ul className="space-y-2 text-sm text-gray-400">
+                  <li><strong className="text-gray-200">RSI &lt; 30（RSI 超賣）</strong> — 這個幣跌得太快，RSI 動量指標跌到 30 以下。歷史上這個水平之後反彈的概率比平時更高。</li>
+                  <li><strong className="text-gray-200">BB Breakdown（布林下軌突破）</strong> — 收盤價跌破布林帶下軌。就像橡皮筋被拉得太遠——拉得越遠，彈回來的力道越強。</li>
+                  <li><strong className="text-gray-200">Drop ≥ 3%（單日大跌）</strong> — 當天跌幅超過 3%。急跌往往會引來尋找「撿便宜」的買家，觸發均值回歸。</li>
+                  <li><strong className="text-gray-200">Volume Spike（成交量異常放大）</strong> — 成交量 z-score &gt; 2，交易量異常高。下跌日放量通常是恐慌性拋售的信號，往往也是逆向買入的機會點。</li>
+                </ul>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 mt-3">為什麼要組合？</p>
+                <p className="text-sm text-gray-400">單個信號雜訊多，單獨出現不代表什麼。但當 2–3 個信號同時觸發，代表市場從多個獨立角度同時進入超賣狀態。歷史上，這些條件重疊時的反彈概率和一致性，明顯高於任何單一信號。</p>
               </div>
             </div>
           </div>
