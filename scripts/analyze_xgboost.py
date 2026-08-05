@@ -42,17 +42,20 @@ SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 FEATURES = [
     "f1_norm", "f2_norm", "f3_norm", "f4_norm",
     "f5_norm", "f6_norm", "f7_norm", "f8_norm",
+    "f9_norm", "f10_norm",
 ]
 
 FEATURE_NAMES = {
-    "f1_norm": "RSI Oversold Intensity",
-    "f2_norm": "Bollinger Deviation",
-    "f3_norm": "GARCH Vol Regime",
-    "f4_norm": "Fear & Greed Zone",
-    "f5_norm": "Month Seasonality",
-    "f6_norm": "Regime Favorability",
-    "f7_norm": "Volume Surge",
-    "f8_norm": "Price Momentum",
+    "f1_norm":  "RSI Oversold Intensity",
+    "f2_norm":  "Bollinger Deviation",
+    "f3_norm":  "GARCH Vol Regime",
+    "f4_norm":  "Fear & Greed Zone",
+    "f5_norm":  "Month Seasonality",
+    "f6_norm":  "Regime Favorability",
+    "f7_norm":  "Volume Surge",
+    "f8_norm":  "Price Momentum",
+    "f9_norm":  "Funding Rate Sentiment",
+    "f10_norm": "Long/Short Ratio",
 }
 
 # Purged CV：train/test 邊界的禁區天數（= outcome 窗口長度）

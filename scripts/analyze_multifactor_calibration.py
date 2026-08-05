@@ -44,20 +44,22 @@ OUT_PATH = DATA_DIR / "multifactor_calibration.csv"
 SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 
 WEIGHTS = {
-    "rsi_intensity":       0.20,
-    "bollinger_deviation": 0.15,
-    "garch_vol_regime":    0.12,
-    "fear_greed_zone":     0.13,
-    "month_seasonality":   0.13,
-    "regime_favorability": 0.13,
-    "volume_surge":        0.07,
-    "price_momentum":      0.07,
+    "rsi_intensity":       0.18,
+    "bollinger_deviation": 0.13,
+    "garch_vol_regime":    0.10,
+    "fear_greed_zone":     0.11,
+    "month_seasonality":   0.11,
+    "regime_favorability": 0.11,
+    "volume_surge":        0.06,
+    "price_momentum":      0.06,
+    "funding_rate":        0.07,  # F9（逐日歷史）
+    "ls_ratio":            0.07,  # F10（固定 0，歷史太短）
 }
 
 FACTOR_LIST = [
     "rsi_intensity", "bollinger_deviation", "garch_vol_regime",
     "fear_greed_zone", "month_seasonality", "regime_favorability",
-    "volume_surge", "price_momentum",
+    "volume_surge", "price_momentum", "funding_rate", "ls_ratio",
 ]
 
 
@@ -222,10 +224,18 @@ def calibrate_symbol(symbol: str) -> list[dict]:
     vol_ma20 = vol_s.rolling(20).mean().values
 
     # ── Load static/semi-static factors ──────────────────────────────────────
-    f4_static    = load_static_f4(symbol)        # single float
-    f5_by_month  = load_static_f5(symbol)        # dict {month: score}
-    regime_series = load_regime_series(symbol)   # pd.Series[date → regime]
-    f6_by_regime = load_static_f6_by_regime(symbol)  # dict {regime: score}
+    f4_static     = load_static_f4(symbol)
+    f5_by_month   = load_static_f5(symbol)
+    regime_series = load_regime_series(symbol)
+    f6_by_regime  = load_static_f6_by_regime(symbol)
+
+    # ── Load F9: Funding Rate 逐日歷史 ────────────────────────────────────────
+    try:
+        fr_hist = pd.read_csv(DATA_DIR / "funding_rate_history.csv")
+        fr_hist["date"] = pd.to_datetime(fr_hist["date"])
+        fr_sym  = fr_hist[fr_hist["symbol"] == symbol].set_index("date")["f9_norm"]
+    except Exception:
+        fr_sym = pd.Series(dtype=float)
 
     # ── Main loop ─────────────────────────────────────────────────────────────
     rows = []
@@ -291,12 +301,29 @@ def calibrate_symbol(symbol: str) -> list[dict]:
         mom_20d = (close[i] - close[i - 20]) / close[i - 20] if i >= 20 else 0.0
         rel_mom = mom_5d - mom_20d
         if rel_mom < 0:
-            f8_norm = clamp01(-rel_mom * 5.0)            # rel=-0.20→1.0, rel=-0.05→0.25
+            f8_norm = clamp01(-rel_mom * 5.0)
         else:
             f8_norm = 0.0
 
+        # ── F9: Funding Rate（逐日動態）──────────────────────────────────
+        # 從 funding_rate_history.csv 查詢當天或最近可用值
+        # 無數據期間（2014–2019）→ 固定 0（觸發式：中性不計分）
+        if len(fr_sym) > 0:
+            past_fr = fr_sym[fr_sym.index <= date_i]
+            if len(past_fr) > 0:
+                raw_f9 = float(past_fr.iloc[-1])
+                # 觸發式：只有 f9 > 0.5（空頭情緒明顯）才計分
+                f9_norm = raw_f9 if raw_f9 > 0.5 else 0.0
+            else:
+                f9_norm = 0.0  # 期貨市場尚未存在
+        else:
+            f9_norm = 0.0
+
+        # ── F10: Long/Short Ratio — 校準版固定 0（歷史太短）──────────────
+        f10_norm = 0.0
+
         # ── Weighted Score ────────────────────────────────────────────────
-        norms = [f1_norm, f2_norm, f3_norm, f4_norm, f5_norm, f6_norm, f7_norm, f8_norm]
+        norms = [f1_norm, f2_norm, f3_norm, f4_norm, f5_norm, f6_norm, f7_norm, f8_norm, f9_norm, f10_norm]
         total = sum(n * WEIGHTS[f] for n, f in zip(norms, FACTOR_LIST))
         score = round(total * 100, 1)
 
@@ -313,6 +340,8 @@ def calibrate_symbol(symbol: str) -> list[dict]:
             "f6_norm":      round(f6_norm, 4),
             "f7_norm":      round(f7_norm, 4),
             "f8_norm":      round(f8_norm, 4),
+            "f9_norm":      round(f9_norm, 4),
+            "f10_norm":     round(f10_norm, 4),
             "outcome_7d":   round(float(outcome_7d), 6),
             "win":          win,
         })
