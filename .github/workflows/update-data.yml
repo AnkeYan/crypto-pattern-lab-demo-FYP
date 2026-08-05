@@ -27,6 +27,7 @@ jobs:
       - name: Run all analysis scripts
         run: |
           python3 "scripts/API調取-fetch_prices.py"
+          python3 scripts/analyze_futures_sentiment.py
           python3 scripts/analyze_patterns.py
           python3 scripts/analyze_fear_greed.py
           python3 scripts/analyze_rolling_correlation.py

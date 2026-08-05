@@ -10,6 +10,7 @@ echo "==== $(date '+%Y-%m-%d %H:%M:%S') Update started ====" >> /tmp/crypto-patt
 cd "$PROJECT_DIR" || exit 1
 
 python3 scripts/API調取-fetch_prices.py >> /tmp/crypto-pattern-lab-update.log 2>&1
+python3 scripts/analyze_futures_sentiment.py >> /tmp/crypto-pattern-lab-update.log 2>&1
 python3 scripts/analyze_patterns.py >> /tmp/crypto-pattern-lab-update.log 2>&1
 python3 scripts/analyze_fear_greed.py >> /tmp/crypto-pattern-lab-update.log 2>&1
 python3 scripts/analyze_rolling_correlation.py >> /tmp/crypto-pattern-lab-update.log 2>&1

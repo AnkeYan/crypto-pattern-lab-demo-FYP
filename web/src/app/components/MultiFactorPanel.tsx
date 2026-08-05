@@ -69,14 +69,16 @@ const SYMBOL_COLOR: Record<string, string> = {
 };
 
 const FACTOR_META: Record<string, { label: string; zh: string; icon: string }> = {
-  rsi_intensity:       { label: "RSI Oversold Intensity",   zh: "RSI 超賣強度",     icon: "📉" },
-  bollinger_deviation: { label: "Bollinger Deviation",       zh: "布林帶偏離幅度",   icon: "📊" },
-  garch_vol_regime:    { label: "GARCH Vol Regime",          zh: "波動率收縮/擴張",  icon: "🌊" },
-  fear_greed_zone:     { label: "Fear & Greed Zone",         zh: "恐懼貪婪指標分層", icon: "😱" },
-  month_seasonality:   { label: "Month Seasonality Bias",    zh: "月份季節性偏向",   icon: "📅" },
-  regime_favorability: { label: "Regime Signal Favorability",zh: "Regime 信號有效性",icon: "🎯" },
-  volume_surge:        { label: "Volume Surge",               zh: "成交量放大訊號",   icon: "📦" },
-  price_momentum:      { label: "Price Momentum",             zh: "價格動量偏離",     icon: "⚡" },
+  rsi_intensity:       { label: "RSI Oversold Intensity",    zh: "RSI 超賣強度",     icon: "📉" },
+  bollinger_deviation: { label: "Bollinger Deviation",        zh: "布林帶偏離幅度",   icon: "📊" },
+  garch_vol_regime:    { label: "GARCH Vol Regime",           zh: "波動率收縮/擴張",  icon: "🌊" },
+  fear_greed_zone:     { label: "Fear & Greed Zone",          zh: "恐懼貪婪指標分層", icon: "😱" },
+  month_seasonality:   { label: "Month Seasonality Bias",     zh: "月份季節性偏向",   icon: "📅" },
+  regime_favorability: { label: "Regime Signal Favorability", zh: "Regime 信號有效性",icon: "🎯" },
+  volume_surge:        { label: "Volume Surge",                zh: "成交量放大訊號",   icon: "📦" },
+  price_momentum:      { label: "Price Momentum",              zh: "價格動量偏離",     icon: "⚡" },
+  funding_rate:        { label: "Funding Rate",                zh: "期貨資金費率",     icon: "💹" },
+  ls_ratio:            { label: "Long/Short Ratio",            zh: "大戶多空比",       icon: "⚖️" },
 };
 
 const FACTOR_ORDER = [
@@ -88,6 +90,8 @@ const FACTOR_ORDER = [
   "regime_favorability",
   "volume_surge",
   "price_momentum",
+  "funding_rate",
+  "ls_ratio",
 ];
 
 function scoreColor(score: number): string {
@@ -278,7 +282,7 @@ export default function MultiFactorPanel({
                 <em>The core question: right now, how many independent signals are simultaneously pointing to an oversold / bullish setup for this coin?</em>
               </p>
               <p className="text-gray-400 mb-2">
-                The <strong className="text-white">Multi-Factor Setup Score</strong> combines 8 different models into a single 0–100 score. Think of it like a checklist — the more boxes ticked, the stronger the historical setup quality.
+                The <strong className="text-white">Multi-Factor Setup Score</strong> combines 10 different models into a single 0–100 score. Think of it like a checklist — the more boxes ticked, the stronger the historical setup quality.
               </p>
               <p className="text-gray-400 mb-3">
                 A high score does <strong className="text-white">not</strong> mean the price will definitely go up. It means that historically, when multiple signals aligned like this, the odds of a short-term bounce were higher than average.
@@ -290,7 +294,7 @@ export default function MultiFactorPanel({
                 <li><strong className="text-gray-400">30–49 Weak Setup</strong> — conditions are mixed or mostly neutral.</li>
                 <li><strong className="text-gray-600">0–29 No Setup</strong> — no meaningful alignment across factors.</li>
               </ul>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-3">What do the 8 factors measure?</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-3">What do the 10 factors measure?</p>
               <ul className="space-y-1 text-gray-400">
                 <li><strong className="text-gray-200">RSI Oversold Intensity</strong> — how deeply oversold the RSI is (RSI=20 → max score)</li>
                 <li><strong className="text-gray-200">Bollinger Deviation</strong> — how far price has fallen below the Bollinger Band</li>
@@ -300,6 +304,8 @@ export default function MultiFactorPanel({
                 <li><strong className="text-gray-200">Regime Favorability</strong> — whether the current market regime (bull/bear/sideways) has historically been favourable for signals</li>
                 <li><strong className="text-gray-200">Volume Surge</strong> — whether there is a volume spike on a down day (capitulation signal)</li>
                 <li><strong className="text-gray-200">Price Momentum</strong> — whether short-term momentum is negative enough to suggest oversold conditions</li>
+                <li><strong className="text-gray-200">Funding Rate 💹</strong> — 7-day average perpetual futures funding rate: negative = shorts paying longs (crowded short, potential squeeze)</li>
+                <li><strong className="text-gray-200">Long/Short Ratio ⚖️</strong> — top trader long/short account ratio: high short % = more room for a short squeeze</li>
               </ul>
             </div>
             <div>
@@ -308,7 +314,7 @@ export default function MultiFactorPanel({
                 <em>核心問題：現在有多少個獨立指標同時指向這個幣的超賣／看漲設置？</em>
               </p>
               <p className="text-gray-400 mb-2">
-                <strong className="text-white">多因子設置評分</strong>把 8 個不同模型整合成一個 0–100 分。就像一份檢查清單——打勾的項目越多，歷史上設置質量越強。
+                <strong className="text-white">多因子設置評分</strong>把 10 個不同模型整合成一個 0–100 分。就像一份檢查清單——打勾的項目越多，歷史上設置質量越強。
               </p>
               <p className="text-gray-400 mb-3">
                 高分<strong className="text-white">不代表</strong>價格一定會漲。它代表歷史上當多個信號同時出現時，短期反彈的概率比平均更高。
@@ -320,7 +326,7 @@ export default function MultiFactorPanel({
                 <li><strong className="text-gray-400">30–49 設置偏弱</strong> — 條件混合或大多中性。</li>
                 <li><strong className="text-gray-600">0–29 無明顯設置</strong> — 各因子之間無明顯對齊。</li>
               </ul>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-3">8 個因子各測量什麼？</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-3">10 個因子各測量什麼？</p>
               <ul className="space-y-1 text-gray-400">
                 <li><strong className="text-gray-200">RSI 超賣強度</strong> — RSI 有多超賣（RSI=20 → 最高分）</li>
                 <li><strong className="text-gray-200">布林帶偏離幅度</strong> — 價格跌破布林下軌的程度</li>
@@ -330,6 +336,8 @@ export default function MultiFactorPanel({
                 <li><strong className="text-gray-200">Regime 信號有效性</strong> — 當前市場狀態（牛熊橫盤）歷史上對信號是否有利</li>
                 <li><strong className="text-gray-200">成交量放大訊號</strong> — 下跌日是否伴隨放量（恐慌性拋售信號）</li>
                 <li><strong className="text-gray-200">價格動量偏離</strong> — 短期動量是否足夠負向以暗示超賣</li>
+                <li><strong className="text-gray-200">期貨資金費率 💹</strong> — 7 天平均永續合約資金費率：負值代表空頭付費給多頭（空頭過多，有軋空潛力）</li>
+                <li><strong className="text-gray-200">大戶多空比 ⚖️</strong> — 大戶帳戶空頭佔比高 → 空頭壓力集中，反彈潛力更大</li>
               </ul>
             </div>
           </div>

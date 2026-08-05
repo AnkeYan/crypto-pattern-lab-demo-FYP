@@ -37,16 +37,18 @@ OUT_PATH = DATA_DIR / "multifactor_results.csv"
 SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 
 # Factor weights (sum = 1.0)
-# F7/F8 新增，原 6 因子等比降權，總和維持 1.0
+# F9/F10 新增，原 8 因子等比降權，總和維持 1.0
 WEIGHTS = {
-    "rsi_intensity":       0.20,
-    "bollinger_deviation": 0.15,
-    "garch_vol_regime":    0.12,
-    "fear_greed_zone":     0.13,
-    "month_seasonality":   0.13,
-    "regime_favorability": 0.13,
-    "volume_surge":        0.07,
-    "price_momentum":      0.07,
+    "rsi_intensity":       0.18,
+    "bollinger_deviation": 0.13,
+    "garch_vol_regime":    0.10,
+    "fear_greed_zone":     0.11,
+    "month_seasonality":   0.11,
+    "regime_favorability": 0.11,
+    "volume_surge":        0.06,
+    "price_momentum":      0.06,
+    "funding_rate":        0.07,  # F9：期貨資金費率
+    "ls_ratio":            0.07,  # F10：大戶多空比
 }
 
 
@@ -250,16 +252,51 @@ def analyze_symbol(symbol: str) -> list[dict]:
     f8_norm = clamp01(0.45 - rel_mom * 2.5)  # rel_mom=-0.10 → 0.70, rel_mom=+0.10 → 0.20
     f8_desc = f"5d mom = {mom_5d:+.1%}, 20d mom = {mom_20d:+.1%}, rel = {rel_mom:+.1%}"
 
+    # ── F9: Funding Rate ──────────────────────────────────────────────────────
+    # 讀取 futures_sentiment_results.csv（由 analyze_futures_sentiment.py 產生）
+    try:
+        fs_df = pd.read_csv(DATA_DIR / "futures_sentiment_results.csv")
+        fs_row = fs_df[fs_df["symbol"] == symbol]
+        if len(fs_row) > 0:
+            fs_row  = fs_row.iloc[0]
+            f9_norm = float(fs_row["f9_norm"]) if pd.notna(fs_row["f9_norm"]) else 0.5
+            fr_val  = float(fs_row["funding_rate_7d_avg"]) if pd.notna(fs_row["funding_rate_7d_avg"]) else 0.0
+            neg_pct = float(fs_row["funding_rate_neg_pct"]) if pd.notna(fs_row["funding_rate_neg_pct"]) else 0.0
+            f9_raw  = fr_val
+            f9_desc = f"7d avg funding={fr_val:.5f}, neg_pct={neg_pct:.0%}, f9={f9_norm:.3f}"
+        else:
+            f9_raw, f9_norm, f9_desc = 0.0, 0.5, "Futures data unavailable"
+    except Exception:
+        f9_raw, f9_norm, f9_desc = 0.0, 0.5, "Futures data unavailable"
+
+    # ── F10: Long/Short Ratio ─────────────────────────────────────────────────
+    try:
+        fs_df = pd.read_csv(DATA_DIR / "futures_sentiment_results.csv")
+        fs_row = fs_df[fs_df["symbol"] == symbol]
+        if len(fs_row) > 0:
+            fs_row   = fs_row.iloc[0]
+            f10_norm = float(fs_row["f10_norm"]) if pd.notna(fs_row["f10_norm"]) else 0.5
+            ls_ratio = float(fs_row["ls_ratio_latest"]) if pd.notna(fs_row["ls_ratio_latest"]) else 1.0
+            short_pct = float(fs_row["ls_short_pct"]) if pd.notna(fs_row["ls_short_pct"]) else 0.35
+            f10_raw  = ls_ratio
+            f10_desc = f"L/S ratio={ls_ratio:.3f}, short_pct={short_pct:.0%}, f10={f10_norm:.3f}"
+        else:
+            f10_raw, f10_norm, f10_desc = 0.0, 0.5, "L/S data unavailable"
+    except Exception:
+        f10_raw, f10_norm, f10_desc = 0.0, 0.5, "L/S data unavailable"
+
     # ── Assemble factor rows ──────────────────────────────────────────────────
     factors = [
-        ("rsi_intensity",       f1_raw, f1_norm, f1_desc),
-        ("bollinger_deviation", f2_raw, f2_norm, f2_desc),
-        ("garch_vol_regime",    f3_raw, f3_norm, f3_desc),
-        ("fear_greed_zone",     f4_raw, f4_norm, f4_desc),
-        ("month_seasonality",   f5_raw, f5_norm, f5_desc),
-        ("regime_favorability", f6_raw, f6_norm, f6_desc),
-        ("volume_surge",        f7_raw, f7_norm, f7_desc),
-        ("price_momentum",      f8_raw, f8_norm, f8_desc),
+        ("rsi_intensity",       f1_raw,  f1_norm,  f1_desc),
+        ("bollinger_deviation", f2_raw,  f2_norm,  f2_desc),
+        ("garch_vol_regime",    f3_raw,  f3_norm,  f3_desc),
+        ("fear_greed_zone",     f4_raw,  f4_norm,  f4_desc),
+        ("month_seasonality",   f5_raw,  f5_norm,  f5_desc),
+        ("regime_favorability", f6_raw,  f6_norm,  f6_desc),
+        ("volume_surge",        f7_raw,  f7_norm,  f7_desc),
+        ("price_momentum",      f8_raw,  f8_norm,  f8_desc),
+        ("funding_rate",        f9_raw,  f9_norm,  f9_desc),
+        ("ls_ratio",            f10_raw, f10_norm, f10_desc),
     ]
 
     total_weighted = 0.0
