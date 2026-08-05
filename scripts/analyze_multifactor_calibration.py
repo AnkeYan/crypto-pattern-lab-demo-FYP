@@ -20,18 +20,21 @@ Multi-Factor Score 歷史校準（觸發式評分版）
 觸發條件設計：
   F1 RSI：RSI < 50 才計分（愈低愈強），≥ 50 給 0
   F2 Bollinger：收盤在 BB 下方（dev < 0）才計分，≥ 0 給 0
-  F3 GARCH：固定 0.5（無歷史記錄，不納入校準，全期中性）
-  F4 Fear & Greed：靜態 EF 邊際，全期固定（無逐日 F&G 原始數據）
+  F3 GARCH：固定 0（無歷史記錄，不納入校準）
+  F4 Fear & Greed：固定 0（靜態代理，不納入校準）
   F5 Month Seasonality：靜態月份查詢，負向月份給 0
   F6 Regime Favorability：逐日 regime 查詢，unfavorable regime 給 0
   F7 Volume Surge：放量下跌才計分，否則給 0
   F8 Price Momentum：負動量（短期比長期弱）才計分，否則給 0
+  F9 Funding Rate：從 funding_rate_history.csv 逐日查詢（BTC/ETH/SOL）
+  F10 Long/Short Ratio：固定 0（歷史太短）
+  F11 Active Addresses：從 active_addresses_history.csv 逐日查詢（BTC only，ETH/SOL 固定 0.5）
+    觸發式：只有 f11 > 0.5（地址萎縮）才計分，否則給 0
 
 輸出 data/multifactor_calibration.csv
 Schema:
   symbol, date, score, score_bucket,
-  f1_norm, f2_norm, f3_norm, f4_norm, f5_norm, f6_norm, f7_norm, f8_norm,
-  outcome_7d, win
+  f1_norm..f11_norm, outcome_7d, win
 """
 
 import pandas as pd
@@ -44,22 +47,24 @@ OUT_PATH = DATA_DIR / "multifactor_calibration.csv"
 SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 
 WEIGHTS = {
-    "rsi_intensity":       0.18,
-    "bollinger_deviation": 0.13,
-    "garch_vol_regime":    0.10,
-    "fear_greed_zone":     0.11,
-    "month_seasonality":   0.11,
-    "regime_favorability": 0.11,
+    "rsi_intensity":       0.16,
+    "bollinger_deviation": 0.12,
+    "garch_vol_regime":    0.09,
+    "fear_greed_zone":     0.10,
+    "month_seasonality":   0.10,
+    "regime_favorability": 0.10,
     "volume_surge":        0.06,
     "price_momentum":      0.06,
     "funding_rate":        0.07,  # F9（逐日歷史）
     "ls_ratio":            0.07,  # F10（固定 0，歷史太短）
+    "active_addresses":    0.07,  # F11（BTC only，ETH/SOL 固定 0.5）
 }
 
 FACTOR_LIST = [
     "rsi_intensity", "bollinger_deviation", "garch_vol_regime",
     "fear_greed_zone", "month_seasonality", "regime_favorability",
     "volume_surge", "price_momentum", "funding_rate", "ls_ratio",
+    "active_addresses",
 ]
 
 
@@ -237,6 +242,16 @@ def calibrate_symbol(symbol: str) -> list[dict]:
     except Exception:
         fr_sym = pd.Series(dtype=float)
 
+    # ── Load F11: Active Addresses（BTC only）────────────────────────────────
+    aa_series = pd.Series(dtype=float)
+    if symbol == "BTCUSDT":
+        try:
+            aa_df = pd.read_csv(DATA_DIR / "active_addresses_history.csv", parse_dates=["date"])
+            aa_df["date"] = pd.to_datetime(aa_df["date"], utc=True).dt.tz_localize(None)
+            aa_series = aa_df.set_index("date")["f11_norm"]
+        except Exception:
+            pass
+
     # ── Main loop ─────────────────────────────────────────────────────────────
     rows = []
     for i in range(20, n_rows - 7):
@@ -322,8 +337,22 @@ def calibrate_symbol(symbol: str) -> list[dict]:
         # ── F10: Long/Short Ratio — 校準版固定 0（歷史太短）──────────────
         f10_norm = 0.0
 
+        # ── F11: Active Addresses（BTC only，觸發式）─────────────────────
+        # ETH/SOL 無歷史鏈上數據 → 固定 0（觸發式不計分）
+        # BTC：地址萎縮（f11 > 0.5）才計分，否則 → 0
+        if len(aa_series) > 0:
+            date_naive = date_i.tz_localize(None) if date_i.tzinfo else date_i
+            past_aa = aa_series[aa_series.index <= date_naive]
+            if len(past_aa) > 0:
+                raw_f11 = float(past_aa.iloc[-1])
+                f11_norm = raw_f11 if raw_f11 > 0.5 else 0.0
+            else:
+                f11_norm = 0.0
+        else:
+            f11_norm = 0.0
+
         # ── Weighted Score ────────────────────────────────────────────────
-        norms = [f1_norm, f2_norm, f3_norm, f4_norm, f5_norm, f6_norm, f7_norm, f8_norm, f9_norm, f10_norm]
+        norms = [f1_norm, f2_norm, f3_norm, f4_norm, f5_norm, f6_norm, f7_norm, f8_norm, f9_norm, f10_norm, f11_norm]
         total = sum(n * WEIGHTS[f] for n, f in zip(norms, FACTOR_LIST))
         score = round(total * 100, 1)
 
@@ -342,6 +371,7 @@ def calibrate_symbol(symbol: str) -> list[dict]:
             "f8_norm":      round(f8_norm, 4),
             "f9_norm":      round(f9_norm, 4),
             "f10_norm":     round(f10_norm, 4),
+            "f11_norm":     round(f11_norm, 4),
             "outcome_7d":   round(float(outcome_7d), 6),
             "win":          win,
         })

@@ -37,18 +37,19 @@ OUT_PATH = DATA_DIR / "multifactor_results.csv"
 SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 
 # Factor weights (sum = 1.0)
-# F9/F10 新增，原 8 因子等比降權，總和維持 1.0
+# F11 新增，總和維持 1.0
 WEIGHTS = {
-    "rsi_intensity":       0.18,
-    "bollinger_deviation": 0.13,
-    "garch_vol_regime":    0.10,
-    "fear_greed_zone":     0.11,
-    "month_seasonality":   0.11,
-    "regime_favorability": 0.11,
+    "rsi_intensity":       0.16,
+    "bollinger_deviation": 0.12,
+    "garch_vol_regime":    0.09,
+    "fear_greed_zone":     0.10,
+    "month_seasonality":   0.10,
+    "regime_favorability": 0.10,
     "volume_surge":        0.06,
     "price_momentum":      0.06,
     "funding_rate":        0.07,  # F9：期貨資金費率
     "ls_ratio":            0.07,  # F10：大戶多空比
+    "active_addresses":    0.07,  # F11：BTC 鏈上活躍地址
 }
 
 
@@ -285,6 +286,23 @@ def analyze_symbol(symbol: str) -> list[dict]:
     except Exception:
         f10_raw, f10_norm, f10_desc = 0.0, 0.5, "L/S data unavailable"
 
+    # ── F11: Active Addresses（BTC only）─────────────────────────────────────
+    try:
+        if symbol == "BTCUSDT":
+            aa_df  = pd.read_csv(DATA_DIR / "active_addresses_history.csv", parse_dates=["date"])
+            latest = aa_df.iloc[-1]
+            addr   = float(latest["addr_count"])
+            ma30   = float(latest["ma30"])
+            ratio  = float(latest["ratio"])
+            f11_norm = float(latest["f11_norm"])
+            f11_raw  = addr
+            f11_desc = f"addr={addr:.0f}, ma30={ma30:.0f}, ratio={ratio:.3f}, f11={f11_norm:.3f}"
+        else:
+            # ETH/SOL：無免費歷史鏈上數據，中性分
+            f11_raw, f11_norm, f11_desc = 0.0, 0.5, "On-chain data BTC only (N/A)"
+    except Exception:
+        f11_raw, f11_norm, f11_desc = 0.0, 0.5, "Active address data unavailable"
+
     # ── Assemble factor rows ──────────────────────────────────────────────────
     factors = [
         ("rsi_intensity",       f1_raw,  f1_norm,  f1_desc),
@@ -297,6 +315,7 @@ def analyze_symbol(symbol: str) -> list[dict]:
         ("price_momentum",      f8_raw,  f8_norm,  f8_desc),
         ("funding_rate",        f9_raw,  f9_norm,  f9_desc),
         ("ls_ratio",            f10_raw, f10_norm, f10_desc),
+        ("active_addresses",    f11_raw, f11_norm, f11_desc),
     ]
 
     total_weighted = 0.0
