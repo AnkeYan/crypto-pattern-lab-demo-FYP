@@ -85,7 +85,7 @@ export default async function ValidationPage() {
   const wfData: WalkForwardRow[]    = await wfRes.json();
 
   return (
-    <main className="min-h-screen bg-gray-950 text-white">
+    <main className="min-h-screen bg-gray-950 text-white overflow-x-hidden">
       <Suspense>
         <WorkspaceHeader activeView="validation" maxWidthClass="max-w-6xl" />
       </Suspense>

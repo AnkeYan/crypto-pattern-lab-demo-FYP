@@ -1,6 +1,6 @@
 
 
-// 這個檔案負責：Landing Page（Hero + Features + Pricing）+ 研究工具主體
+// 這個檔案負責：Landing Page（Hero + Features）+ 研究工具主體
 
 import { Suspense } from "react";
 import { baseUrl } from "./lib/baseUrl";
@@ -130,7 +130,7 @@ export default async function Home() {
   const halvingData: HalvingData           = await halvRes.json();
 
   return (
-    <main className="min-h-screen bg-gray-950 text-white">
+    <main className="min-h-screen bg-gray-950 text-white overflow-x-hidden">
 
       {/* ── TOP NAV ── */}
       <Suspense>
@@ -149,21 +149,7 @@ export default async function Home() {
           <p className="text-gray-400 text-lg mb-8 max-w-xl mx-auto">
             CryptoPatternLab turns institutional-grade pattern research into clear, actionable insights — built specifically for crypto traders and analysts.
           </p>
-          <div className="flex gap-4 justify-center">
-            <a
-              href="#research"
-              className="bg-green-500 hover:bg-green-400 text-black font-bold px-6 py-3 rounded-lg transition-colors"
-            >
-              Try Free Research ↓
-            </a>
-            <a
-              href="#pricing"
-              className="border border-gray-600 hover:border-gray-400 text-gray-300 hover:text-white font-semibold px-6 py-3 rounded-lg transition-colors"
-            >
-              View Pricing
-            </a>
-          </div>
-        </div>
+</div>
       </section>
 
       {/* ── FEATURES SECTION ── */}
@@ -206,14 +192,6 @@ export default async function Home() {
             <span className="text-xs bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
               LIVE DATA
             </span>
-            <a
-              href="/report"
-              className="md:ml-auto flex items-center gap-1.5 text-xs border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 px-3 py-1 rounded-full transition-colors font-medium whitespace-nowrap"
-            >
-              <span>📄</span>
-              <span>Export PDF Report</span>
-              <span className="text-cyan-600 text-[10px]">Pro</span>
-            </a>
           </div>
           <p className="text-gray-400 text-sm mb-6">
             BTC · ETH · SOL · Daily data updated automatically · Pattern analysis, sentiment, volatility &amp; more
@@ -302,80 +280,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ── PRICING SECTION ── */}
-      <section id="pricing" className="px-4 md:px-8 py-16">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-2xl font-bold text-center mb-2">Pricing</h2>
-          <p className="text-gray-400 text-center text-sm mb-10">
-            Start free. Upgrade when you need more depth.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-            {/* Free */}
-            <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-              <h3 className="font-bold text-lg mb-1">Free</h3>
-              <p className="text-3xl font-extrabold mb-1">$0</p>
-              <p className="text-gray-500 text-sm mb-6">Forever</p>
-              <ul className="text-sm text-gray-300 space-y-2 mb-8">
-                <li>✅ BTC · ETH · SOL pattern table</li>
-                <li>✅ Win rate + Mean return</li>
-                <li>✅ Full AI Summary</li>
-                <li>✅ Win Rate chart</li>
-                <li>✅ Fear &amp; Greed analysis</li>
-              </ul>
-              <button className="w-full border border-gray-600 text-gray-300 py-2 rounded-lg text-sm font-semibold">
-                Current Plan
-              </button>
-            </div>
-
-            {/* Pro */}
-            <div className="bg-gray-900 rounded-xl p-6 border border-green-500/50 relative">
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-xs bg-green-500 text-black font-bold px-3 py-0.5 rounded-full">
-                MOST POPULAR
-              </span>
-              <h3 className="font-bold text-lg mb-1">Pro</h3>
-              <p className="text-3xl font-extrabold mb-1">$29<span className="text-lg font-normal text-gray-400">/mo</span></p>
-              <p className="text-gray-500 text-sm mb-6">Billed monthly</p>
-              <ul className="text-sm text-gray-300 space-y-2 mb-8">
-                <li>✅ Everything in Free</li>
-                <li>✅ RSI oversold analysis</li>
-                <li>✅ Bollinger Band breakdown</li>
-                <li>✅ Month Seasonality</li>
-                <li>✅ Consecutive Drop analysis</li>
-                <li>✅ Rolling Correlation (ETH/BTC · SOL/BTC)</li>
-                <li>✅ Signal Intelligence workspace</li>
-                <li>✅ Multi-Factor Setup Score</li>
-                <li>✅ Pattern Validation workspace</li>
-                <li>✅ PDF Report export</li>
-              </ul>
-              <button className="w-full bg-green-500 hover:bg-green-400 text-black font-bold py-2 rounded-lg text-sm transition-colors">
-                Coming Soon
-              </button>
-            </div>
-
-            {/* Research */}
-            <div className="bg-gray-900 rounded-xl p-6 border border-gray-800">
-              <h3 className="font-bold text-lg mb-1">Research</h3>
-              <p className="text-3xl font-extrabold mb-1">$79<span className="text-lg font-normal text-gray-400">/mo</span></p>
-              <p className="text-gray-500 text-sm mb-6">Billed monthly</p>
-              <ul className="text-sm text-gray-300 space-y-2 mb-8">
-                <li>✅ Everything in Pro</li>
-                <li>✅ GARCH volatility forecast</li>
-                <li>✅ Drawdown Recovery analysis</li>
-                <li>✅ Halving Cycle analysis</li>
-                <li>✅ Monte Carlo simulation</li>
-                <li>✅ Walk-Forward validation</li>
-                <li>✅ ACF/PACF autocorrelation</li>
-                <li>✅ Regime Transition (Markov)</li>
-              </ul>
-              <button className="w-full border border-gray-600 text-gray-300 py-2 rounded-lg text-sm font-semibold">
-                Coming Soon
-              </button>
-            </div>
-
-          </div>
-        </div>
-      </section>
 
       {/* ── FOOTER ── */}
       <footer className="px-8 py-8 border-t border-gray-800 text-center text-gray-500 text-sm">
