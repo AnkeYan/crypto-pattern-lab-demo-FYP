@@ -130,7 +130,7 @@ export default async function Home() {
   const halvingData: HalvingData           = await halvRes.json();
 
   return (
-    <main className="min-h-screen bg-gray-950 text-white overflow-x-hidden">
+    <main className="min-h-screen bg-gray-950 text-white ">
 
       {/* ── TOP NAV ── */}
       <Suspense>
