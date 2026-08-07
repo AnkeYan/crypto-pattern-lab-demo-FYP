@@ -93,6 +93,7 @@ export default function ResearchTOC({ mobileOnly, desktopOnly }: Props) {
                   : "border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200"
               }`}
             >
+              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${TIER_DOT[tier]} ${isActive ? "opacity-100" : "opacity-50"}`} />
               {label}
             </button>
           );
@@ -112,6 +113,7 @@ export default function ResearchTOC({ mobileOnly, desktopOnly }: Props) {
         <div className="flex flex-col gap-1 mb-4 px-1">
           {(["free", "pro", "research"] as const).map((t) => (
             <div key={t} className="flex items-center gap-1.5">
+              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${TIER_DOT[t]}`} />
               <span className="text-xs text-gray-500">{TIER_LABEL[t]}</span>
             </div>
           ))}
@@ -130,6 +132,7 @@ export default function ResearchTOC({ mobileOnly, desktopOnly }: Props) {
                     : "text-gray-500 hover:text-gray-200 hover:bg-white/[0.03]"
                 }`}
               >
+                <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 mt-1 ${TIER_DOT[tier]} ${isActive ? "opacity-100" : "opacity-40 group-hover:opacity-70"}`} />
                 <span className="leading-tight">
                   <span className="block">{label}</span>
                   <span className={`block text-xs ${isActive ? "text-gray-400" : "text-gray-600"}`}>{labelZh}</span>
