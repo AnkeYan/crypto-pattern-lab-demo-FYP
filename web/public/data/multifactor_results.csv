@@ -1,37 +1,37 @@
 symbol,factor,raw_value,normalized_score,weight,weighted_score,description
-BTCUSDT,rsi_intensity,54.650001,0.23,0.16,0.0368,RSI-14 = 54.7
-BTCUSDT,bollinger_deviation,2.513252,0.0,0.12,0.0,BB deviation = 2.51σ
-BTCUSDT,garch_vol_regime,0.153955,0.1921,0.09,0.0173,"Vol trend = ↑ expanding (+15.4%), persistence=1.000"
-BTCUSDT,fear_greed_zone,0.1457,0.9371,0.1,0.0937,"F&G: EF wr=69% vs baseline 54% (edge=+15%), EF mean=+2.8%, n=93"
+BTCUSDT,rsi_intensity,54.25347,0.2388,0.16,0.0382,RSI-14 = 54.3
+BTCUSDT,bollinger_deviation,2.478282,0.0,0.12,0.0,BB deviation = 2.48σ
+BTCUSDT,garch_vol_regime,0.160403,0.1792,0.09,0.0161,"Vol trend = ↑ expanding (+16.0%), persistence=1.000"
+BTCUSDT,fear_greed_zone,0.1456,0.9368,0.1,0.0937,"F&G: EF wr=69% vs baseline 54% (edge=+15%), EF mean=+2.8%, n=93"
 BTCUSDT,month_seasonality,-0.073945,0.0339,0.1,0.0034,"Month 8: median=-7.4%, wr=18%, n=11"
-BTCUSDT,regime_favorability,0.0978,0.7934,0.1,0.0793,"Regime=sideways: baseline wr=51%, avg signal edge=+9.8%"
-BTCUSDT,volume_surge,0.538752,0.4461,0.06,0.0268,"Vol ratio = 0.54x 20d avg, 3d price = +0.5%"
-BTCUSDT,price_momentum,0.019445,0.4014,0.06,0.0241,"5d mom = +2.3%, 20d mom = +0.3%, rel = +1.9%"
+BTCUSDT,regime_favorability,0.0975,0.7925,0.1,0.0792,"Regime=sideways: baseline wr=51%, avg signal edge=+9.7%"
+BTCUSDT,volume_surge,0.600593,0.4399,0.06,0.0264,"Vol ratio = 0.60x 20d avg, 3d price = +0.9%"
+BTCUSDT,price_momentum,0.018221,0.4044,0.06,0.0243,"5d mom = +1.2%, 20d mom = -0.6%, rel = +1.8%"
 BTCUSDT,funding_rate,6.3e-05,0.3747,0.07,0.0262,"7d avg funding=0.00006, neg_pct=0%, f9=0.375"
 BTCUSDT,ls_ratio,1.3234,0.6583,0.07,0.0461,"L/S ratio=1.323, short_pct=43%, f10=0.658"
 BTCUSDT,active_addresses,534028.0,0.2337,0.07,0.0164,"addr=534028, ma30=471279, ratio=1.133, f11=0.234"
-BTCUSDT,__total__,37.0,0.3701,1.0,0.3701,regime=sideways
-ETHUSDT,rsi_intensity,56.60588,0.1865,0.16,0.0298,RSI-14 = 56.6
-ETHUSDT,bollinger_deviation,2.670748,0.0,0.12,0.0,BB deviation = 2.67σ
-ETHUSDT,garch_vol_regime,0.163387,0.1732,0.09,0.0156,"Vol trend = ↑ expanding (+16.3%), persistence=1.000"
-ETHUSDT,fear_greed_zone,0.0227,0.5681,0.1,0.0568,"F&G: EF wr=54% vs baseline 51% (edge=+2%), EF mean=+0.5%, n=136"
+BTCUSDT,__total__,37.0,0.37,1.0,0.37,regime=sideways
+ETHUSDT,rsi_intensity,55.485139,0.2114,0.16,0.0338,RSI-14 = 55.5
+ETHUSDT,bollinger_deviation,2.428018,0.0,0.12,0.0,BB deviation = 2.43σ
+ETHUSDT,garch_vol_regime,0.168877,0.1622,0.09,0.0146,"Vol trend = ↑ expanding (+16.9%), persistence=1.000"
+ETHUSDT,fear_greed_zone,0.0225,0.5675,0.1,0.0568,"F&G: EF wr=54% vs baseline 51% (edge=+2%), EF mean=+0.5%, n=136"
 ETHUSDT,month_seasonality,-0.085335,0.143,0.1,0.0143,"Month 8: median=-8.5%, wr=38%, n=8"
-ETHUSDT,regime_favorability,0.0425,0.6275,0.1,0.0628,"Regime=sideways: baseline wr=49%, avg signal edge=+4.3%"
-ETHUSDT,volume_surge,0.421586,0.4578,0.06,0.0275,"Vol ratio = 0.42x 20d avg, 3d price = +0.5%"
-ETHUSDT,price_momentum,0.007299,0.4318,0.06,0.0259,"5d mom = +3.1%, 20d mom = +2.4%, rel = +0.7%"
+ETHUSDT,regime_favorability,0.0421,0.6263,0.1,0.0626,"Regime=sideways: baseline wr=49%, avg signal edge=+4.2%"
+ETHUSDT,volume_surge,0.545425,0.4455,0.06,0.0267,"Vol ratio = 0.55x 20d avg, 3d price = +0.3%"
+ETHUSDT,price_momentum,0.018981,0.4025,0.06,0.0242,"5d mom = +2.2%, 20d mom = +0.3%, rel = +1.9%"
 ETHUSDT,funding_rate,4e-05,0.4032,0.07,0.0282,"7d avg funding=0.00004, neg_pct=10%, f9=0.403"
 ETHUSDT,ls_ratio,1.784,0.4549,0.07,0.0318,"L/S ratio=1.784, short_pct=36%, f10=0.455"
 ETHUSDT,active_addresses,0.0,0.5,0.07,0.035,On-chain data BTC only (N/A)
-ETHUSDT,__total__,32.8,0.3277,1.0,0.3277,regime=sideways
-SOLUSDT,rsi_intensity,54.386595,0.2359,0.16,0.0377,RSI-14 = 54.4
-SOLUSDT,bollinger_deviation,2.755191,0.0,0.12,0.0,BB deviation = 2.76σ
-SOLUSDT,garch_vol_regime,0.183344,0.1333,0.09,0.012,"Vol trend = ↑ expanding (+18.3%), persistence=0.980"
-SOLUSDT,fear_greed_zone,-0.0105,0.4685,0.1,0.0469,"F&G: EF wr=48% vs baseline 49% (edge=-1%), EF mean=-1.1%, n=110"
+ETHUSDT,__total__,32.8,0.3281,1.0,0.3281,regime=sideways
+SOLUSDT,rsi_intensity,55.10492,0.2199,0.16,0.0352,RSI-14 = 55.1
+SOLUSDT,bollinger_deviation,2.993083,0.0,0.12,0.0,BB deviation = 2.99σ
+SOLUSDT,garch_vol_regime,0.190996,0.118,0.09,0.0106,"Vol trend = ↑ expanding (+19.1%), persistence=0.980"
+SOLUSDT,fear_greed_zone,-0.0108,0.4676,0.1,0.0468,"F&G: EF wr=48% vs baseline 49% (edge=-1%), EF mean=-1.1%, n=110"
 SOLUSDT,month_seasonality,-0.177662,0.0134,0.1,0.0013,"Month 8: median=-17.8%, wr=40%, n=5"
 SOLUSDT,regime_favorability,0.095033,0.7851,0.1,0.0785,"Regime=sideways: baseline wr=48%, avg signal edge=+9.5%"
-SOLUSDT,volume_surge,0.97534,0.4025,0.06,0.0241,"Vol ratio = 0.98x 20d avg, 3d price = +2.7%"
-SOLUSDT,price_momentum,0.039022,0.3524,0.06,0.0211,"5d mom = +3.4%, 20d mom = -0.5%, rel = +3.9%"
+SOLUSDT,volume_surge,0.781545,0.4218,0.06,0.0253,"Vol ratio = 0.78x 20d avg, 3d price = +5.0%"
+SOLUSDT,price_momentum,0.054145,0.3146,0.06,0.0189,"5d mom = +3.4%, 20d mom = -2.0%, rel = +5.4%"
 SOLUSDT,funding_rate,5.5e-05,0.4064,0.07,0.0284,"7d avg funding=0.00006, neg_pct=14%, f9=0.406"
 SOLUSDT,ls_ratio,2.712,0.1983,0.07,0.0139,"L/S ratio=2.712, short_pct=27%, f10=0.198"
 SOLUSDT,active_addresses,0.0,0.5,0.07,0.035,On-chain data BTC only (N/A)
-SOLUSDT,__total__,29.9,0.2991,1.0,0.2991,regime=sideways
+SOLUSDT,__total__,29.4,0.2939,1.0,0.2939,regime=sideways
