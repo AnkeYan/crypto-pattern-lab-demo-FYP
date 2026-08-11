@@ -98,9 +98,7 @@ export default function GarchPanel({ data }: { data: GarchRow[] }) {
             Daily volatility model with 1–7 day forward horizons.
           </p>
         </div>
-        <span className="text-xs bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-full font-medium shrink-0">
-          RESEARCH MODEL
-        </span>
+
       </div>
 
       {/* 說明框 */}

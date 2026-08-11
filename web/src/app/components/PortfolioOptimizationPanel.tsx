@@ -126,7 +126,7 @@ export default function PortfolioOptimizationPanel({ data }: Props) {
       <div className="mb-4">
         <div className="flex items-center gap-2 flex-wrap">
           <h2 className="text-lg font-semibold">Portfolio Optimization</h2>
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 uppercase">Research</span>
+
         </div>
         <p className="text-gray-500 text-sm mt-1">
           What's the historically optimal allocation across BTC, ETH, and SOL?&nbsp;
