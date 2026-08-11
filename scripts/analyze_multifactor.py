@@ -37,7 +37,7 @@ OUT_PATH = DATA_DIR / "multifactor_results.csv"
 SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 
 # Factor weights (sum = 1.0)
-# F11 新增，總和維持 1.0
+# F12 新增，總和維持 1.0
 WEIGHTS = {
     "rsi_intensity":       0.16,
     "bollinger_deviation": 0.12,
@@ -48,8 +48,9 @@ WEIGHTS = {
     "volume_surge":        0.06,
     "price_momentum":      0.06,
     "funding_rate":        0.07,  # F9：期貨資金費率
-    "ls_ratio":            0.07,  # F10：大戶多空比
-    "active_addresses":    0.07,  # F11：BTC 鏈上活躍地址
+    "ls_ratio":            0.06,  # F10：大戶多空比
+    "active_addresses":    0.06,  # F11：BTC 鏈上活躍地址
+    "turbulence_calm":     0.07,  # F12：市場異常指數（低 turbulence = 高分）
 }
 
 
@@ -303,6 +304,20 @@ def analyze_symbol(symbol: str) -> list[dict]:
     except Exception:
         f11_raw, f11_norm, f11_desc = 0.0, 0.5, "Active address data unavailable"
 
+    # ── F12: Turbulence Index（市場異常指數）────────────────────────────────
+    try:
+        turb_df = pd.read_csv(DATA_DIR / "turbulence_history.csv")
+        latest_turb = turb_df.iloc[-1]
+        turb_norm = float(latest_turb["turbulence_norm"])
+        turb_level = str(latest_turb["turbulence_level"])
+        # 低 turbulence = 市場平靜 = 信號更可靠 = 高分
+        # turbulence_norm 越高越異常，所以取反
+        f12_raw  = turb_norm
+        f12_norm = round(1.0 - turb_norm, 4)   # calm = 1.0, extreme = 0.0
+        f12_desc = f"turbulence_norm={turb_norm:.3f}, level={turb_level}, f12={f12_norm:.3f}"
+    except Exception:
+        f12_raw, f12_norm, f12_desc = 0.0, 0.5, "Turbulence data unavailable"
+
     # ── Assemble factor rows ──────────────────────────────────────────────────
     factors = [
         ("rsi_intensity",       f1_raw,  f1_norm,  f1_desc),
@@ -316,6 +331,7 @@ def analyze_symbol(symbol: str) -> list[dict]:
         ("funding_rate",        f9_raw,  f9_norm,  f9_desc),
         ("ls_ratio",            f10_raw, f10_norm, f10_desc),
         ("active_addresses",    f11_raw, f11_norm, f11_desc),
+        ("turbulence_calm",      f12_raw, f12_norm, f12_desc),
     ]
 
     total_weighted = 0.0

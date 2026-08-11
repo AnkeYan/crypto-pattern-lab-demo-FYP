@@ -34,7 +34,7 @@ Multi-Factor Score 歷史校準（觸發式評分版）
 輸出 data/multifactor_calibration.csv
 Schema:
   symbol, date, score, score_bucket,
-  f1_norm..f11_norm, outcome_7d, win
+  f1_norm..f12_norm, outcome_7d, win
 """
 
 import pandas as pd
@@ -56,15 +56,16 @@ WEIGHTS = {
     "volume_surge":        0.06,
     "price_momentum":      0.06,
     "funding_rate":        0.07,  # F9（逐日歷史）
-    "ls_ratio":            0.07,  # F10（固定 0，歷史太短）
-    "active_addresses":    0.07,  # F11（BTC only，ETH/SOL 固定 0.5）
+    "ls_ratio":            0.06,  # F10（固定 0，歷史太短）
+    "active_addresses":    0.06,  # F11（BTC only，ETH/SOL 固定 0.5）
+    "turbulence_calm":     0.07,  # F12（逐日歷史，低 turbulence = 高分）
 }
 
 FACTOR_LIST = [
     "rsi_intensity", "bollinger_deviation", "garch_vol_regime",
     "fear_greed_zone", "month_seasonality", "regime_favorability",
     "volume_surge", "price_momentum", "funding_rate", "ls_ratio",
-    "active_addresses",
+    "active_addresses", "turbulence_calm",
 ]
 
 
@@ -242,6 +243,14 @@ def calibrate_symbol(symbol: str) -> list[dict]:
     except Exception:
         fr_sym = pd.Series(dtype=float)
 
+    # ── Load F12: Turbulence History（逐日）────────────────────────────────
+    try:
+        turb_df = pd.read_csv(DATA_DIR / "turbulence_history.csv")
+        turb_df["date"] = pd.to_datetime(turb_df["date"]).dt.strftime("%Y-%m-%d")
+        turb_series = turb_df.set_index("date")["turbulence_norm"]
+    except Exception:
+        turb_series = pd.Series(dtype=float)
+
     # ── Load F11: Active Addresses（BTC only）────────────────────────────────
     aa_series = pd.Series(dtype=float)
     if symbol == "BTCUSDT":
@@ -352,7 +361,18 @@ def calibrate_symbol(symbol: str) -> list[dict]:
             f11_norm = 0.0
 
         # ── Weighted Score ────────────────────────────────────────────────
-        norms = [f1_norm, f2_norm, f3_norm, f4_norm, f5_norm, f6_norm, f7_norm, f8_norm, f9_norm, f10_norm, f11_norm]
+        # ── F12: Turbulence Calm（取反：低 turbulence = 高分）────────────
+        try:
+            turb_norm_val = float(turb_series.get(str(date_i.date()), np.nan))
+            if np.isnan(turb_norm_val):
+                f12_norm = 0.0  # 無數據（早於 turbulence 計算起點）= 不參與校準
+            else:
+                # 取反：turbulence_norm 越低 = 市場越平靜 = f12 越高
+                f12_norm = round(1.0 - turb_norm_val, 4)
+        except Exception:
+            f12_norm = 0.0
+
+        norms = [f1_norm, f2_norm, f3_norm, f4_norm, f5_norm, f6_norm, f7_norm, f8_norm, f9_norm, f10_norm, f11_norm, f12_norm]
         total = sum(n * WEIGHTS[f] for n, f in zip(norms, FACTOR_LIST))
         score = round(total * 100, 1)
 
@@ -372,6 +392,7 @@ def calibrate_symbol(symbol: str) -> list[dict]:
             "f9_norm":      round(f9_norm, 4),
             "f10_norm":     round(f10_norm, 4),
             "f11_norm":     round(f11_norm, 4),
+            "f12_norm":     round(f12_norm, 4),
             "outcome_7d":   round(float(outcome_7d), 6),
             "win":          win,
         })

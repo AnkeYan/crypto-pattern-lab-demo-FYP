@@ -42,7 +42,7 @@ SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 FEATURES = [
     "f1_norm", "f2_norm", "f3_norm", "f4_norm",
     "f5_norm", "f6_norm", "f7_norm", "f8_norm",
-    "f9_norm", "f10_norm", "f11_norm",
+    "f9_norm", "f10_norm", "f11_norm", "f12_norm",
 ]
 
 FEATURE_NAMES = {
@@ -57,6 +57,7 @@ FEATURE_NAMES = {
     "f9_norm":  "Funding Rate Sentiment",
     "f10_norm": "Long/Short Ratio",
     "f11_norm": "Active Addresses (BTC)",
+    "f12_norm": "Turbulence Calm",
 }
 
 # Purged CV：train/test 邊界的禁區天數（= outcome 窗口長度）
