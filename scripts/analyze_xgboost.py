@@ -1,5 +1,5 @@
 """
-analyze_xgboost.py  v2
+analyze_xgboost.py  v3
 XGBoost 因子重要性 + Purged Walk-Forward 驗證 + Rolling Window
 
 從 multifactor_calibration.csv 讀取逐日因子數據，
@@ -7,6 +7,11 @@ XGBoost 因子重要性 + Purged Walk-Forward 驗證 + Rolling Window
 輸出：
   1. xgb_results.csv    — 每個 fold 的 AUC / accuracy + 因子重要性排名
   2. xgb_predictions.csv — 最終模型對三幣種「當前設置」的預測概率
+
+改進（v3）：
+  - 移除零重要性因子：f3（GARCH）、f4（Fear & Greed）、f6（Regime）、f10（Long/Short Ratio）
+  - 保留 8 個有效因子：f1、f2、f5、f7、f8、f9、f11、f12
+  - 頁面展示不受影響，只改模型輸入
 
 改進（v2）：
   A. Purged Cross-Validation
@@ -17,10 +22,6 @@ XGBoost 因子重要性 + Purged Walk-Forward 驗證 + Rolling Window
      最終預測模型只用最近 ROLLING_YEARS=2 年訓練，
      避免遠古數據（2016–2018）干擾對現代市場的預測。
      Walk-forward fold 仍用 expanding window（保留歷史對比）。
-
-重要說明：
-  F3（GARCH）/ F4（Fear & Greed）校準版固定 0，XGBoost 自然發現無預測力
-  Walk-Forward 防止 look-ahead bias（未來數據洩漏）
 """
 
 import pandas as pd
@@ -39,25 +40,23 @@ OUT_PREDICTIONS = DATA_DIR / "xgb_predictions.csv"
 
 SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 
+# 只保留有預測力的因子（移除 f3/f4/f6/f10，重要性均為 0%）+ 加入 F13 MVRV
 FEATURES = [
-    "f1_norm", "f2_norm", "f3_norm", "f4_norm",
-    "f5_norm", "f6_norm", "f7_norm", "f8_norm",
-    "f9_norm", "f10_norm", "f11_norm", "f12_norm",
+    "f1_norm", "f2_norm",
+    "f5_norm", "f7_norm", "f8_norm",
+    "f9_norm", "f11_norm", "f12_norm", "f13_norm",
 ]
 
 FEATURE_NAMES = {
     "f1_norm":  "RSI Oversold Intensity",
     "f2_norm":  "Bollinger Deviation",
-    "f3_norm":  "GARCH Vol Regime",
-    "f4_norm":  "Fear & Greed Zone",
     "f5_norm":  "Month Seasonality",
-    "f6_norm":  "Regime Favorability",
     "f7_norm":  "Volume Surge",
     "f8_norm":  "Price Momentum",
     "f9_norm":  "Funding Rate Sentiment",
-    "f10_norm": "Long/Short Ratio",
     "f11_norm": "Active Addresses (BTC)",
     "f12_norm": "Turbulence Calm",
+    "f13_norm": "MVRV Valuation",
 }
 
 # Purged CV：train/test 邊界的禁區天數（= outcome 窗口長度）

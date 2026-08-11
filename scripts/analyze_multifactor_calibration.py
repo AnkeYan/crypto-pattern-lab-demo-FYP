@@ -30,11 +30,13 @@ Multi-Factor Score 歷史校準（觸發式評分版）
   F10 Long/Short Ratio：固定 0（歷史太短）
   F11 Active Addresses：從 active_addresses_history.csv 逐日查詢（BTC only，ETH/SOL 固定 0.5）
     觸發式：只有 f11 > 0.5（地址萎縮）才計分，否則給 0
+  F13 MVRV：從 mvrv_history.csv 逐日查詢（BTC/ETH，SOL 用 BTC 代理）
+    低 MVRV（低估）= 高分，觸發式：f13 > 0.5 才計分
 
 輸出 data/multifactor_calibration.csv
 Schema:
   symbol, date, score, score_bucket,
-  f1_norm..f12_norm, outcome_7d, win
+  f1_norm..f13_norm, outcome_7d, win
 """
 
 import pandas as pd
@@ -47,25 +49,26 @@ OUT_PATH = DATA_DIR / "multifactor_calibration.csv"
 SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 
 WEIGHTS = {
-    "rsi_intensity":       0.16,
-    "bollinger_deviation": 0.12,
-    "garch_vol_regime":    0.09,
-    "fear_greed_zone":     0.10,
-    "month_seasonality":   0.10,
-    "regime_favorability": 0.10,
+    "rsi_intensity":       0.15,
+    "bollinger_deviation": 0.11,
+    "garch_vol_regime":    0.08,
+    "fear_greed_zone":     0.09,
+    "month_seasonality":   0.09,
+    "regime_favorability": 0.09,
     "volume_surge":        0.06,
     "price_momentum":      0.06,
     "funding_rate":        0.07,  # F9（逐日歷史）
-    "ls_ratio":            0.06,  # F10（固定 0，歷史太短）
+    "ls_ratio":            0.05,  # F10（固定 0，歷史太短）
     "active_addresses":    0.06,  # F11（BTC only，ETH/SOL 固定 0.5）
     "turbulence_calm":     0.07,  # F12（逐日歷史，低 turbulence = 高分）
+    "mvrv":                0.07,  # F13（BTC/ETH 逐日，SOL 用 BTC 代理）
 }
 
 FACTOR_LIST = [
     "rsi_intensity", "bollinger_deviation", "garch_vol_regime",
     "fear_greed_zone", "month_seasonality", "regime_favorability",
     "volume_surge", "price_momentum", "funding_rate", "ls_ratio",
-    "active_addresses", "turbulence_calm",
+    "active_addresses", "turbulence_calm", "mvrv",
 ]
 
 
@@ -235,6 +238,14 @@ def calibrate_symbol(symbol: str) -> list[dict]:
     regime_series = load_regime_series(symbol)
     f6_by_regime  = load_static_f6_by_regime(symbol)
 
+    # ── Load F13: MVRV 逐日歷史 ──────────────────────────────────────────────
+    try:
+        mvrv_df = pd.read_csv(DATA_DIR / "mvrv_history.csv", parse_dates=["date"])
+        mvrv_df["date"] = pd.to_datetime(mvrv_df["date"], utc=True).dt.tz_localize(None)
+        mvrv_sym = mvrv_df[mvrv_df["symbol"] == symbol].set_index("date")["f13_norm"]
+    except Exception:
+        mvrv_sym = pd.Series(dtype=float)
+
     # ── Load F9: Funding Rate 逐日歷史 ────────────────────────────────────────
     try:
         fr_hist = pd.read_csv(DATA_DIR / "funding_rate_history.csv")
@@ -346,6 +357,19 @@ def calibrate_symbol(symbol: str) -> list[dict]:
         # ── F10: Long/Short Ratio — 校準版固定 0（歷史太短）──────────────
         f10_norm = 0.0
 
+        # ── F13: MVRV（觸發式）───────────────────────────────────────────
+        # 低 MVRV（市值被低估）= f13 高 → 強買入信號
+        # 觸發式：f13 > 0.5 才計分（即 MVRV < 2.0）
+        if len(mvrv_sym) > 0:
+            past_mvrv = mvrv_sym[mvrv_sym.index <= date_i]
+            if len(past_mvrv) > 0:
+                raw_f13  = float(past_mvrv.iloc[-1])
+                f13_norm = raw_f13 if raw_f13 > 0.5 else 0.0
+            else:
+                f13_norm = 0.0  # 早於 MVRV 數據起點
+        else:
+            f13_norm = 0.0
+
         # ── F11: Active Addresses（BTC only，觸發式）─────────────────────
         # ETH/SOL 無歷史鏈上數據 → 固定 0（觸發式不計分）
         # BTC：地址萎縮（f11 > 0.5）才計分，否則 → 0
@@ -361,7 +385,7 @@ def calibrate_symbol(symbol: str) -> list[dict]:
             f11_norm = 0.0
 
         # ── Weighted Score ────────────────────────────────────────────────
-        # ── F12: Turbulence Calm（取反：低 turbulence = 高分）────────────
+        # ── F12: Turbulence Calm（取反：低 turbulence = 高分）─────────────
         try:
             turb_norm_val = float(turb_series.get(str(date_i.date()), np.nan))
             if np.isnan(turb_norm_val):
@@ -372,7 +396,7 @@ def calibrate_symbol(symbol: str) -> list[dict]:
         except Exception:
             f12_norm = 0.0
 
-        norms = [f1_norm, f2_norm, f3_norm, f4_norm, f5_norm, f6_norm, f7_norm, f8_norm, f9_norm, f10_norm, f11_norm, f12_norm]
+        norms = [f1_norm, f2_norm, f3_norm, f4_norm, f5_norm, f6_norm, f7_norm, f8_norm, f9_norm, f10_norm, f11_norm, f12_norm, f13_norm]
         total = sum(n * WEIGHTS[f] for n, f in zip(norms, FACTOR_LIST))
         score = round(total * 100, 1)
 
@@ -393,6 +417,7 @@ def calibrate_symbol(symbol: str) -> list[dict]:
             "f10_norm":     round(f10_norm, 4),
             "f11_norm":     round(f11_norm, 4),
             "f12_norm":     round(f12_norm, 4),
+            "f13_norm":     round(f13_norm, 4),
             "outcome_7d":   round(float(outcome_7d), 6),
             "win":          win,
         })

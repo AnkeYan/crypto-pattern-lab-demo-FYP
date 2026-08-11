@@ -29,6 +29,7 @@ jobs:
           python3 "scripts/API調取-fetch_prices.py"
           python3 scripts/analyze_futures_sentiment.py
           python3 scripts/analyze_active_addresses.py
+          python3 scripts/analyze_mvrv.py
           python3 scripts/analyze_turbulence.py
           python3 scripts/analyze_portfolio_optimization.py
           python3 scripts/analyze_patterns.py
