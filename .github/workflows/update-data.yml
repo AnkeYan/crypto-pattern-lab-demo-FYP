@@ -22,7 +22,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install Python dependencies
-        run: pip install pandas numpy requests scipy arch statsmodels yfinance xgboost scikit-learn
+        run: pip install pandas numpy requests scipy arch statsmodels yfinance xgboost scikit-learn hmmlearn
 
       - name: Run all analysis scripts
         run: |
@@ -30,6 +30,7 @@ jobs:
           python3 scripts/analyze_futures_sentiment.py
           python3 scripts/analyze_active_addresses.py
           python3 scripts/analyze_mvrv.py
+          python3 scripts/analyze_hmm_regime.py
           python3 scripts/analyze_turbulence.py
           python3 scripts/analyze_portfolio_optimization.py
           python3 scripts/analyze_patterns.py
