@@ -1,7 +1,7 @@
 "use client";
 
 // MultiFactorPanel — Multi-Factor Setup Score
-// 跨模型加權整合：8個因子 → 0-100分的入場設置質量評分 + 歷史校準 + XGBoost 區塊
+// 跨模型加權整合：13個因子 → 0-100分的入場設置質量評分 + 歷史校準 + XGBoost 區塊
 
 import { useMemo, useState } from "react";
 
@@ -83,6 +83,8 @@ const FACTOR_META: Record<string, { label: string; zh: string; icon: string }> =
   funding_rate:        { label: "Funding Rate",                zh: "期貨資金費率",     icon: "💹" },
   ls_ratio:            { label: "Long/Short Ratio",            zh: "大戶多空比",       icon: "⚖️" },
   active_addresses:    { label: "Active Addresses",            zh: "BTC 鏈上活躍地址", icon: "🔗" },
+  turbulence_calm:     { label: "Turbulence Index",            zh: "市場異常指數",     icon: "🌡️" },
+  mvrv:                { label: "MVRV Valuation",              zh: "市值/實現價值",    icon: "⛓️" },
 };
 
 const FACTOR_ORDER = [
@@ -97,6 +99,8 @@ const FACTOR_ORDER = [
   "funding_rate",
   "ls_ratio",
   "active_addresses",
+  "turbulence_calm",
+  "mvrv",
 ];
 
 function scoreColor(score: number): string {
@@ -287,7 +291,7 @@ export default function MultiFactorPanel({
                 <em>The core question: right now, how many independent signals are simultaneously pointing to an oversold / bullish setup for this coin?</em>
               </p>
               <p className="text-gray-400 mb-2">
-                The <strong className="text-white">Multi-Factor Setup Score</strong> combines 10 different models into a single 0–100 score. Think of it like a checklist — the more boxes ticked, the stronger the historical setup quality.
+                The <strong className="text-white">Multi-Factor Setup Score</strong> combines 13 different factors into a single 0–100 score. Think of it like a checklist — the more boxes ticked, the stronger the historical setup quality.
               </p>
               <p className="text-gray-400 mb-3">
                 A high score does <strong className="text-white">not</strong> mean the price will definitely go up. It means that historically, when multiple signals aligned like this, the odds of a short-term bounce were higher than average.
@@ -299,7 +303,7 @@ export default function MultiFactorPanel({
                 <li><strong className="text-gray-400">30–49 Weak Setup</strong> — conditions are mixed or mostly neutral.</li>
                 <li><strong className="text-gray-600">0–29 No Setup</strong> — no meaningful alignment across factors.</li>
               </ul>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-3">What do the 11 factors measure?</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-3">What do the 13 factors measure?</p>
               <ul className="space-y-1 text-gray-400">
                 <li><strong className="text-gray-200">RSI Oversold Intensity</strong> — how deeply oversold the RSI is (RSI=20 → max score)</li>
                 <li><strong className="text-gray-200">Bollinger Deviation</strong> — how far price has fallen below the Bollinger Band</li>
@@ -320,7 +324,7 @@ export default function MultiFactorPanel({
                 <em>核心問題：現在有多少個獨立指標同時指向這個幣的超賣／看漲設置？</em>
               </p>
               <p className="text-gray-400 mb-2">
-                <strong className="text-white">多因子設置評分</strong>把 11 個不同模型整合成一個 0–100 分。就像一份檢查清單——打勾的項目越多，歷史上設置質量越強。
+                <strong className="text-white">多因子設置評分</strong>把 13 個不同模型整合成一個 0–100 分。就像一份檢查清單——打勾的項目越多，歷史上設置質量越強。
               </p>
               <p className="text-gray-400 mb-3">
                 高分<strong className="text-white">不代表</strong>價格一定會漲。它代表歷史上當多個信號同時出現時，短期反彈的概率比平均更高。
@@ -332,7 +336,7 @@ export default function MultiFactorPanel({
                 <li><strong className="text-gray-400">30–49 設置偏弱</strong> — 條件混合或大多中性。</li>
                 <li><strong className="text-gray-600">0–29 無明顯設置</strong> — 各因子之間無明顯對齊。</li>
               </ul>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-3">11 個因子各測量什麼？</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-3">13 個因子各測量什麼？</p>
               <ul className="space-y-1 text-gray-400">
                 <li><strong className="text-gray-200">RSI 超賣強度</strong> — RSI 有多超賣（RSI=20 → 最高分）</li>
                 <li><strong className="text-gray-200">布林帶偏離幅度</strong> — 價格跌破布林下軌的程度</li>
@@ -711,10 +715,10 @@ export default function MultiFactorPanel({
                   <div>
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">English</p>
                     <p className="text-gray-300 mb-2">
-                      <em>The core question: which of the 8 factors actually has predictive power for 7-day returns? And does the model generalise out-of-sample?</em>
+                      <em>The core question: which of the 13 factors actually has predictive power for 7-day returns? And does the model generalise out-of-sample?</em>
                     </p>
                     <p className="text-gray-400 mb-2">
-                      <strong className="text-white">XGBoost</strong> is a machine learning model that learns the optimal combination of the 8 factors to predict whether the price will be higher 7 days later. Unlike the static weighted score above, XGBoost discovers factor interactions automatically — e.g. RSI&lt;30 may only matter when Volume is also surging.
+                      <strong className="text-white">XGBoost</strong> is a machine learning model that learns the optimal combination of the 13 factors to predict whether the price will be higher 7 days later. Unlike the static weighted score above, XGBoost discovers factor interactions automatically — e.g. RSI&lt;30 may only matter when Volume is also surging.
                     </p>
                     <p className="text-gray-400 mb-2">
                       <strong className="text-white">Walk-Forward validation</strong> prevents look-ahead bias: each year&apos;s test fold is predicted using only data from prior years. This mimics real-world deployment.
@@ -729,10 +733,10 @@ export default function MultiFactorPanel({
                   <div>
                     <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">中文</p>
                     <p className="text-gray-300 mb-2">
-                      <em>核心問題：8 個因子中哪些真的有預測力？模型在樣本外是否仍然有效？</em>
+                      <em>核心問題：13 個因子中哪些真的有預測力？模型在樣本外是否仍然有效？</em>
                     </p>
                     <p className="text-gray-400 mb-2">
-                      <strong className="text-white">XGBoost</strong> 是機器學習模型，自動學習 8 個因子的最優組合來預測 7 天後漲跌。與上方固定權重評分不同，XGBoost 能發現因子之間的交互效應——例如 RSI&lt;30 只在成交量同時放大時才有效。
+                      <strong className="text-white">XGBoost</strong> 是機器學習模型，自動學習 13 個因子的最優組合來預測 7 天後漲跌。與上方固定權重評分不同，XGBoost 能發現因子之間的交互效應——例如 RSI&lt;30 只在成交量同時放大時才有效。
                     </p>
                     <p className="text-gray-400 mb-2">
                       <strong className="text-white">Walk-Forward 驗證</strong>防止未來數據洩漏：每年的測試只使用該年之前的數據訓練，模擬真實部署場景。
