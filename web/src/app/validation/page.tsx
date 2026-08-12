@@ -3,6 +3,7 @@ import { baseUrl } from "../lib/baseUrl";
 import PatternValidationPanel from "../components/PatternValidationPanel";
 import AcfPanel from "../components/AcfPanel";
 import WalkForwardPanel from "../components/WalkForwardPanel";
+import RegimeEfficacyPanel, { EfficacyRow } from "../components/RegimeEfficacyPanel";
 import TierGate from "../components/TierGate";
 import WorkspaceHeader from "../components/WorkspaceHeader";
 
@@ -73,16 +74,19 @@ type ValidationRow = {
 
 export default async function ValidationPage() {
   const BASE = baseUrl();
-  const [pvRes, acfRes, lbRes, wfRes] = await Promise.all([
-    fetch(`${BASE}/api/pattern-validation`, { cache: "no-store" }),
-    fetch(`${BASE}/api/acf`,                { cache: "no-store" }),
-    fetch(`${BASE}/api/ljung-box`,          { cache: "no-store" }),
-    fetch(`${BASE}/api/walk-forward`,       { cache: "no-store" }),
+  const [pvRes, acfRes, lbRes, wfRes, reRes] = await Promise.all([
+    fetch(`${BASE}/api/pattern-validation`,       { cache: "no-store" }),
+    fetch(`${BASE}/api/acf`,                      { cache: "no-store" }),
+    fetch(`${BASE}/api/ljung-box`,                { cache: "no-store" }),
+    fetch(`${BASE}/api/walk-forward`,             { cache: "no-store" }),
+    fetch(`${BASE}/api/regime-signal-efficacy`,   { cache: "no-store" }),
   ]);
   const data: ValidationRow[]       = await pvRes.json();
   const acfData: AcfRow[]           = await acfRes.json();
   const lbData: LjungBoxRow[]       = await lbRes.json();
   const wfData: WalkForwardRow[]    = await wfRes.json();
+  const reJson                      = await reRes.json();
+  const reData: EfficacyRow[]       = reJson.rows ?? [];
 
   return (
     <main className="min-h-screen bg-gray-950 text-white overflow-x-hidden">
@@ -119,6 +123,10 @@ export default async function ValidationPage() {
             <TierGate requiredTier="research" title="ACF / PACF Autocorrelation" description="Autocorrelation and partial autocorrelation up to 30 lags, with Ljung-Box test. Tests whether BTC/ETH/SOL returns contain exploitable serial dependence. 自相關與 Ljung-Box 檢定，驗證 random walk 假設。">
               <AcfPanel acfData={acfData} lbData={lbData} />
             </TierGate>
+          </div>
+
+          <div id="regime-efficacy" className="mt-10">
+            <RegimeEfficacyPanel data={reData} />
           </div>
         </div>
       </div>

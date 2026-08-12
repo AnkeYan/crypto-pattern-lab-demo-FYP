@@ -2,7 +2,7 @@
 analyze_multifactor.py
 Multi-Factor Setup Score — 跨模型加權整合
 
-整合 8 個現有模型的信號，輸出每個幣種當前的設置質量分 (0–100)，
+整合 13 個模型的信號，輸出每個幣種當前的設置質量分 (0–100)，
 以及每個因子的歷史邊際貢獻（用於前端顯示分解）。
 
 因子（各 0–1 分，加權後歸一化到 100）：
@@ -14,6 +14,11 @@ Multi-Factor Setup Score — 跨模型加權整合
   F6  Regime favorability         — 當前 regime 下信號有效性歷史加成
   F7  Volume surge                — 成交量相對 20d 均值，放量下跌後反彈概率更高
   F8  Price momentum              — 5d vs 20d 動量，負動量 = 超賣壓力釋放訊號
+  F9  Funding rate sentiment      — 期貨資金費率（Bybit）
+  F10 Long/Short ratio            — 大戶多空比（即時快照）
+  F11 Active addresses            — BTC 鏈上活躍地址（Blockchain.com）
+  F12 Turbulence index            — 市場異常指數（低 turbulence = 高分）
+  F13 MVRV valuation              — 市值 vs 實現價值（CoinMetrics，BTC/ETH；SOL 用 BTC 代理）
 
 設計原則：
   - F1/F2 在 neutral zone (RSI≈50, BB≈0) 給予 0.35–0.40 基礎分（非超賣市場仍有基礎質量）
@@ -37,20 +42,21 @@ OUT_PATH = DATA_DIR / "multifactor_results.csv"
 SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 
 # Factor weights (sum = 1.0)
-# F12 新增，總和維持 1.0
+# F13 MVRV 加入，總和維持 1.0
 WEIGHTS = {
-    "rsi_intensity":       0.16,
-    "bollinger_deviation": 0.12,
-    "garch_vol_regime":    0.09,
-    "fear_greed_zone":     0.10,
-    "month_seasonality":   0.10,
-    "regime_favorability": 0.10,
-    "volume_surge":        0.06,
-    "price_momentum":      0.06,
+    "rsi_intensity":       0.15,  # F1
+    "bollinger_deviation": 0.11,  # F2
+    "garch_vol_regime":    0.08,  # F3
+    "fear_greed_zone":     0.09,  # F4
+    "month_seasonality":   0.09,  # F5
+    "regime_favorability": 0.09,  # F6
+    "volume_surge":        0.06,  # F7
+    "price_momentum":      0.06,  # F8
     "funding_rate":        0.07,  # F9：期貨資金費率
-    "ls_ratio":            0.06,  # F10：大戶多空比
+    "ls_ratio":            0.05,  # F10：大戶多空比
     "active_addresses":    0.06,  # F11：BTC 鏈上活躍地址
     "turbulence_calm":     0.07,  # F12：市場異常指數（低 turbulence = 高分）
+    "mvrv":                0.07,  # F13：市值 vs 實現價值（CoinMetrics）
 }
 
 
@@ -318,6 +324,22 @@ def analyze_symbol(symbol: str) -> list[dict]:
     except Exception:
         f12_raw, f12_norm, f12_desc = 0.0, 0.5, "Turbulence data unavailable"
 
+    # ── F13: MVRV Valuation ───────────────────────────────────────────────────
+    try:
+        mvrv_df = pd.read_csv(DATA_DIR / "mvrv_history.csv", parse_dates=["date"])
+        mvrv_sym = mvrv_df[mvrv_df["symbol"] == symbol]
+        if len(mvrv_sym) > 0:
+            latest_mvrv = mvrv_sym.iloc[-1]
+            mvrv_val  = float(latest_mvrv["mvrv"])
+            f13_norm  = float(latest_mvrv["f13_norm"])
+            f13_raw   = mvrv_val
+            proxy_note = " (BTC proxy)" if symbol == "SOLUSDT" else ""
+            f13_desc  = f"MVRV={mvrv_val:.3f}, f13={f13_norm:.3f}{proxy_note}"
+        else:
+            f13_raw, f13_norm, f13_desc = 0.0, 0.5, "MVRV data unavailable"
+    except Exception as e:
+        f13_raw, f13_norm, f13_desc = 0.0, 0.5, f"MVRV data unavailable ({e})"
+
     # ── Assemble factor rows ──────────────────────────────────────────────────
     factors = [
         ("rsi_intensity",       f1_raw,  f1_norm,  f1_desc),
@@ -331,7 +353,8 @@ def analyze_symbol(symbol: str) -> list[dict]:
         ("funding_rate",        f9_raw,  f9_norm,  f9_desc),
         ("ls_ratio",            f10_raw, f10_norm, f10_desc),
         ("active_addresses",    f11_raw, f11_norm, f11_desc),
-        ("turbulence_calm",      f12_raw, f12_norm, f12_desc),
+        ("turbulence_calm",     f12_raw, f12_norm, f12_desc),
+        ("mvrv",                f13_raw, f13_norm, f13_desc),
     ]
 
     total_weighted = 0.0

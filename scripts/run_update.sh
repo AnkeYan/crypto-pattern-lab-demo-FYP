@@ -30,6 +30,7 @@ python3 scripts/analyze_consecutive_drop.py >> /tmp/crypto-pattern-lab-update.lo
 python3 scripts/analyze_drawdown_recovery.py >> /tmp/crypto-pattern-lab-update.log 2>&1
 python3 scripts/analyze_halving.py >> /tmp/crypto-pattern-lab-update.log 2>&1
 python3 scripts/analyze_signals.py >> /tmp/crypto-pattern-lab-update.log 2>&1
+python3 scripts/analyze_regime_signal_efficacy.py >> /tmp/crypto-pattern-lab-update.log 2>&1
 python3 scripts/analyze_regime_transition.py >> /tmp/crypto-pattern-lab-update.log 2>&1
 python3 scripts/analyze_multifactor.py >> /tmp/crypto-pattern-lab-update.log 2>&1
 python3 scripts/analyze_multifactor_calibration.py >> /tmp/crypto-pattern-lab-update.log 2>&1

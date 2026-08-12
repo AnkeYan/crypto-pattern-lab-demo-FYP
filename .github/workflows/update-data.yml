@@ -44,6 +44,7 @@ jobs:
           python3 scripts/analyze_rsi.py
           python3 scripts/analyze_month_seasonality.py
           python3 scripts/analyze_signals.py
+          python3 scripts/analyze_regime_signal_efficacy.py
           python3 scripts/analyze_regime_transition.py
           python3 scripts/analyze_multifactor.py
           python3 scripts/analyze_multifactor_calibration.py
