@@ -12,6 +12,8 @@ export type XgbFold = {
   n_test:      number | null;
   auc:         number | null;
   accuracy:    number | null;
+  rmse:        number | null;
+  dir_acc:     number | null;
   train_start: string | null;
   train_end:   string | null;
 };
@@ -25,10 +27,11 @@ export type XgbImportance = {
 };
 
 export type XgbPrediction = {
-  symbol:       string;
-  date:         string;
-  xgb_win_prob: number | null;
-  calib_score:  number | null;
+  symbol:            string;
+  date:              string;
+  xgb_win_prob:      number | null;
+  xgb_expected_ret:  number | null;
+  calib_score:       number | null;
 };
 
 export type CalibSummaryRow = {
@@ -666,13 +669,23 @@ export default function MultiFactorPanel({
         const avgAuc = symFolds.length > 0
           ? symFolds.reduce((s, r) => s + (r.auc ?? 0), 0) / symFolds.length
           : null;
+        const avgDirAcc = symFolds.length > 0
+          ? symFolds.reduce((s, r) => s + (r.dir_acc ?? 0), 0) / symFolds.length
+          : null;
         const consistentFolds = symFolds.filter((r) => (r.auc ?? 0) > 0.52).length;
-        const prob = symPred?.xgb_win_prob ?? null;
+        const prob    = symPred?.xgb_win_prob     ?? null;
+        const expRet  = symPred?.xgb_expected_ret ?? null;
 
         // Prob colour
         const probColor = prob == null ? "text-gray-400"
           : prob >= 0.58 ? "text-green-400"
           : prob <= 0.45 ? "text-red-400"
+          : "text-gray-300";
+
+        // Expected return colour
+        const retColor = expRet == null ? "text-gray-400"
+          : expRet >= 0.02 ? "text-green-400"
+          : expRet <= -0.02 ? "text-red-400"
           : "text-gray-300";
 
         return (
@@ -737,25 +750,40 @@ export default function MultiFactorPanel({
 
             {/* Current prediction + avg AUC banner */}
             <div className="mb-4 px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-sm">
-              {prob != null && (
-                <>
-                  <span className="text-gray-400">XGBoost 7d win probability: </span>
-                  <span className={`font-bold text-base ${probColor}`}>{(prob * 100).toFixed(1)}%</span>
-                  <span className="text-gray-500 ml-2 text-xs">
-                    ({prob >= 0.58 ? "↑ model sees edge" : prob <= 0.45 ? "↓ model cautious" : "→ neutral"})
+              <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+                {prob != null && (
+                  <span>
+                    <span className="text-gray-400 text-xs">Win Prob </span>
+                    <span className={`font-bold text-base ${probColor}`}>{(prob * 100).toFixed(1)}%</span>
+                    <span className="text-gray-500 ml-1 text-xs">
+                      ({prob >= 0.58 ? "↑ edge" : prob <= 0.45 ? "↓ cautious" : "→ neutral"})
+                    </span>
                   </span>
-                </>
-              )}
-              {avgAuc != null && (
-                <span className="ml-3 text-gray-500 text-xs">
-                  · avg walk-forward AUC: <span className={avgAuc >= 0.52 ? "text-green-400" : "text-gray-400"}>{avgAuc.toFixed(3)}</span>
-                  {" "}({consistentFolds}/{symFolds.length} folds AUC&gt;0.52)
-                </span>
-              )}
-              {prob != null && (
-                <span className="block mt-1 text-gray-500 text-sm">
-                  XGBoost 預測 {sym} 7 天後上漲概率：{(prob * 100).toFixed(1)}%
-                  {avgAuc != null && `　平均樣本外 AUC：${avgAuc.toFixed(3)}`}
+                )}
+                {expRet != null && (
+                  <span>
+                    <span className="text-gray-400 text-xs">Expected 7d Ret </span>
+                    <span className={`font-bold text-base ${retColor}`}>
+                      {expRet >= 0 ? "+" : ""}{(expRet * 100).toFixed(1)}%
+                    </span>
+                  </span>
+                )}
+                {avgAuc != null && (
+                  <span className="text-gray-500 text-xs">
+                    avg AUC <span className={avgAuc >= 0.52 ? "text-green-400" : "text-gray-400"}>{avgAuc.toFixed(3)}</span>
+                    {" · "}avg DirAcc <span className={avgDirAcc != null && avgDirAcc >= 0.52 ? "text-green-400" : "text-gray-400"}>
+                      {avgDirAcc != null ? (avgDirAcc * 100).toFixed(1) + "%" : "—"}
+                    </span>
+                    {" · "}{consistentFolds}/{symFolds.length} folds AUC&gt;0.52
+                  </span>
+                )}
+              </div>
+              {(prob != null || expRet != null) && (
+                <span className="block mt-1 text-gray-500 text-xs">
+                  {prob != null && `勝率 ${(prob * 100).toFixed(1)}%`}
+                  {prob != null && expRet != null && " · "}
+                  {expRet != null && `預期回報 ${expRet >= 0 ? "+" : ""}${(expRet * 100).toFixed(1)}%`}
+                  {avgAuc != null && ` · avg AUC ${avgAuc.toFixed(3)}`}
                 </span>
               )}
             </div>
@@ -800,18 +828,21 @@ export default function MultiFactorPanel({
               {/* Walk-forward AUC table */}
               {symFolds.length > 0 && (
                 <div className="flex-shrink-0 w-full lg:w-64">
-                  <p className="text-xs text-gray-500 mb-2">Walk-Forward AUC by Year</p>
+                  <p className="text-xs text-gray-500 mb-2">Walk-Forward Results by Year</p>
                   <table className="w-full text-xs border-collapse">
                     <thead>
                       <tr>
                         <th className="text-left text-gray-500 font-medium pb-1.5 pr-2">Year</th>
                         <th className="text-right text-gray-500 font-medium pb-1.5 pr-2">AUC</th>
-                        <th className="text-right text-gray-500 font-medium pb-1.5">Acc</th>
+                        <th className="text-right text-gray-500 font-medium pb-1.5 pr-2">DirAcc</th>
+                        <th className="text-right text-gray-500 font-medium pb-1.5">RMSE</th>
                       </tr>
                     </thead>
                     <tbody>
                       {symFolds.map((fold) => {
-                        const auc = fold.auc ?? 0;
+                        const auc    = fold.auc ?? 0;
+                        const dirAcc = fold.dir_acc ?? null;
+                        const rmse   = fold.rmse ?? null;
                         const hasEdge = auc > 0.52;
                         return (
                           <tr key={fold.test_year} className="border-t border-gray-800/60">
@@ -819,8 +850,11 @@ export default function MultiFactorPanel({
                             <td className={`py-1 pr-2 text-right tabular-nums font-medium ${hasEdge ? "text-green-400" : auc < 0.48 ? "text-red-400/80" : "text-gray-400"}`}>
                               {auc.toFixed(3)}
                             </td>
+                            <td className={`py-1 pr-2 text-right tabular-nums ${dirAcc != null && dirAcc >= 0.52 ? "text-green-400" : "text-gray-500"}`}>
+                              {dirAcc != null ? (dirAcc * 100).toFixed(1) + "%" : "—"}
+                            </td>
                             <td className="py-1 text-right tabular-nums text-gray-500">
-                              {fold.accuracy != null ? (fold.accuracy * 100).toFixed(1) + "%" : "—"}
+                              {rmse != null ? rmse.toFixed(3) : "—"}
                             </td>
                           </tr>
                         );
@@ -832,8 +866,9 @@ export default function MultiFactorPanel({
             </div>
 
             <p className="mt-3 text-xs text-gray-600 leading-relaxed">
-              ⚠️ F3 (GARCH) and F4 (Fear &amp; Greed) show 0% importance — consistent with calibration findings. These factors do not predict 7d direction and will be candidates for removal in the next model iteration.
-              <span className="block mt-0.5">F3（GARCH）和 F4（恐懼貪婪）重要性為 0%，與校準結果一致。這兩個因子對 7d 漲跌方向無預測力，下一輪模型迭代時將考慮移除。</span>
+              Model v4.1 · 15 features (continuous + lag) · Purged walk-forward · Rolling 3y final model · Training from 2017-11-01.
+              AUC measures ranking ability; DirAcc measures directional accuracy; Expected Ret is the regression model&apos;s 7d return forecast.
+              <span className="block mt-0.5">模型 v4.1 · 15 個連續特徵（含滯後特徵）· Purged Walk-Forward · 最終模型滾動 3 年訓練。AUC 衡量排序能力；DirAcc 衡量方向準確率；預期回報為回歸模型的 7 天回報率預測。</span>
             </p>
           </div>
         );

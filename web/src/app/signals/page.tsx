@@ -55,6 +55,8 @@ export type XgbFold = {
   n_test:      number | null;
   auc:         number | null;
   accuracy:    number | null;
+  rmse:        number | null;
+  dir_acc:     number | null;
   train_start: string | null;
   train_end:   string | null;
 };
@@ -68,10 +70,11 @@ export type XgbImportance = {
 };
 
 export type XgbPrediction = {
-  symbol:       string;
-  date:         string;
-  xgb_win_prob: number | null;
-  calib_score:  number | null;
+  symbol:            string;
+  date:              string;
+  xgb_win_prob:      number | null;
+  xgb_expected_ret:  number | null;
+  calib_score:       number | null;
 };
 
 export type CalibSummaryRow = {
