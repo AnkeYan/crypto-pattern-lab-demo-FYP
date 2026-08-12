@@ -49,7 +49,7 @@ SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 FEATURES = [
     # 即時連續特徵
     "f1_cont", "f2_cont",
-    "f5_cont", "f7_cont", "f8_cont",
+    "f5_cont", "f6_cont", "f7_cont", "f8_cont",
     "f9_cont", "f11_cont", "f12_cont", "f13_cont",
     # Lag Features：7天前
     "f8_lag7", "f12_lag7", "f13_lag7",
@@ -61,6 +61,7 @@ FEATURE_NAMES = {
     "f1_cont":   "RSI (continuous)",
     "f2_cont":   "Bollinger Position",
     "f5_cont":   "Month Seasonality",
+    "f6_cont":   "HMM Regime (Bull prob)",
     "f7_cont":   "Volume Direction",
     "f8_cont":   "Price Momentum",
     "f9_cont":   "Funding Rate",

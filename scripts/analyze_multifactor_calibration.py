@@ -238,6 +238,14 @@ def calibrate_symbol(symbol: str) -> list[dict]:
     regime_series = load_regime_series(symbol)
     f6_by_regime  = load_static_f6_by_regime(symbol)
 
+    # ── Load F6: HMM Posterior（Bull 概率作為連續 Regime 特徵）──────────────
+    try:
+        post_df = pd.read_csv(DATA_DIR / "hmm_posterior.csv", parse_dates=["date"])
+        post_df["date"] = pd.to_datetime(post_df["date"], utc=True).dt.tz_localize(None)
+        f6_cont_series = post_df[post_df["symbol"] == symbol].set_index("date")["f6_cont"]
+    except Exception:
+        f6_cont_series = pd.Series(dtype=float)
+
     # ── Load F13: MVRV 逐日歷史 ──────────────────────────────────────────────
     try:
         mvrv_df = pd.read_csv(DATA_DIR / "mvrv_history.csv", parse_dates=["date"])
@@ -316,6 +324,12 @@ def calibrate_symbol(symbol: str) -> list[dict]:
         raw_f6  = f6_by_regime.get(current_regime, 0.5)
         # 觸發式（score 用）
         f6_norm = raw_f6 if raw_f6 > 0.5 else 0.0
+        # 連續版（XGBoost 用）：HMM Bull 後驗概率，無數據時用靜態 regime score
+        if len(f6_cont_series) > 0:
+            past_f6c = f6_cont_series[f6_cont_series.index <= date_i]
+            f6_cont  = float(past_f6c.iloc[-1]) if len(past_f6c) > 0 else raw_f6
+        else:
+            f6_cont = raw_f6  # fallback：用靜態 regime score
 
         # ── F7: Volume Surge ──────────────────────────────────────────────
         vol_ratio = float(vol[i] / vol_ma20[i]) if (not np.isnan(vol_ma20[i]) and vol_ma20[i] > 0) else 1.0
@@ -433,6 +447,7 @@ def calibrate_symbol(symbol: str) -> list[dict]:
             "f1_cont":      round(f1_cont, 4),
             "f2_cont":      round(f2_cont, 4),
             "f5_cont":      round(f5_cont, 4),
+            "f6_cont":      round(f6_cont, 4),
             "f7_cont":      round(f7_cont, 4),
             "f8_cont":      round(f8_cont, 4),
             "f9_cont":      round(f9_cont, 4),
