@@ -43,6 +43,8 @@ export async function GET() {
           n_train:     numOrNull(parts[rIdxOf("n_train")]    ?? ""),
           n_test:      numOrNull(parts[rIdxOf("n_test")]     ?? ""),
           auc:         numOrNull(parts[rIdxOf("auc")]        ?? ""),
+          rmse:        numOrNull(parts[rIdxOf("rmse")]       ?? ""),
+          dir_acc:     numOrNull(parts[rIdxOf("dir_acc")]    ?? ""),
           accuracy:    numOrNull(parts[rIdxOf("accuracy")]   ?? ""),
           train_start: strOrNull(parts[rIdxOf("train_start")] ?? ""),
           train_end:   strOrNull(parts[rIdxOf("train_end")]   ?? ""),
@@ -71,10 +73,11 @@ export async function GET() {
     const predictions = pLines.slice(1).map((line) => {
       const parts = line.split(",");
       return {
-        symbol:       parts[pIdxOf("symbol")]       ?? "",
-        date:         parts[pIdxOf("date")]         ?? "",
-        xgb_win_prob: numOrNull(parts[pIdxOf("xgb_win_prob")] ?? ""),
-        calib_score:  numOrNull(parts[pIdxOf("calib_score")]  ?? ""),
+        symbol:           parts[pIdxOf("symbol")]       ?? "",
+        date:             parts[pIdxOf("date")]         ?? "",
+        xgb_win_prob:     numOrNull(parts[pIdxOf("xgb_win_prob")]    ?? ""),
+        xgb_expected_ret: numOrNull(parts[pIdxOf("xgb_expected_ret")] ?? ""),
+        calib_score:      numOrNull(parts[pIdxOf("calib_score")]     ?? ""),
       };
     });
 
