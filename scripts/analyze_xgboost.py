@@ -43,23 +43,35 @@ OUT_PREDICTIONS = DATA_DIR / "xgb_predictions.csv"
 
 SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 
-# 只保留有預測力的因子（移除 f3/f4/f6/f10，重要性均為 0%）+ 加入 F13 MVRV
+# 連續版特徵（XGBoost 用）+ Lag Features
+# _cont 後綴 = 全域連續值（0–1），比觸發式稀疏版信息更豐富
+# _lag7 / _lag14 = 7/14天前的值，讓模型學趨勢而不只是當前水平
 FEATURES = [
-    "f1_norm", "f2_norm",
-    "f5_norm", "f7_norm", "f8_norm",
-    "f9_norm", "f11_norm", "f12_norm", "f13_norm",
+    # 即時連續特徵
+    "f1_cont", "f2_cont",
+    "f5_cont", "f7_cont", "f8_cont",
+    "f9_cont", "f11_cont", "f12_cont", "f13_cont",
+    # Lag Features：7天前
+    "f8_lag7", "f12_lag7", "f13_lag7",
+    # Lag Features：14天前
+    "f8_lag14", "f13_lag14",
 ]
 
 FEATURE_NAMES = {
-    "f1_norm":  "RSI Oversold Intensity",
-    "f2_norm":  "Bollinger Deviation",
-    "f5_norm":  "Month Seasonality",
-    "f7_norm":  "Volume Surge",
-    "f8_norm":  "Price Momentum",
-    "f9_norm":  "Funding Rate Sentiment",
-    "f11_norm": "Active Addresses (BTC)",
-    "f12_norm": "Turbulence Calm",
-    "f13_norm": "MVRV Valuation",
+    "f1_cont":   "RSI (continuous)",
+    "f2_cont":   "Bollinger Position",
+    "f5_cont":   "Month Seasonality",
+    "f7_cont":   "Volume Direction",
+    "f8_cont":   "Price Momentum",
+    "f9_cont":   "Funding Rate",
+    "f11_cont":  "Active Addresses",
+    "f12_cont":  "Turbulence Calm",
+    "f13_cont":  "MVRV Valuation",
+    "f8_lag7":   "Momentum 7d ago",
+    "f12_lag7":  "Turbulence Calm 7d ago",
+    "f13_lag7":  "MVRV 7d ago",
+    "f8_lag14":  "Momentum 14d ago",
+    "f13_lag14": "MVRV 14d ago",
 }
 
 # Purged CV：train/test 邊界的禁區天數（= outcome 窗口長度）
@@ -240,6 +252,25 @@ def main():
 
     calib_df = pd.read_csv(calib_path)
     print(f"Loaded calibration data: {len(calib_df)} rows")
+
+    # ── 計算 Lag Features ────────────────────────────────────────────────────
+    # 按幣種分組計算，避免跨幣種污染
+    lag_frames = []
+    for sym in SYMBOLS:
+        s = calib_df[calib_df["symbol"] == sym].copy().sort_values("date").reset_index(drop=True)
+        s["f8_lag7"]   = s["f8_cont"].shift(7)
+        s["f12_lag7"]  = s["f12_cont"].shift(7)
+        s["f13_lag7"]  = s["f13_cont"].shift(7)
+        s["f8_lag14"]  = s["f8_cont"].shift(14)
+        s["f13_lag14"] = s["f13_cont"].shift(14)
+        lag_frames.append(s)
+    calib_df = pd.concat(lag_frames, ignore_index=True)
+
+    # 填補 lag 的 NaN（最前面幾行沒有足夠歷史）→ 用中性值 0.5
+    for col in ["f8_lag7", "f12_lag7", "f13_lag7", "f8_lag14", "f13_lag14"]:
+        calib_df[col] = calib_df[col].fillna(0.5)
+
+    print(f"Lag features computed. Sample: f8_lag7 non-null={calib_df['f8_lag7'].notna().sum()}")
 
     all_fold_results = []
     all_fi_rows      = []

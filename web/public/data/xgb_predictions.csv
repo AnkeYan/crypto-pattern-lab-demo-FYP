@@ -1,4 +1,4 @@
 symbol,date,xgb_win_prob,xgb_expected_ret,calib_score,model
-BTCUSDT,2026-07-29,0.6098,0.0103,25.3,rolling_3y_purged
-ETHUSDT,2026-07-29,0.5355,-0.0002,22.8,rolling_3y_purged
-SOLUSDT,2026-07-29,0.538,-0.0015,17.9,rolling_3y_purged
+BTCUSDT,2026-07-29,0.461,0.0156,25.3,rolling_3y_purged
+ETHUSDT,2026-07-29,0.4568,0.0281,22.8,rolling_3y_purged
+SOLUSDT,2026-07-29,0.5694,-0.0335,17.9,rolling_3y_purged

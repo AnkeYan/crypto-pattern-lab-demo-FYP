@@ -281,120 +281,130 @@ def calibrate_symbol(symbol: str) -> list[dict]:
         outcome_7d = (close[i + 7] - close[i]) / close[i]
         win        = int(outcome_7d > 0)
 
-        # ── F1: RSI Intensity（觸發式）───────────────────────────────────
-        # RSI < 50 才計分（愈低愈強），≥ 50 無信號 → 0
+        # ── F1: RSI Intensity ─────────────────────────────────────────────
         rsi_val = float(rsi14[i]) if not np.isnan(rsi14[i]) else 50.0
-        if rsi_val < 50.0:
-            f1_norm = clamp01((50.0 - rsi_val) / 50.0)  # RSI=0→1.0, RSI=30→0.40, RSI=49→0.02
-        else:
-            f1_norm = 0.0
+        # 觸發式（score 用）：RSI < 50 才計分
+        f1_norm = clamp01((50.0 - rsi_val) / 50.0) if rsi_val < 50.0 else 0.0
+        # 連續版（XGBoost 用）：RSI 愈低值愈高，全域 0–1
+        f1_cont = clamp01((100.0 - rsi_val) / 100.0)
 
-        # ── F2: Bollinger Deviation（觸發式）─────────────────────────────
-        # 收盤在 BB 下方（dev < 0）才計分；dev 是相對 lower band 偏離，< 0 = 在 band 下方
+        # ── F2: Bollinger Deviation ───────────────────────────────────────
         bb_val = float(bb_dev[i]) if not np.isnan(bb_dev[i]) else 0.0
-        if bb_val < 0.0:
-            f2_norm = clamp01(-bb_val / 3.0)             # dev=-3→1.0, dev=-1→0.33, dev=0→0
-        else:
-            f2_norm = 0.0
+        # 觸發式（score 用）：在 BB 下方才計分
+        f2_norm = clamp01(-bb_val / 3.0) if bb_val < 0.0 else 0.0
+        # 連續版（XGBoost 用）：0 = 大幅在 BB 上方，0.5 = 在中軌，1.0 = 大幅在 BB 下方
+        f2_cont = clamp01(0.5 - bb_val / 6.0)
 
-        # ── F3: GARCH — 校準版設為 0（無歷史數據，不參與分布）────────────
-        # Dashboard 版固定 0.5；校準版固定 0，避免人為抬高分數下限
+        # ── F3/F4: 固定 0（不參與分布）───────────────────────────────────
         f3_norm = 0.0
-
-        # ── F4: Fear & Greed — 校準版設為 0（靜態代理全期不變，不參與分布）
-        # Dashboard 版使用 EF 邊際；校準版固定 0，避免干擾分數分布
         f4_norm = 0.0
 
-        # ── F5: Month Seasonality（觸發式）───────────────────────────────
-        # 只有正向月份（score > 0.5）才計分，負向月份 → 0
+        # ── F5: Month Seasonality ─────────────────────────────────────────
         month_i = date_i.month
         raw_f5  = f5_by_month.get(month_i, 0.5)
+        # 觸發式（score 用）：只有正向月份計分
         f5_norm = raw_f5 if raw_f5 > 0.5 else 0.0
+        # 連續版（XGBoost 用）：直接用原始分（已是 0–1 連續值）
+        f5_cont = raw_f5
 
-        # ── F6: Regime Favorability（觸發式）─────────────────────────────
-        # 逐日 regime；unfavorable regime（score < 0.5）→ 0
+        # ── F6: Regime Favorability ───────────────────────────────────────
         if len(regime_series) > 0:
             past           = regime_series[regime_series.index <= date_i]
             current_regime = past.iloc[-1] if len(past) > 0 else "Sideways"
         else:
             current_regime = "Sideways"
         raw_f6  = f6_by_regime.get(current_regime, 0.5)
+        # 觸發式（score 用）
         f6_norm = raw_f6 if raw_f6 > 0.5 else 0.0
 
-        # ── F7: Volume Surge（觸發式）────────────────────────────────────
-        # 只有放量下跌才計分，其他情況 → 0
+        # ── F7: Volume Surge ──────────────────────────────────────────────
         vol_ratio = float(vol[i] / vol_ma20[i]) if (not np.isnan(vol_ma20[i]) and vol_ma20[i] > 0) else 1.0
         price_3d  = (close[i] - close[i - 3]) / close[i - 3] if i >= 3 else 0.0
+        # 觸發式（score 用）：放量下跌才計分
         if price_3d < -0.02 and vol_ratio > 1.3:
             f7_norm = clamp01((vol_ratio - 1.0) * 0.5 + abs(price_3d) * 3.0)
         else:
             f7_norm = 0.0
+        # 連續版（XGBoost 用）：成交量比例連續輸出，配合價格方向
+        # 放量下跌 = 高分（潛在反彈），縮量上漲 = 低分
+        vol_dir = -1.0 if price_3d < 0 else 1.0
+        f7_cont = clamp01(0.5 + vol_dir * (vol_ratio - 1.0) * 0.3)
 
-        # ── F8: Price Momentum（觸發式）──────────────────────────────────
-        # 只有負動量（短期比長期弱）才計分，正動量 → 0
+        # ── F8: Price Momentum ────────────────────────────────────────────
         mom_5d  = (close[i] - close[i - 5])  / close[i - 5]  if i >= 5  else 0.0
         mom_20d = (close[i] - close[i - 20]) / close[i - 20] if i >= 20 else 0.0
         rel_mom = mom_5d - mom_20d
-        if rel_mom < 0:
-            f8_norm = clamp01(-rel_mom * 5.0)
-        else:
-            f8_norm = 0.0
+        # 觸發式（score 用）：負動量才計分
+        f8_norm = clamp01(-rel_mom * 5.0) if rel_mom < 0 else 0.0
+        # 連續版（XGBoost 用）：負動量 > 0.5，正動量 < 0.5
+        f8_cont = clamp01(0.5 - rel_mom * 3.0)
 
-        # ── F9: Funding Rate（逐日動態）──────────────────────────────────
-        # 從 funding_rate_history.csv 查詢當天或最近可用值
-        # 無數據期間（2014–2019）→ 固定 0（觸發式：中性不計分）
+        # ── F9: Funding Rate ──────────────────────────────────────────────
         if len(fr_sym) > 0:
             past_fr = fr_sym[fr_sym.index <= date_i]
             if len(past_fr) > 0:
-                raw_f9 = float(past_fr.iloc[-1])
-                # 觸發式：只有 f9 > 0.5（空頭情緒明顯）才計分
+                raw_f9  = float(past_fr.iloc[-1])
+                # 觸發式（score 用）：只有空頭情緒明顯（f9 > 0.5）才計分
                 f9_norm = raw_f9 if raw_f9 > 0.5 else 0.0
+                # 連續版（XGBoost 用）：直接用原始值
+                f9_cont = raw_f9
             else:
-                f9_norm = 0.0  # 期貨市場尚未存在
+                f9_norm = 0.0
+                f9_cont = 0.5  # 無期貨數據 → 中性
         else:
             f9_norm = 0.0
+            f9_cont = 0.5
 
-        # ── F10: Long/Short Ratio — 校準版固定 0（歷史太短）──────────────
+        # ── F10: 固定 0（歷史太短）───────────────────────────────────────
         f10_norm = 0.0
 
-        # ── F13: MVRV（觸發式）───────────────────────────────────────────
-        # 低 MVRV（市值被低估）= f13 高 → 強買入信號
-        # 觸發式：f13 > 0.5 才計分（即 MVRV < 2.0）
-        if len(mvrv_sym) > 0:
-            past_mvrv = mvrv_sym[mvrv_sym.index <= date_i]
-            if len(past_mvrv) > 0:
-                raw_f13  = float(past_mvrv.iloc[-1])
-                f13_norm = raw_f13 if raw_f13 > 0.5 else 0.0
-            else:
-                f13_norm = 0.0  # 早於 MVRV 數據起點
-        else:
-            f13_norm = 0.0
-
-        # ── F11: Active Addresses（BTC only，觸發式）─────────────────────
-        # ETH/SOL 無歷史鏈上數據 → 固定 0（觸發式不計分）
-        # BTC：地址萎縮（f11 > 0.5）才計分，否則 → 0
+        # ── F11: Active Addresses（BTC only）─────────────────────────────
         if len(aa_series) > 0:
             date_naive = date_i.tz_localize(None) if date_i.tzinfo else date_i
             past_aa = aa_series[aa_series.index <= date_naive]
             if len(past_aa) > 0:
-                raw_f11 = float(past_aa.iloc[-1])
+                raw_f11  = float(past_aa.iloc[-1])
+                # 觸發式（score 用）
                 f11_norm = raw_f11 if raw_f11 > 0.5 else 0.0
+                # 連續版（XGBoost 用）
+                f11_cont = raw_f11
             else:
                 f11_norm = 0.0
+                f11_cont = 0.5
         else:
             f11_norm = 0.0
+            f11_cont = 0.5  # ETH/SOL 無地址數據 → 中性
 
-        # ── Weighted Score ────────────────────────────────────────────────
-        # ── F12: Turbulence Calm（取反：低 turbulence = 高分）─────────────
+        # ── F12: Turbulence Calm ──────────────────────────────────────────
         try:
             turb_norm_val = float(turb_series.get(str(date_i.date()), np.nan))
             if np.isnan(turb_norm_val):
-                f12_norm = 0.0  # 無數據（早於 turbulence 計算起點）= 不參與校準
+                f12_norm = 0.0
+                f12_cont = 0.5  # 無數據 → 中性
             else:
-                # 取反：turbulence_norm 越低 = 市場越平靜 = f12 越高
                 f12_norm = round(1.0 - turb_norm_val, 4)
+                f12_cont = f12_norm  # 連續版與觸發式相同（已是全域連續）
         except Exception:
             f12_norm = 0.0
+            f12_cont = 0.5
+
+        # ── F13: MVRV ─────────────────────────────────────────────────────
+        if len(mvrv_sym) > 0:
+            past_mvrv = mvrv_sym[mvrv_sym.index <= date_i]
+            if len(past_mvrv) > 0:
+                raw_f13  = float(past_mvrv.iloc[-1])
+                # 觸發式（score 用）
+                f13_norm = raw_f13 if raw_f13 > 0.5 else 0.0
+                # 連續版（XGBoost 用）
+                f13_cont = raw_f13
+            else:
+                f13_norm = 0.0
+                f13_cont = 0.5  # 早於 MVRV 數據起點 → 中性
+        else:
+            f13_norm = 0.0
+            f13_cont = 0.5
+
+        # ── Weighted Score（用觸發式版，維持原有邏輯）────────────────────
 
         norms = [f1_norm, f2_norm, f3_norm, f4_norm, f5_norm, f6_norm, f7_norm, f8_norm, f9_norm, f10_norm, f11_norm, f12_norm, f13_norm]
         total = sum(n * WEIGHTS[f] for n, f in zip(norms, FACTOR_LIST))
@@ -405,6 +415,7 @@ def calibrate_symbol(symbol: str) -> list[dict]:
             "date":         date_i.strftime("%Y-%m-%d"),
             "score":        score,
             "score_bucket": score_bucket(score),
+            # 觸發式版（score 計算用，保留給頁面展示邏輯）
             "f1_norm":      round(f1_norm, 4),
             "f2_norm":      round(f2_norm, 4),
             "f3_norm":      round(f3_norm, 4),
@@ -418,6 +429,16 @@ def calibrate_symbol(symbol: str) -> list[dict]:
             "f11_norm":     round(f11_norm, 4),
             "f12_norm":     round(f12_norm, 4),
             "f13_norm":     round(f13_norm, 4),
+            # 連續版（XGBoost 用，信息更豐富）
+            "f1_cont":      round(f1_cont, 4),
+            "f2_cont":      round(f2_cont, 4),
+            "f5_cont":      round(f5_cont, 4),
+            "f7_cont":      round(f7_cont, 4),
+            "f8_cont":      round(f8_cont, 4),
+            "f9_cont":      round(f9_cont, 4),
+            "f11_cont":     round(f11_cont, 4),
+            "f12_cont":     round(f12_cont, 4),
+            "f13_cont":     round(f13_cont, 4),
             "outcome_7d":   round(float(outcome_7d), 6),
             "win":          win,
         })
