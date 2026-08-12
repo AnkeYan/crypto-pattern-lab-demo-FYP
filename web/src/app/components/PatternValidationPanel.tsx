@@ -300,7 +300,21 @@ export default function PatternValidationPanel({ data }: { data: ValidationRow[]
                 A pattern that holds in both periods is much more likely to reflect a real, repeatable edge.
               </p>
 
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">What do the numbers mean?</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-1">Why three layers of anti-overfitting?</p>
+              <ul className="space-y-1.5 text-gray-400 mb-3">
+                <li>
+                  <strong className="text-gray-200">① Discovery / Validation Split</strong> — data before 2023 is used to <em>find</em> patterns; data from 2023 onwards is held out and used only to <em>test</em>. The model never sees the validation data during pattern selection. This is the most basic guard against data snooping.
+                </li>
+                <li>
+                  <strong className="text-gray-200">② Walk-Forward Validation</strong> — instead of one fixed train/test split, patterns are re-tested on rolling yearly folds (see Walk-Forward tab). This tests consistency across different market cycles, not just one era.
+                </li>
+                <li>
+                  <strong className="text-gray-200">③ Purged CV (Embargo = 7 days)</strong> — used in the XGBoost model. The 7 days immediately before each test fold are removed from training to prevent outcome leakage (since we predict 7-day forward returns).
+                </li>
+              </ul>
+              <p className="text-gray-500 text-xs italic mb-3">These three layers together form a research-grade anti-overfitting framework. A pattern that survives all three is unlikely to be a statistical artefact.</p>
+
+             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">What do the numbers mean?</p>
               <ul className="space-y-1.5 text-gray-400">
                 <li><strong className="text-gray-200">Win Rate</strong> — % of signals where price was higher after the holding period.</li>
                 <li><strong className="text-gray-200">Mean / Median Return</strong> — average and middle return across all signals. Median is more reliable when a few extreme events distort the mean.</li>
@@ -327,7 +341,21 @@ export default function PatternValidationPanel({ data }: { data: ValidationRow[]
                 兩段都成立的規律，才更值得信賴。
               </p>
 
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">各欄位說明</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-1">為什麼要三層防過擬合？</p>
+              <ul className="space-y-1.5 text-gray-400 mb-3">
+                <li>
+                  <strong className="text-gray-200">① 研究期 / 驗證期分割</strong> — 2023年前的數據用來<em>發現</em>規律；2023年後的數據只用來<em>測試</em>，模型在選規律時完全看不到驗證數據。這是防止「數據偷看」的基本保障。
+                </li>
+                <li>
+                  <strong className="text-gray-200">② Walk-Forward 滾動驗證</strong> — 不只用一個固定的訓練/測試分割，而是在不同年份的市場週期重複測試（見 Walk-Forward 標籤）。測試規律是否在牛市、熊市、橫盤都成立，而不只是某一段時期。
+                </li>
+                <li>
+                  <strong className="text-gray-200">③ Purged CV（禁區 7 天）</strong> — 在 XGBoost 模型中使用。每個測試折疊開始前的 7 天從訓練集移除，防止「未來回報洩漏」（因為我們預測的是 7 天後的結果）。
+                </li>
+              </ul>
+              <p className="text-gray-500 text-xs italic mb-3">三層設計合在一起，構成了一套研究級別的防過擬合框架。能通過三層測試的規律，不太可能只是統計噪音。</p>
+
+             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">各欄位說明</p>
               <ul className="space-y-1.5 text-gray-400">
                 <li><strong className="text-gray-200">勝率（Win Rate）</strong> — 信號出現後，持有期結束時價格上漲的比例。</li>
                 <li><strong className="text-gray-200">平均／中位回報</strong> — 所有信號的平均和中位數回報。有極端值時，中位數更可靠。</li>
