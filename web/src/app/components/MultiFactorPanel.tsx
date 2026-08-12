@@ -726,7 +726,9 @@ export default function MultiFactorPanel({
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-2">Reading the results</p>
                     <ul className="space-y-1 text-gray-400 text-xs">
                       <li>• <strong className="text-gray-300">Feature Importance</strong> — how much each factor contributed to the model&apos;s decisions (0 = unused).</li>
-                      <li>• <strong className="text-gray-300">AUC &gt; 0.52</strong> means the model has meaningful predictive power in that year. AUC = 0.50 is random.</li>
+                      <li>• <strong className="text-gray-300">AUC</strong> (Area Under Curve) — measures how well the model ranks &quot;will go up&quot; vs &quot;will go down&quot;. AUC = 0.50 is pure chance (coin flip). AUC = 0.55 means meaningfully better than random. Think of it as the model&apos;s &quot;sorting ability&quot;.</li>
+                      <li>• <strong className="text-gray-300">DirAcc</strong> (Directional Accuracy) — the % of days where the model correctly predicted the direction (up or down). 50% = random. 55% = model got the direction right 55 out of 100 times.</li>
+                      <li>• <strong className="text-gray-300">RMSE</strong> (Root Mean Square Error) — average error when predicting the actual return magnitude. Lower is better. RMSE = 0.08 means predictions were off by ~8% on average.</li>
                       <li>• <strong className="text-gray-300">Win Probability</strong> — the model&apos;s current estimate of 7d upside probability based on today&apos;s factor values.</li>
                     </ul>
                   </div>
@@ -744,7 +746,9 @@ export default function MultiFactorPanel({
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-2">如何看結果</p>
                     <ul className="space-y-1 text-gray-400 text-xs">
                       <li>• <strong className="text-gray-300">因子重要性</strong> — 每個因子對模型決策的貢獻程度（0 = 模型完全不使用該因子）。</li>
-                      <li>• <strong className="text-gray-300">AUC &gt; 0.52</strong> 代表該年模型有實際預測能力，AUC = 0.50 等同隨機猜測。</li>
+                      <li>• <strong className="text-gray-300">AUC</strong>（曲線下面積）— 模型區分「會漲」vs「會跌」的排序能力。0.50 = 跟擲硬幣一樣隨機；0.55 = 比隨機猜明顯更準。可以理解為模型的「排序準確度」。</li>
+                      <li>• <strong className="text-gray-300">DirAcc</strong>（方向準確率）— 模型猜對漲跌方向的百分比。50% = 隨機；55% = 每 100 天猜對 55 次。這是最直覺的指標。</li>
+                      <li>• <strong className="text-gray-300">RMSE</strong>（均方根誤差）— 預測回報幅度的平均誤差，越低越好。RMSE = 0.08 代表預測平均差了約 8%。</li>
                       <li>• <strong className="text-gray-300">當前預測勝率</strong> — 模型根據今天的因子數值，估計 7 天後上漲的概率。</li>
                     </ul>
                   </div>
