@@ -49,6 +49,7 @@ jobs:
           python3 scripts/analyze_multifactor.py
           python3 scripts/analyze_multifactor_calibration.py
           python3 scripts/analyze_xgboost.py
+          python3 scripts/analyze_ensemble.py
           python3 scripts/analyze_consecutive_drop.py
           python3 scripts/analyze_drawdown_recovery.py
           python3 scripts/analyze_halving.py

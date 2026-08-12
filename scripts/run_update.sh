@@ -35,5 +35,6 @@ python3 scripts/analyze_regime_transition.py >> /tmp/crypto-pattern-lab-update.l
 python3 scripts/analyze_multifactor.py >> /tmp/crypto-pattern-lab-update.log 2>&1
 python3 scripts/analyze_multifactor_calibration.py >> /tmp/crypto-pattern-lab-update.log 2>&1
 python3 scripts/analyze_xgboost.py >> /tmp/crypto-pattern-lab-update.log 2>&1
+python3 scripts/analyze_ensemble.py >> /tmp/crypto-pattern-lab-update.log 2>&1
 
 echo "==== $(date '+%Y-%m-%d %H:%M:%S') Update finished ====" >> /tmp/crypto-pattern-lab-update.log

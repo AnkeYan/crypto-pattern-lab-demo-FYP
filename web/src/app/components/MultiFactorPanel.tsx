@@ -235,6 +235,16 @@ function CalibScatter({
   );
 }
 
+export type EnsembleFold = {
+  symbol: string; test_year: string;
+  n_test: string; xgb_auc: string; lgb_auc: string;
+  ens_auc: string; dir_acc: string; rmse: string;
+};
+export type EnsemblePrediction = {
+  symbol: string; date: string;
+  ensemble_win_prob: string; ensemble_expected_ret: string; calib_score: string;
+};
+
 export default function MultiFactorPanel({
   data,
   calibSummary    = [],
@@ -242,13 +252,17 @@ export default function MultiFactorPanel({
   xgbFolds        = [],
   xgbImportance   = [],
   xgbPredictions  = [],
+  ensembleFolds       = [],
+  ensemblePredictions = [],
 }: {
-  data:             MultifactorRow[];
-  calibSummary?:    CalibSummaryRow[];
-  calibScatter?:    Record<string, CalibScatterPoint[]>;
-  xgbFolds?:        XgbFold[];
-  xgbImportance?:   XgbImportance[];
-  xgbPredictions?:  XgbPrediction[];
+  data:                 MultifactorRow[];
+  calibSummary?:        CalibSummaryRow[];
+  calibScatter?:        Record<string, CalibScatterPoint[]>;
+  xgbFolds?:            XgbFold[];
+  xgbImportance?:       XgbImportance[];
+  xgbPredictions?:      XgbPrediction[];
+  ensembleFolds?:       EnsembleFold[];
+  ensemblePredictions?: EnsemblePrediction[];
 }) {
   const [sym, setSym] = useState("BTC");
   const [showInfo, setShowInfo] = useState(false);
@@ -878,6 +892,101 @@ export default function MultiFactorPanel({
               AUC measures ranking ability; DirAcc measures directional accuracy; Expected Ret is the regression model&apos;s 7d return forecast.
               <span className="block mt-0.5">模型 v4.1 · 15 個連續特徵（含滯後特徵）· Purged Walk-Forward · 最終模型滾動 3 年訓練。AUC 衡量排序能力；DirAcc 衡量方向準確率；預期回報為回歸模型的 7 天回報率預測。</span>
             </p>
+          </div>
+        );
+      })()}
+
+      {/* ── Ensemble Section ─────────────────────────────────────── */}
+      {ensembleFolds.length > 0 && (() => {
+        const symFolds = ensembleFolds.filter(r => r.symbol === symKey);
+        const symPred  = ensemblePredictions.find(r => r.symbol === symKey);
+        if (symFolds.length === 0) return null;
+
+        const avgXgb = symFolds.reduce((s, r) => s + parseFloat(r.xgb_auc), 0) / symFolds.length;
+        const avgLgb = symFolds.reduce((s, r) => s + parseFloat(r.lgb_auc), 0) / symFolds.length;
+        const avgEns = symFolds.reduce((s, r) => s + parseFloat(r.ens_auc), 0) / symFolds.length;
+        const avgDir = symFolds.reduce((s, r) => s + parseFloat(r.dir_acc), 0) / symFolds.length;
+        const ensPct  = symPred ? parseFloat(symPred.ensemble_win_prob) : null;
+        const ensRet  = symPred ? parseFloat(symPred.ensemble_expected_ret) : null;
+        const improvement = avgEns - avgXgb;
+
+        return (
+          <div className="mt-6 rounded-xl border border-gray-800 bg-gray-950/40 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-200">Ensemble Model · XGBoost + LightGBM</p>
+                <p className="text-xs text-gray-500">Soft voting average · 兩模型概率平均，抵消單模型偏差</p>
+              </div>
+              {improvement > 0
+                ? <span className="text-xs text-green-400 font-medium">↑ AUC +{(improvement * 1000).toFixed(1)} pts vs XGB alone</span>
+                : <span className="text-xs text-gray-500 font-medium">≈ Similar to XGB alone</span>
+              }
+            </div>
+
+            {/* Prediction banner */}
+            {ensPct != null && (
+              <div className="mb-3 px-3 py-2 rounded-lg bg-white/[0.04] border border-white/[0.06] text-sm flex flex-wrap gap-x-5 gap-y-1">
+                <span>
+                  <span className="text-gray-400 text-xs">Ensemble Win Prob </span>
+                  <span className={`font-bold ${ensPct >= 0.55 ? "text-green-400" : ensPct >= 0.5 ? "text-yellow-400" : "text-red-400"}`}>
+                    {(ensPct * 100).toFixed(1)}%
+                  </span>
+                </span>
+                {ensRet != null && (
+                  <span>
+                    <span className="text-gray-400 text-xs">Expected Ret </span>
+                    <span className={`font-medium ${ensRet >= 0 ? "text-green-400" : "text-red-400"}`}>
+                      {ensRet >= 0 ? "+" : ""}{(ensRet * 100).toFixed(1)}%
+                    </span>
+                  </span>
+                )}
+                <span className="text-xs text-gray-600 self-center">集成模型預測勝率 · 預期 7 天回報</span>
+              </div>
+            )}
+
+            {/* Comparison table */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-gray-800">
+                    <th className="px-2 py-1.5 text-left text-gray-500">Year</th>
+                    <th className="px-2 py-1.5 text-center text-gray-500">XGB AUC</th>
+                    <th className="px-2 py-1.5 text-center text-gray-500">LGB AUC</th>
+                    <th className="px-2 py-1.5 text-center text-blue-400/70">Ensemble AUC</th>
+                    <th className="px-2 py-1.5 text-center text-gray-500">DirAcc</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {symFolds.map((r, i) => {
+                    const ensV = parseFloat(r.ens_auc);
+                    const xgbV = parseFloat(r.xgb_auc);
+                    const lgbV = parseFloat(r.lgb_auc);
+                    const better = ensV > Math.max(xgbV, lgbV);
+                    return (
+                      <tr key={i} className="border-b border-gray-900 hover:bg-white/[0.02]">
+                        <td className="px-2 py-1.5 text-gray-400">{r.test_year}</td>
+                        <td className="px-2 py-1.5 text-center text-gray-400">{xgbV.toFixed(3)}</td>
+                        <td className="px-2 py-1.5 text-center text-gray-400">{lgbV.toFixed(3)}</td>
+                        <td className={`px-2 py-1.5 text-center font-medium ${better ? "text-blue-400" : ensV >= 0.52 ? "text-green-400" : "text-gray-400"}`}>
+                          {ensV.toFixed(3)}{better ? " ▲" : ""}
+                        </td>
+                        <td className={`px-2 py-1.5 text-center ${parseFloat(r.dir_acc) >= 0.52 ? "text-green-400" : "text-gray-500"}`}>
+                          {(parseFloat(r.dir_acc) * 100).toFixed(1)}%
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  <tr className="border-t border-gray-700 bg-gray-900/40">
+                    <td className="px-2 py-1.5 text-gray-400 font-medium">avg</td>
+                    <td className="px-2 py-1.5 text-center text-gray-400 font-medium">{avgXgb.toFixed(3)}</td>
+                    <td className="px-2 py-1.5 text-center text-gray-400 font-medium">{avgLgb.toFixed(3)}</td>
+                    <td className="px-2 py-1.5 text-center text-blue-400 font-medium">{avgEns.toFixed(3)}</td>
+                    <td className="px-2 py-1.5 text-center text-gray-400 font-medium">{(avgDir * 100).toFixed(1)}%</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-2 text-xs text-gray-600">Ensemble = (XGBoost prob + LightGBM prob) / 2 · Purged walk-forward · Rolling 3y · ▲ = ensemble beats both individual models in that fold</p>
           </div>
         );
       })()}

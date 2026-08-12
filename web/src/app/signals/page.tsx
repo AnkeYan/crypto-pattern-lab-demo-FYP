@@ -3,7 +3,7 @@ import { baseUrl } from "../lib/baseUrl";
 import WorkspaceHeader from "../components/WorkspaceHeader";
 import SignalIntelligencePanel from "../components/SignalIntelligencePanel";
 import RegimeTransitionPanel, { RegimeTransitionRow } from "../components/RegimeTransitionPanel";
-import MultiFactorPanel, { MultifactorRow } from "../components/MultiFactorPanel";
+import MultiFactorPanel, { MultifactorRow, EnsembleFold, EnsemblePrediction } from "../components/MultiFactorPanel";
 import TierGate from "../components/TierGate";
 
 type SignalSummary = {
@@ -95,12 +95,13 @@ export type CalibScatterPoint = {
 
 export default async function SignalsPage() {
   const BASE = baseUrl();
-  const [signalsRes, rtRes, mfRes, mfCalibRes, xgbRes, garchRes, rcRes] = await Promise.all([
+  const [signalsRes, rtRes, mfRes, mfCalibRes, xgbRes, ensRes, garchRes, rcRes] = await Promise.all([
     fetch(`${BASE}/api/signals`,                  { cache: "no-store" }),
     fetch(`${BASE}/api/regime-transition`,        { cache: "no-store" }),
     fetch(`${BASE}/api/multifactor`,              { cache: "no-store" }),
     fetch(`${BASE}/api/multifactor-calibration`,  { cache: "no-store" }),
     fetch(`${BASE}/api/xgboost`,                  { cache: "no-store" }),
+    fetch(`${BASE}/api/ensemble`,                 { cache: "no-store" }),
     fetch(`${BASE}/api/garch`,                    { cache: "no-store" }),
     fetch(`${BASE}/api/rolling-correlation`,      { cache: "no-store" }),
   ]);
@@ -121,6 +122,10 @@ export default async function SignalsPage() {
     importance:  XgbImportance[];
     predictions: XgbPrediction[];
   } = await xgbRes.json();
+  const { folds: ensembleFolds, predictions: ensemblePredictions }: {
+    folds:       EnsembleFold[];
+    predictions: EnsemblePrediction[];
+  } = await ensRes.json();
   const garchData: GarchRow[]         = await garchRes.json();
   const rcData: RollingCorrRow[]      = await rcRes.json();
 
@@ -189,6 +194,8 @@ export default async function SignalsPage() {
                 xgbFolds={xgbFolds}
                 xgbImportance={xgbImportance}
                 xgbPredictions={xgbPredictions}
+                ensembleFolds={ensembleFolds}
+                ensemblePredictions={ensemblePredictions}
               />
             </TierGate>
           </div>
