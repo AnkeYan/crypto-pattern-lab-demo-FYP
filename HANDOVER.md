@@ -1,4 +1,4 @@
-# CryptoPatternLab FYP 副本 項目交接文件 v19.0
+# CryptoPatternLab FYP 副本 項目交接文件 v20.0
 
 ## 產品定位
 AI-powered crypto pattern research assistant。
@@ -442,3 +442,59 @@ ETH AUC: 0.464 → 0.494 → 0.532 → 0.541 → 0.541
 - **主要指標是 DirAcc（方向準確率），AUC 只作輔助參考**
 - 說明框全程中文，口語化，雙語（英/中）
 - **凡是 UI 改動，主文件 + 副本必須同步**，但 Tier 邏輯只在主文件
+
+---
+
+## 本輪完成的所有改動（v20.0，本次對話）
+
+### 副本同步項目（與主文件保持一致）
+
+**腳本新增（主文件 + 副本同步）：**
+- `scripts/analyze_regime_signal_efficacy.py` — Regime 條件信號勝率 + Chi-square 顯著性檢驗
+- `scripts/analyze_ensemble.py` — XGBoost + LightGBM Soft Voting Ensemble
+
+**腳本更新（同步）：**
+- `scripts/analyze_multifactor.py` — 加入 F13 MVRV（第 13 個因子，WEIGHTS 總和維持 1.0）
+- `scripts/run_update.sh` — 加入 `analyze_regime_signal_efficacy.py` + `analyze_ensemble.py`
+- `.github/workflows/update-data.yml` — 同上；pip 依賴加入 `lightgbm` + `PyPortfolioOpt`
+
+**前端組件新增（同步）：**
+- `components/RegimeEfficacyPanel.tsx` — Bull/Bear/Sideways 信號勝率對比，Chi-square 顯著性，副本**無 TierGate 直接顯示**
+- `components/PatternValidationPanel.tsx` — 說明框加入三層防過擬合設計（Discovery/Validation Split、Walk-Forward、Purged CV）
+
+**前端組件更新（同步）：**
+- `components/MultiFactorPanel.tsx` — F12/F13 加入 FACTOR_META/ORDER；說明框「8/10/11 因子」→「13 因子」；新增 Ensemble 區塊（XGB vs LGB vs Ensemble 逐年 AUC 對比）；AUC/DirAcc/RMSE 名詞解釋
+
+**API 新增（同步）：**
+- `/api/regime-signal-efficacy` — regime_signal_efficacy.csv
+- `/api/ensemble` — ensemble_results.csv + ensemble_predictions.csv
+
+**API 修復（同步）：**
+- `/api/xgboost/route.ts` — 補上 `dir_acc`、`rmse`、`xgb_expected_ret` 欄位（之前漏寫導致前端顯示 `—`）
+
+**頁面更新（注意：副本無 TierGate）：**
+- `validation/page.tsx` — 加入 RegimeEfficacyPanel（副本直接顯示，無 TierGate 包裝）
+- `signals/page.tsx` — 加入 ensemble API fetch + 傳入 MultiFactorPanel
+
+**數據文件（同步）：**
+- `data/regime_signal_efficacy.csv`、`data/ensemble_results.csv`、`data/ensemble_predictions.csv`
+- `web/public/data/`（以上三個的副本）
+- `web/public/data/xgb_results.csv` / `xgb_predictions.csv`（從主文件同步，確保兩邊數字一致）
+
+### 關鍵實證發現（Regime 分析，BTC 7d）
+
+| 信號 | Bull | Bear | Sideways | p 值 | 顯著？ |
+|------|------|------|---------|------|------|
+| Vol Spike | 71.9% | 43.9% | 53.8% | 0.001 | ✓ 顯著 |
+| Drop3 | 62.6% | 61.9% | 50.8% | 0.054 | 接近顯著 |
+
+**結論：信號有效性是 Regime-dependent 的**——這是 FYP 題目「Empirical Pattern of Cryptocurrencies」的核心實證發現之一。
+
+### XGBoost v4.1 + Ensemble 最新結果
+
+```
+BTCUSDT: avg XGB AUC=0.529 | avg Ensemble AUC=0.532 | avg DirAcc=52.1%
+ETHUSDT: avg XGB AUC=0.543 | avg Ensemble AUC=0.546 | avg DirAcc=48.9%
+SOLUSDT: avg XGB AUC=0.514 | avg Ensemble AUC=0.511 | avg DirAcc=48.5%
+```
+
