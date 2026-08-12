@@ -81,6 +81,10 @@ EMBARGO_DAYS = 7
 # Rolling Window：最終預測模型只用最近 N 年
 ROLLING_YEARS = 3
 
+# 訓練起點限制：對齊 ETH 起始時間（2017-11-29），剔除 BTC 早期散戶主導的雜訊數據
+# None = 不限制（用全部歷史）
+TRAIN_START = "2017-11-01"
+
 # XGBoost 分類參數（防 overfitting）
 XGB_PARAMS = dict(
     n_estimators=200,
@@ -272,6 +276,16 @@ def main():
         calib_df[col] = calib_df[col].fillna(0.5)
 
     print(f"Lag features computed. Sample: f8_lag7 non-null={calib_df['f8_lag7'].notna().sum()}")
+
+    # ── 訓練起點過濾（剔除雜訊歷史數據）────────────────────────────────────────
+    if TRAIN_START:
+        before = len(calib_df)
+        calib_df = calib_df[calib_df["date"] >= TRAIN_START].reset_index(drop=True)
+        print(f"TRAIN_START={TRAIN_START}: filtered {before - len(calib_df)} rows "
+              f"({before} → {len(calib_df)})")
+        for sym in SYMBOLS:
+            n = (calib_df["symbol"] == sym).sum()
+            print(f"  {sym}: {n} rows after filter")
 
     all_fold_results = []
     all_fi_rows      = []
