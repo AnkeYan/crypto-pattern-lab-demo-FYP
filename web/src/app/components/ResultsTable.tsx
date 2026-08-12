@@ -5,7 +5,6 @@
 import { useState, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { wilsonCILabel } from "../lib/wilson";
-import { useTier, hasAccess } from "../lib/useTier";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip as RechartsTooltip, ReferenceLine, ResponsiveContainer, Legend
@@ -154,8 +153,7 @@ const PRO_COL_W  = 110;
 
 // ── 主組件 ────────────────────────────────────────────────────────────────────
 export default function ResultsTable({ data }: { data: PatternResult[] }) {
-  const userTier      = useTier();
-  const isProUnlocked = hasAccess(userTier, "pro");
+  const isProUnlocked = true;
   const searchParams  = useSearchParams();
   const symbolFromUrl = searchParams.get("symbol")?.toUpperCase();
   const initialTab = SYMBOLS.includes(symbolFromUrl ?? "") ? symbolFromUrl! : "BTC";

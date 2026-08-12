@@ -6,7 +6,6 @@
 
 import { useState } from "react";
 import { wilsonCILabel } from "../lib/wilson";
-import { useTier, hasAccess } from "../lib/useTier";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ReferenceLine, ResponsiveContainer, Cell,
@@ -179,8 +178,7 @@ function CrossSymbolChart({
 
 // ── 主組件 ────────────────────────────────────────────────────────────────────
 export default function RsiPanel({ data }: { data: RsiRow[] }) {
-  const userTier      = useTier();
-  const isProUnlocked = hasAccess(userTier, "pro");
+  const isProUnlocked = true;
   const [sym,       setSym]       = useState("BTC");
   const [rsiWin,    setRsiWin]    = useState(14);
   const [rsiThr,    setRsiThr]    = useState(30);
