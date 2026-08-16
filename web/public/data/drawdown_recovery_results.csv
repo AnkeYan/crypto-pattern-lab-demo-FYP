@@ -1,5 +1,5 @@
 symbol,threshold,n_events,recovered_count,dnr_count,recovery_rate,median_days,mean_days,p25_days,p75_days,max_days
-BTCUSDT,-0.05,255,131,124,0.5137,22.0,29.4,9.0,45.0,85
+BTCUSDT,-0.05,256,131,125,0.5117,22.0,29.4,9.0,45.0,85
 BTCUSDT,-0.1,198,87,111,0.4394,31.0,37.0,15.5,54.0,88
 BTCUSDT,-0.15,156,57,99,0.3654,36.0,40.8,18.0,61.0,88
 BTCUSDT,-0.2,114,33,81,0.2895,42.0,43.5,25.0,63.0,86
