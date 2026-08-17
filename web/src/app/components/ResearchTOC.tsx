@@ -1,6 +1,6 @@
 "use client";
 
-// ResearchTOC — FYP 副本版（無 Tier 顏色點和 legend）
+// ResearchTOC — FYP 副本版（純導航，無 Tier 顏色點、badge、legend）
 // Desktop: sticky sidebar with section links + active highlighting
 // Mobile: horizontal scrollable pill bar
 
@@ -10,25 +10,18 @@ type Section = {
   id: string;
   label: string;
   labelZh: string;
-  tier: "free" | "pro" | "research";
 };
 
 const SECTIONS: Section[] = [
-  { id: "summary",          label: "AI Summary",        labelZh: "AI 摘要",    tier: "free"     },
-  { id: "results",          label: "Pattern Results",   labelZh: "模式統計表", tier: "free"     },
-  { id: "fear-greed",       label: "Fear & Greed",      labelZh: "恐懼貪婪",   tier: "free"     },
-  { id: "rsi",              label: "RSI Analysis",      labelZh: "RSI 超賣",   tier: "pro"      },
-  { id: "bollinger",        label: "Bollinger Band",    labelZh: "布林帶",     tier: "pro"      },
-  { id: "seasonality",      label: "Month Seasonality", labelZh: "月份季節性", tier: "pro"      },
-  { id: "consecutive-drop", label: "Consecutive Drop",  labelZh: "連跌分析",   tier: "pro"      },
-  { id: "halving",          label: "Halving Cycle",     labelZh: "減半週期",   tier: "pro"      },
+  { id: "summary",          label: "AI Summary",        labelZh: "AI 摘要"    },
+  { id: "results",          label: "Pattern Results",   labelZh: "模式統計表" },
+  { id: "fear-greed",       label: "Fear & Greed",      labelZh: "恐懼貪婪"   },
+  { id: "rsi",              label: "RSI Analysis",      labelZh: "RSI 超賣"   },
+  { id: "bollinger",        label: "Bollinger Band",    labelZh: "布林帶"     },
+  { id: "seasonality",      label: "Month Seasonality", labelZh: "月份季節性" },
+  { id: "consecutive-drop", label: "Consecutive Drop",  labelZh: "連跌分析"   },
+  { id: "halving",          label: "Halving Cycle",     labelZh: "減半週期"   },
 ];
-
-const TIER_DOT: Record<string, string> = {
-  free:     "bg-green-400",
-  pro:      "bg-cyan-400",
-  research: "bg-purple-400",
-};
 
 function scrollTo(id: string) {
   const el = document.getElementById(id);
@@ -52,40 +45,32 @@ export default function ResearchTOC({ mobileOnly, desktopOnly }: Props) {
         const visible = entries
           .filter((e) => e.isIntersecting)
           .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible.length > 0) {
-          setActiveId(visible[0].target.id);
-        }
+        if (visible.length > 0) setActiveId(visible[0].target.id);
       },
-      {
-        rootMargin: "-80px 0px -60% 0px",
-        threshold: 0,
-      }
+      { rootMargin: "-80px 0px -60% 0px", threshold: 0 }
     );
-
     SECTIONS.forEach(({ id }) => {
       const el = document.getElementById(id);
       if (el) observer.observe(el);
     });
-
     return () => observer.disconnect();
   }, []);
 
   if (mobileOnly) return (
     <div className="xl:hidden -mx-4 px-4 mb-6 overflow-x-auto">
       <div className="flex gap-1.5 w-max pb-1">
-        {SECTIONS.map(({ id, label, tier }) => {
+        {SECTIONS.map(({ id, label }) => {
           const isActive = activeId === id;
           return (
             <button
               key={id}
               onClick={() => scrollTo(id)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap border transition-colors flex-shrink-0 flex items-center gap-1.5 ${
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap border transition-colors flex-shrink-0 ${
                 isActive
                   ? "bg-white/[0.08] border-white/[0.15] text-white"
                   : "border-gray-700 text-gray-400 hover:border-gray-500 hover:text-gray-200"
               }`}
             >
-              <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${TIER_DOT[tier]}`} />
               {label}
             </button>
           );
@@ -99,9 +84,8 @@ export default function ResearchTOC({ mobileOnly, desktopOnly }: Props) {
       <p className="text-xs font-semibold tracking-widest text-gray-500 uppercase mb-3 px-1">
         Sections
       </p>
-
       <nav className="space-y-0.5">
-        {SECTIONS.map(({ id, label, labelZh, tier }) => {
+        {SECTIONS.map(({ id, label, labelZh }) => {
           const isActive = activeId === id;
           return (
             <button
@@ -113,7 +97,6 @@ export default function ResearchTOC({ mobileOnly, desktopOnly }: Props) {
                   : "text-gray-500 hover:text-gray-200 hover:bg-white/[0.03]"
               }`}
             >
-              <span className={`mt-1 w-1.5 h-1.5 rounded-full flex-shrink-0 ${TIER_DOT[tier]}`} />
               <span className="leading-tight">
                 <span className="block">{label}</span>
                 <span className={`block text-xs ${isActive ? "text-gray-400" : "text-gray-600"}`}>{labelZh}</span>
@@ -122,16 +105,6 @@ export default function ResearchTOC({ mobileOnly, desktopOnly }: Props) {
           );
         })}
       </nav>
-
-      {/* Tier legend */}
-      <div className="mt-4 px-2 space-y-1 border-t border-white/[0.05] pt-3">
-        {(["free", "pro", "research"] as const).map((t) => (
-          <div key={t} className="flex items-center gap-1.5 text-xs text-gray-600">
-            <span className={`w-1.5 h-1.5 rounded-full ${TIER_DOT[t]}`} />
-            {t.charAt(0).toUpperCase() + t.slice(1)}
-          </div>
-        ))}
-      </div>
     </div>
   );
 }
