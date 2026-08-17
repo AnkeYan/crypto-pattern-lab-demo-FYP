@@ -33,15 +33,19 @@ OUT_PREDICTIONS = DATA_DIR / "ensemble_predictions.csv"
 
 SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 
-FEATURES = [
+FEATURES_COMMON = [
     "f1_cont", "f2_cont",
     "f5_cont", "f6_cont", "f7_cont", "f8_cont",
-    "f9_cont", "f11_cont", "f12_cont", "f13_cont",
+    "f9_cont", "f12_cont", "f13_cont",
     "f14_cont",
-    "f15_cont",
-    "f8_lag7", "f12_lag7", "f13_lag7", "f14_lag7", "f15_lag7",
+    "f8_lag7", "f12_lag7", "f13_lag7", "f14_lag7",
     "f8_lag14", "f13_lag14",
 ]
+
+FEATURES_BTC = FEATURES_COMMON + ["f11_cont"]
+
+def get_features(symbol: str) -> list:
+    return FEATURES_BTC if symbol == "BTCUSDT" else FEATURES_COMMON
 
 FEATURE_NAMES = {
     "f1_cont":   "RSI (continuous)",
@@ -55,12 +59,10 @@ FEATURE_NAMES = {
     "f12_cont":  "Turbulence Calm",
     "f13_cont":  "MVRV Valuation",
     "f14_cont":  "FR Trend (7d diff)",
-    "f15_cont":  "BTC Dominance Change",
     "f8_lag7":   "Momentum 7d ago",
     "f12_lag7":  "Turbulence Calm 7d ago",
     "f13_lag7":  "MVRV 7d ago",
     "f14_lag7":  "FR Trend 7d ago",
-    "f15_lag7":  "BTC Dom Change 7d ago",
     "f8_lag14":  "Momentum 14d ago",
     "f13_lag14": "MVRV 14d ago",
 }
@@ -112,10 +114,11 @@ def purged_walk_forward(df: pd.DataFrame, symbol: str):
         if len(train_df) < 365:
             continue
 
-        X_tr = train_df[FEATURES].values
+        features = get_features(symbol)
+        X_tr = train_df[features].values
         y_cls_tr = train_df["win"].values
         y_reg_tr = train_df["outcome_7d"].values
-        X_te = test_df[FEATURES].values
+        X_te = test_df[features].values
         y_cls_te = test_df["win"].values
         y_reg_te = test_df["outcome_7d"].values
 
@@ -170,7 +173,8 @@ def purged_walk_forward(df: pd.DataFrame, symbol: str):
     if len(roll_df) < 365:
         roll_df = df
 
-    X_roll = roll_df[FEATURES].values
+    features = get_features(symbol)
+    X_roll = roll_df[features].values
     final_xgb_cls = XGBClassifier(**XGB_CLS_PARAMS);  final_xgb_cls.fit(X_roll, roll_df["win"].values)
     final_lgb_cls = LGBMClassifier(**LGB_CLS_PARAMS);  final_lgb_cls.fit(X_roll, roll_df["win"].values)
     final_xgb_reg = XGBRegressor(**XGB_REG_PARAMS);    final_xgb_reg.fit(X_roll, roll_df["outcome_7d"].values)
@@ -184,7 +188,8 @@ def predict_current(xgb_cls, lgb_cls, xgb_reg, lgb_reg, symbol, calib_df):
     if len(sym_df) == 0:
         return {}
     latest = sym_df.iloc[-1]
-    X = np.array([[latest[f] for f in FEATURES]])
+    features = get_features(symbol)
+    X = np.array([[latest[f] for f in features]])
     prob = float((xgb_cls.predict_proba(X)[0, 1] + lgb_cls.predict_proba(X)[0, 1]) / 2)
     ret  = float((xgb_reg.predict(X)[0] + lgb_reg.predict(X)[0]) / 2)
     return {

@@ -46,18 +46,25 @@ SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 # 連續版特徵（XGBoost 用）+ Lag Features
 # _cont 後綴 = 全域連續值（0–1），比觸發式稀疏版信息更豐富
 # _lag7 / _lag14 = 7/14天前的值，讓模型學趨勢而不只是當前水平
-FEATURES = [
+# 共用特徵（所有幣種）
+FEATURES_COMMON = [
     # 即時連續特徵
     "f1_cont", "f2_cont",
     "f5_cont", "f6_cont", "f7_cont", "f8_cont",
-    "f9_cont", "f11_cont", "f12_cont", "f13_cont",
+    "f9_cont", "f12_cont", "f13_cont",
     "f14_cont",
-    "f15_cont",
     # Lag Features：7天前
-    "f8_lag7", "f12_lag7", "f13_lag7", "f14_lag7", "f15_lag7",
+    "f8_lag7", "f12_lag7", "f13_lag7", "f14_lag7",
     # Lag Features：14天前
     "f8_lag14", "f13_lag14",
 ]
+
+# BTC 專屬特徵（額外加入 f11_cont = Active Addresses，BTC only 有效）
+FEATURES_BTC = FEATURES_COMMON + ["f11_cont"]
+
+def get_features(symbol: str) -> list:
+    """回傳對應幣種的特徵列表。BTC 有 f11_cont，ETH/SOL 沒有（全是 0.5 噪音）。"""
+    return FEATURES_BTC if symbol == "BTCUSDT" else FEATURES_COMMON
 
 FEATURE_NAMES = {
     "f1_cont":   "RSI (continuous)",
@@ -71,12 +78,10 @@ FEATURE_NAMES = {
     "f12_cont":  "Turbulence Calm",
     "f13_cont":  "MVRV Valuation",
     "f14_cont":  "FR Trend (7d diff)",
-    "f15_cont":  "BTC Dominance Change",
     "f8_lag7":   "Momentum 7d ago",
     "f12_lag7":  "Turbulence Calm 7d ago",
     "f13_lag7":  "MVRV 7d ago",
     "f14_lag7":  "FR Trend 7d ago",
-    "f15_lag7":  "BTC Dom Change 7d ago",
     "f8_lag14":  "Momentum 14d ago",
     "f13_lag14": "MVRV 14d ago",
 }
@@ -156,10 +161,11 @@ def purged_walk_forward_cv(df: pd.DataFrame, symbol: str) -> tuple[list[dict], o
         if len(train_df) < min_train_days:
             continue
 
-        X_train   = train_df[FEATURES].values
+        features  = get_features(symbol)
+        X_train   = train_df[features].values
         y_cls_trn = train_df["win"].values
         y_reg_trn = train_df["outcome_7d"].values
-        X_test    = test_df[FEATURES].values
+        X_test    = test_df[features].values
         y_cls_tst = test_df["win"].values
         y_reg_tst = test_df["outcome_7d"].values
 
@@ -204,7 +210,8 @@ def purged_walk_forward_cv(df: pd.DataFrame, symbol: str) -> tuple[list[dict], o
     if len(roll_df) < 365:
         roll_df = df
 
-    X_roll    = roll_df[FEATURES].values
+    features  = get_features(symbol)
+    X_roll    = roll_df[features].values
     final_cls = XGBClassifier(**XGB_PARAMS)
     final_cls.fit(X_roll, roll_df["win"].values)
     final_reg = XGBRegressor(**XGB_REG_PARAMS)
@@ -215,15 +222,15 @@ def purged_walk_forward_cv(df: pd.DataFrame, symbol: str) -> tuple[list[dict], o
           f"n={len(roll_df)})")
 
     # ── Feature importance（全歷史分類模型）──────────────────────────────
-    X_all      = df[FEATURES].values
+    X_all      = df[features].values
     full_model = XGBClassifier(**XGB_PARAMS)
     full_model.fit(X_all, df["win"].values)
 
     importance = full_model.feature_importances_
     fi_df = pd.DataFrame({
         "symbol":       symbol,
-        "feature":      FEATURES,
-        "feature_name": [FEATURE_NAMES[f] for f in FEATURES],
+        "feature":      features,
+        "feature_name": [FEATURE_NAMES[f] for f in features],
         "importance":   [round(float(v), 4) for v in importance],
     }).sort_values("importance", ascending=False).reset_index(drop=True)
     fi_df["rank"] = fi_df.index + 1
@@ -242,7 +249,8 @@ def predict_current(cls_model: object, reg_model: object, symbol: str, calib_df:
     if len(sym_df) == 0:
         return {}
     latest = sym_df.iloc[-1]
-    X      = np.array([[latest[f] for f in FEATURES]])
+    features = get_features(symbol)
+    X      = np.array([[latest[f] for f in features]])
     prob   = float(cls_model.predict_proba(X)[0, 1])
     ret    = float(reg_model.predict(X)[0])
     return {
@@ -273,14 +281,13 @@ def main():
         s["f12_lag7"]  = s["f12_cont"].shift(7)
         s["f13_lag7"]  = s["f13_cont"].shift(7)
         s["f14_lag7"]  = s["f14_cont"].shift(7)
-        s["f15_lag7"]  = s["f15_cont"].shift(7)
         s["f8_lag14"]  = s["f8_cont"].shift(14)
         s["f13_lag14"] = s["f13_cont"].shift(14)
         lag_frames.append(s)
     calib_df = pd.concat(lag_frames, ignore_index=True)
 
     # 填補 lag 的 NaN（最前面幾行沒有足夠歷史）→ 用中性值 0.5
-    for col in ["f8_lag7", "f12_lag7", "f13_lag7", "f14_lag7", "f15_lag7", "f8_lag14", "f13_lag14"]:
+    for col in ["f8_lag7", "f12_lag7", "f13_lag7", "f14_lag7", "f8_lag14", "f13_lag14"]:
         calib_df[col] = calib_df[col].fillna(0.5)
 
     print(f"Lag features computed. Sample: f8_lag7 non-null={calib_df['f8_lag7'].notna().sum()}")
