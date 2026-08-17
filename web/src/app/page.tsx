@@ -7,15 +7,10 @@ import ResearchTOC from "./components/ResearchTOC";
 import SummaryButton from "./components/SummaryButton";
 import ResultsTable from "./components/ResultsTable";
 import FearGreedPanel from "./components/FearGreedPanel";
-import RollingCorrelationChart from "./components/RollingCorrelationChart";
-import GarchPanel from "./components/GarchPanel";
-import PortfolioOptimizationPanel from "./components/PortfolioOptimizationPanel";
 import BollingerPanel from "./components/BollingerPanel";
-import MonteCarloPanel from "./components/MonteCarloPanel";
 import RsiPanel from "./components/RsiPanel";
 import MonthSeasonalityPanel, { MonthSeasonalityRow } from "./components/MonthSeasonalityPanel";
 import ConsecutiveDropPanel, { ConsecutiveDropRow } from "./components/ConsecutiveDropPanel";
-import DrawdownRecoveryPanel, { DrawdownRecoveryRow } from "./components/DrawdownRecoveryPanel";
 import HalvingPanel, { HalvingData } from "./components/HalvingPanel";
 import WorkspaceHeader from "./components/WorkspaceHeader";
 
@@ -83,53 +78,24 @@ type BollingerRow = {
   avg_drawdown: number | null;
 };
 
-type GarchRow = {
-  symbol: string;
-  last_price: number;
-  annualized_vol: number;
-  forecast_vol_1d: number;
-  forecast_vol_7d: number;
-  mu: number;
-  alpha: number;
-  beta: number;
-  nu: number;
-  persistence: number;
-  forecast_vol_h1: number;
-  forecast_vol_h2: number;
-  forecast_vol_h3: number;
-  forecast_vol_h4: number;
-  forecast_vol_h5: number;
-  forecast_vol_h6: number;
-  forecast_vol_h7: number;
-};
-
 export default async function Home() {
   const BASE = baseUrl();
-  const [res, fgRes, rcRes, garchRes, bollingerRes, rsiRes, msRes, cdRes, drRes, halvRes, portRes] = await Promise.all([
+  const [res, fgRes, bollingerRes, rsiRes, msRes, cdRes, halvRes] = await Promise.all([
     fetch(`${BASE}/api/results`,             { cache: "no-store" }),
     fetch(`${BASE}/api/fear-greed`,          { cache: "no-store" }),
-    fetch(`${BASE}/api/rolling-correlation`, { cache: "no-store" }),
-    fetch(`${BASE}/api/garch`,               { cache: "no-store" }),
     fetch(`${BASE}/api/bollinger`,           { cache: "no-store" }),
     fetch(`${BASE}/api/rsi`,                 { cache: "no-store" }),
     fetch(`${BASE}/api/month-seasonality`,   { cache: "no-store" }),
     fetch(`${BASE}/api/consecutive-drop`,    { cache: "no-store" }),
-    fetch(`${BASE}/api/drawdown-recovery`,   { cache: "no-store" }),
     fetch(`${BASE}/api/halving`,             { cache: "no-store" }),
-    fetch(`${BASE}/api/portfolio-optimization`, { cache: "no-store" }),
   ]);
   const data: PatternResult[]              = await res.json();
   const fgData: FearGreedRow[]             = await fgRes.json();
-  const rcData: { date: string; eth_btc_corr: number | null; sol_btc_corr: number | null; eth_btc_ratio: number | null }[] = await rcRes.json();
-  const garchData: GarchRow[]              = await garchRes.json();
   const bollingerData: BollingerRow[]      = await bollingerRes.json();
   const rsiData: RsiRow[]                  = await rsiRes.json();
   const msData: MonthSeasonalityRow[]      = await msRes.json();
   const cdData: ConsecutiveDropRow[]       = await cdRes.json();
-  const drData: DrawdownRecoveryRow[]      = await drRes.json();
   const halvingData: HalvingData           = await halvRes.json();
-  type PortRow = { row_type: string; label: string; value: number | null; extra: string };
-  const portData: PortRow[] = await portRes.json();
 
   return (
     <main className="min-h-screen bg-gray-950 text-white">
@@ -248,28 +214,8 @@ export default async function Home() {
             <ConsecutiveDropPanel data={cdData} />
           </div>
 
-          <div id="correlation" className="mt-8">
-            <RollingCorrelationChart data={rcData} />
-          </div>
-
-          <div id="garch" className="mt-8">
-            <GarchPanel data={garchData} />
-          </div>
-
-          <div id="drawdown-recovery" className="mt-8">
-            <DrawdownRecoveryPanel data={drData} />
-          </div>
-
           <div id="halving" className="mt-8">
             <HalvingPanel data={halvingData} />
-          </div>
-
-          <div id="monte-carlo" className="mt-8">
-            <MonteCarloPanel />
-          </div>
-
-          <div id="portfolio-optimization" className="mt-8">
-            <PortfolioOptimizationPanel data={portData} />
           </div>
 
             </div>{/* end panels flex-1 */}

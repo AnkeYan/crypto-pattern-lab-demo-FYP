@@ -1,4 +1,4 @@
-# CryptoPatternLab FYP 副本 項目交接文件 v21.0
+# CryptoPatternLab FYP 副本 項目交接文件 v22.0
 
 ## 產品定位
 AI-powered crypto pattern research assistant。
@@ -98,23 +98,25 @@ pandas numpy requests scipy arch statsmodels yfinance xgboost scikit-learn hmmle
 
 ---
 
-## 13 因子體系（v20.0，最新）
+## 15 因子體系（v22.0，最新）
 
 | 因子 | 權重 | 數據源 | XGBoost 使用版本 |
 |------|------|--------|----------------|
 | F1 RSI Oversold Intensity | 15% | 技術指標 | f1_cont（連續值） |
-| F2 Bollinger Deviation | 11% | 技術指標 | f2_cont（連續值，替代觸發式） |
-| F3 GARCH Vol Regime | 8% | 波動率模型 | f3_norm（校準版固定 0，XGBoost 移除） |
+| F2 Bollinger Deviation | **7%** | 技術指標 | f2_cont（連續值，降 11→7 為 F15 讓位） |
+| F3 GARCH Vol Regime | **6%** | 波動率模型 | f3_norm（校準版固定 0，XGBoost 移除，降 8→6） |
 | F4 Fear & Greed Zone | 9% | Alternative.me | f4_norm（校準版固定 0，XGBoost 移除） |
 | F5 Month Seasonality | 9% | 統計 | f5_cont（連續值） |
 | F6 Regime Favorability | 9% | HMM 後驗概率 | f6_cont（Bull 後驗概率，替代規則版） |
 | F7 Volume Surge | 6% | 成交量 | f7_cont（連續值，替代觸發式） |
 | F8 Price Momentum | 6% | 技術指標 | f8_cont + f8_lag7 + f8_lag14 |
-| F9 Funding Rate Sentiment | 7% | Bybit 期貨 | f9_cont（連續值，替代觸發式） |
-| F10 Long/Short Ratio | 5% | Bybit 期貨 | f10_norm（即時快照，校準版固定 0，XGBoost 移除） |
-| F11 Active Addresses | 6% | Blockchain.com | f11_cont（連續值，BTC only） |
+| F9 Funding Rate Sentiment | **5%** | Bybit 期貨 | f9_cont（連續值，降 7→5，F14 分出） |
+| F10 Long/Short Ratio | **4%** | Bybit 期貨 | f10_norm（即時快照，校準版固定 0，XGBoost 移除，降 5→4） |
+| F11 Active Addresses | 6% | Blockchain.com | f11_cont（連續值，BTC only；ETH/SOL 固定 0.5 噪音，XGBoost 已排除） |
 | F12 Turbulence Index | 7% | 三幣種協方差 | f12_cont（連續值）+ f12_lag7 |
 | F13 MVRV Valuation | 7% | CoinMetrics | f13_cont + f13_lag7 + f13_lag14 |
+| **F14 Funding Rate Trend** | **2%** | Bybit（同 F9） | f14_cont + f14_lag7（7d 差值；費率急降=高分） |
+| **F15 BTC Dominance Change** | **2%** | CoinGecko API | **Dashboard only**，不進 XGBoost（數據只有 30 天）|
 
 **重要設計決策（連續版 `_cont` 特徵）：**
 - `f2_norm`（Bollinger）、`f7_norm`（Volume）、`f9_norm`（Funding）的觸發式版本非零比例只有 4–7%，XGBoost 幾乎學不到
@@ -139,10 +141,19 @@ pandas numpy requests scipy arch statsmodels yfinance xgboost scikit-learn hmmle
 - **ROLLING_YEARS = 3**：最終預測只用最近 3 年訓練
 - **EMBARGO_DAYS = 7**：Purged Walk-Forward CV（防止數據洩露）
 
-**15個特徵（移除了 f3/f4/f10，重要性=0%）：**
+**幣種專屬特徵集（v22，移除 f3/f4/f10 + f15 噪音）：**
 ```
-連續版：f1/f2/f5/f6/f7/f8/f9/f11/f12/f13 的 _cont 版
-Lag：   f8_lag7, f8_lag14, f12_lag7, f13_lag7, f13_lag14
+FEATURES_COMMON (ETH/SOL，16個)：
+  連續版：f1/f2/f5/f6/f7/f8/f9/f12/f13/f14 的 _cont 版
+  Lag：   f8_lag7, f8_lag14, f12_lag7, f13_lag7, f13_lag14, f14_lag7
+
+FEATURES_BTC (BTC，17個)：
+  FEATURES_COMMON + f11_cont（Active Addresses，BTC only 有效）
+
+設計原因：
+  f11_cont 在 ETH/SOL 全部固定 0.5（無鏈上數據）= 常數噪音 → 幣種專屬排除
+  f15_cont 只有 30 天數據，calibration 99.9% 是 0.5 = 純噪音 → 不進 XGBoost
+  get_features(symbol) 函數自動選擇對應特徵列表
 ```
 
 **最新 Walk-Forward 結果：**
@@ -266,7 +277,10 @@ data/
 ├── turbulence_history.csv         ← Turbulence Index（2021-05-20 起）
 ├── portfolio_optimization.csv     ← MVO weights/metrics/history/frontier
 ├── xgb_results.csv               ← Walk-Forward AUC + DirAcc + RMSE
-└── xgb_predictions.csv           ← xgb_win_prob / xgb_expected_ret
+├── xgb_predictions.csv           ← xgb_win_prob / xgb_expected_ret
+├── btc_dominance_history.csv     ← CoinGecko（F15，逐日累積）
+├── btc_dominance_results.csv     ← F15 即時快照（BTC/ETH/SOL）
+└── factor_ic_results.csv         ← Spearman IC + IC IR（v22 新增）
 ```
 所有 CSV 同時存在 `data/` 和 `web/public/data/`（Vercel 用）。
 
@@ -290,10 +304,12 @@ analyze_futures_sentiment.py         ← Bybit F9/F10，增量策略
 analyze_active_addresses.py          ← Blockchain.com F11
 analyze_turbulence.py                ← F12，2021-05-20 起
 analyze_mvrv.py                      ← F13，CoinMetrics
+analyze_btc_dominance.py             ← F15，CoinGecko API，30 天回填 + 逐日增量
 analyze_hmm_regime.py                ← HMM v2
 analyze_regime_signal_efficacy.py    ← v20 新增，Regime 條件信號勝率 + Chi-square
 analyze_multifactor.py               ← 必須在所有因子腳本之後
 analyze_multifactor_calibration.py
+analyze_factor_ic.py                 ← Spearman IC + IC IR，逐年計算，Factor 預測力驗證
 analyze_xgboost.py                   ← 必須在 calibration 之後
 analyze_ensemble.py                  ← v20 新增，XGBoost + LightGBM Ensemble；必須在 xgboost 之後
 analyze_consecutive_drop.py / analyze_drawdown_recovery.py / analyze_halving.py
@@ -330,6 +346,7 @@ analyze_portfolio_optimization.py    ← MVO，最後執行
 | SignalIntelligencePanel | Regime + Confluence + 條件回報 |
 | MultiFactorPanel | **13因子** + 歷史校準 + XGBoost v4.1（DirAcc/RMSE/Expected Ret）+ **Ensemble 區塊（v20）** |
 | RegimeTransitionPanel | Markov Chain 轉換矩陣 |
+| FactorIcPanel | **v22 新增**：各因子 Spearman IC + IC IR 驗證，Validation workspace |
 
 ---
 
@@ -348,6 +365,7 @@ analyze_portfolio_optimization.py    ← MVO，最後執行
 /api/ensemble → ensemble_results.csv + ensemble_predictions.csv（v20 新增）
 /api/consecutive-drop / /api/drawdown-recovery / /api/halving
 /api/portfolio-optimization → weights/minvol_weights/metrics/history/frontier
+/api/factor-ic → factor_ic_results.csv（v22 新增）
 ```
 
 ---
@@ -360,6 +378,23 @@ analyze_portfolio_optimization.py    ← MVO，最後執行
 - Fear & Greed 與回報相關性：r≈0.007, p≈0.896（不顯著）
 - GARCH persistence = 1.000 for BTC/ETH → IGARCH（正常現象）
 - Multi-Factor 校準：BTC top 25% 勝率 62.9%（n=663）
+
+### Factor IC 核心發現（v22，BTC）
+
+| 因子 | IC IR | 評級 | 解讀 |
+|------|-------|------|------|
+| F13 MVRV | **+1.76** | Strong | 最強預測因子，跨年穩定 |
+| F9 Funding Rate | **+1.41** | Strong | 期貨情緒指標，BTC 效果最佳 |
+| F14 FR Trend | **+1.33** | Strong | 費率趨勢，補充 F9 當前水平 |
+| F5 Month Seasonality | **+1.07** | Strong | 月份效應穩定 |
+| F7 Volume | +0.38 | Weak | 有方向但不穩定 |
+| F6 HMM Regime | **-0.20** | Noise | IC 為負（方向反？或 Regime 本身非預測性） |
+| F12 Turbulence | **-0.15** | Noise | IC 為負（SOL -0.62，較明顯） |
+| F1 RSI | +0.04 | Noise | IC 接近 0，但作為組合過濾條件仍有意義 |
+| F2 Bollinger | +0.01 | Noise | IC 接近 0，同 F1 |
+
+**IC 低 ≠ 因子無用**（RSI/Bollinger 是 Dashboard 的解釋性指標，非 XGBoost 預測核心）
+**保持人工 Dashboard 權重**，XGBoost 自動學習真實因子重要性。
 
 ---
 
@@ -508,7 +543,36 @@ SOLUSDT: avg XGB AUC=0.514 | avg Ensemble AUC=0.511 | avg DirAcc=48.5%
 
 ## 下一步（v21 方向，與主文件同步）
 
-### 🔴 高優先：新增因子 F14–F16，提升 AUC
+### ✅ 已完成（v22）
+- F14 Funding Rate Trend 加入因子體系（f14_cont + f14_lag7）✅
+- F15 BTC Dominance Change（Dashboard only，不進 XGBoost）✅
+- F11 ETH/SOL 噪音修復（幣種專屬 FEATURES，get_features(symbol)）✅
+- Factor IC 分析（analyze_factor_ic.py + FactorIcPanel）✅
+- Bug fix：ensemble.py f14_lag7 KeyError ✅
+
+### 🔴 高優先（下一步）
+1. **6 個新 Panels**（Factors Tab 用）
+   - FundingRatePanel（F9 + F14，費率水平 + 趨勢）
+   - MvrvPanel（F13，IC 最強，MVRV 走勢 + 超熱/超冷區間）
+   - TurbulencePanel（F12，市場異常指數歷史，標出重大崩盤）
+   - ActiveAddressesPanel（F11，BTC only，鏈上活躍地址趨勢）
+   - BtcDominancePanel（F15，BTC 佔有率走勢 + 7d 變化率）
+   - VolumeMomentumPanel（F7 + F8，成交量方向 + 動量指標）
+   全部 Tier = Pro
+
+2. **新增 Factors Tab**（WorkspaceHeader 第四個 tab）
+   移入：GARCH（降至 Pro）、Drawdown Recovery（降至 Pro）、Rolling Correlation、以上 6 個新 Panel
+
+3. **架構重組**
+   - MultiFactorPanel 升至 Research tier
+   - Monte Carlo + Portfolio Optimization 移至 Signals Tab
+   - VolumeMomentumPanel 放 Validation Tab
+
+### 已確認不做
+- F16 Open Interest：數據不足，暫緩（等累積 1 年後再加）
+- 用 IC 替換人工 Dashboard 權重：不做（Dashboard 是解釋性，XGBoost 已自動學習）
+
+### 🟡 中優先（架構完成後）
 
 目前 F3/F4/F10 XGBoost 重要性 = 0%，是無效佔位。候選新因子：
 

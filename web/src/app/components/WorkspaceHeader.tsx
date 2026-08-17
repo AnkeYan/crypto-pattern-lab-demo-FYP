@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 type WorkspaceHeaderProps = {
-  activeView: "research" | "validation" | "signals";
+  activeView: "research" | "validation" | "signals" | "factors";
   maxWidthClass?: string;
 };
 
@@ -22,6 +22,42 @@ const SEARCH_TARGETS: SearchTarget[] = [
     href: "/",
     keywords: ["research", "home", "workspace", "main"],
     type: "workspace",
+  },
+  {
+    label: "Factors Workspace",
+    href: "/factors",
+    keywords: ["factors", "factor", "mvrv", "turbulence", "funding rate", "active addresses", "dominance", "garch", "drawdown"],
+    type: "workspace",
+  },
+  {
+    label: "MVRV Valuation (F13)",
+    href: "/factors#mvrv",
+    keywords: ["mvrv", "market value realized", "valuation", "bottom signal", "overheated"],
+    type: "section",
+  },
+  {
+    label: "Turbulence Index (F12)",
+    href: "/factors#turbulence",
+    keywords: ["turbulence", "mahalanobis", "market stress", "systemic risk", "luna", "ftx"],
+    type: "section",
+  },
+  {
+    label: "Funding Rate (F9+F14)",
+    href: "/factors#funding-rate",
+    keywords: ["funding rate", "perpetual", "futures sentiment", "f9", "f14"],
+    type: "section",
+  },
+  {
+    label: "Active Addresses (F11)",
+    href: "/factors#active-addresses",
+    keywords: ["active addresses", "on-chain", "blockchain", "f11"],
+    type: "section",
+  },
+  {
+    label: "BTC Dominance (F15)",
+    href: "/factors#btc-dominance",
+    keywords: ["btc dominance", "dominance", "altcoin season", "f15"],
+    type: "section",
   },
   {
     label: "Validation Workspace",
@@ -311,7 +347,7 @@ export default function WorkspaceHeader({
           </div>
         </div>
 
-        <nav className="ml-auto md:ml-0 flex items-center gap-4 md:gap-10 shrink-0 pr-1" aria-label="Workspace views">
+        <nav className="ml-auto md:ml-0 flex items-center gap-4 md:gap-8 shrink-0 pr-1" aria-label="Workspace views">
           <Link
             href="/"
             className={`inline-flex items-center border-b px-0.5 py-1 text-sm font-medium whitespace-nowrap transition-colors ${
@@ -343,6 +379,17 @@ export default function WorkspaceHeader({
             }`}
           >
             Signals
+          </Link>
+
+          <Link
+            href="/factors"
+            className={`inline-flex items-center border-b px-0.5 py-1 text-sm font-medium whitespace-nowrap transition-colors ${
+              activeView === "factors"
+                ? "border-amber-400/85 text-amber-300"
+                : "border-transparent text-gray-400 hover:text-gray-200 hover:border-white/[0.12]"
+            }`}
+          >
+            Factors
           </Link>
         </nav>
       </div>

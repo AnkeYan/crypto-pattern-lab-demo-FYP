@@ -7,6 +7,8 @@ import RegimeEfficacyPanel, { EfficacyRow } from "../components/RegimeEfficacyPa
 import TierGate from "../components/TierGate";
 import WorkspaceHeader from "../components/WorkspaceHeader";
 import FactorIcPanel from "../components/FactorIcPanel";
+import RollingCorrelationChart from "../components/RollingCorrelationChart";
+import VolumeMomentumPanel from "../components/VolumeMomentumPanel";
 
 type AcfRow = {
   symbol: string;
@@ -75,12 +77,13 @@ type ValidationRow = {
 
 export default async function ValidationPage() {
   const BASE = baseUrl();
-  const [pvRes, acfRes, lbRes, wfRes, reRes] = await Promise.all([
+  const [pvRes, acfRes, lbRes, wfRes, reRes, rcRes] = await Promise.all([
     fetch(`${BASE}/api/pattern-validation`,       { cache: "no-store" }),
     fetch(`${BASE}/api/acf`,                      { cache: "no-store" }),
     fetch(`${BASE}/api/ljung-box`,                { cache: "no-store" }),
     fetch(`${BASE}/api/walk-forward`,             { cache: "no-store" }),
     fetch(`${BASE}/api/regime-signal-efficacy`,   { cache: "no-store" }),
+    fetch(`${BASE}/api/rolling-correlation`,      { cache: "no-store" }),
   ]);
   const data: ValidationRow[]       = await pvRes.json();
   const acfData: AcfRow[]           = await acfRes.json();
@@ -88,6 +91,7 @@ export default async function ValidationPage() {
   const wfData: WalkForwardRow[]    = await wfRes.json();
   const reJson                      = await reRes.json();
   const reData: EfficacyRow[]       = reJson.rows ?? [];
+  const rcData: { date: string; eth_btc_corr: number | null; sol_btc_corr: number | null; eth_btc_ratio: number | null }[] = await rcRes.json();
 
   return (
     <main className="min-h-screen bg-gray-950 text-white overflow-x-hidden">
@@ -132,6 +136,18 @@ export default async function ValidationPage() {
 
           <div id="factor-ic" className="mt-10">
             <FactorIcPanel />
+          </div>
+
+          <div id="correlation" className="mt-10">
+            <TierGate requiredTier="pro" title="Rolling Correlation" description="60-day rolling correlation between BTC, ETH, SOL. Validates diversification assumptions and detects regime-dependent co-movement. 60日滾動相關係數，驗證分散化效果。">
+              <RollingCorrelationChart data={rcData} />
+            </TierGate>
+          </div>
+
+          <div id="volume-momentum" className="mt-10">
+            <TierGate requiredTier="pro" title="Volume & Momentum (F7+F8)" description="F7 volume surge × F8 price momentum. Validates whether high-score setups coincide with real volume confirmation. 成交量 × 動量信號，驗證買賣訊號是否有量佐證。">
+              <VolumeMomentumPanel />
+            </TierGate>
           </div>
         </div>
       </div>
