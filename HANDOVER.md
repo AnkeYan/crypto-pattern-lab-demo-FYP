@@ -1,4 +1,4 @@
-# CryptoPatternLab FYP 副本 項目交接文件 v20.0
+# CryptoPatternLab FYP 副本 項目交接文件 v21.0
 
 ## 產品定位
 AI-powered crypto pattern research assistant。
@@ -98,23 +98,23 @@ pandas numpy requests scipy arch statsmodels yfinance xgboost scikit-learn hmmle
 
 ---
 
-## 13 因子體系（v19.0，最新）
+## 13 因子體系（v20.0，最新）
 
 | 因子 | 權重 | 數據源 | XGBoost 使用版本 |
 |------|------|--------|----------------|
-| F1 RSI Oversold Intensity | 16% | 技術指標 | f1_cont（連續值） |
-| F2 Bollinger Deviation | 12% | 技術指標 | f2_cont（連續值，替代觸發式） |
-| F3 GARCH Vol Regime | 9% | 波動率模型 | f3_norm（校準版固定 0，XGBoost 移除） |
-| F4 Fear & Greed Zone | 10% | Alternative.me | f4_norm（校準版固定 0，XGBoost 移除） |
-| F5 Month Seasonality | 10% | 統計 | f5_cont（連續值） |
-| F6 Regime Favorability | 10% | HMM 後驗概率 | f6_cont（Bull 後驗概率，替代規則版） |
+| F1 RSI Oversold Intensity | 15% | 技術指標 | f1_cont（連續值） |
+| F2 Bollinger Deviation | 11% | 技術指標 | f2_cont（連續值，替代觸發式） |
+| F3 GARCH Vol Regime | 8% | 波動率模型 | f3_norm（校準版固定 0，XGBoost 移除） |
+| F4 Fear & Greed Zone | 9% | Alternative.me | f4_norm（校準版固定 0，XGBoost 移除） |
+| F5 Month Seasonality | 9% | 統計 | f5_cont（連續值） |
+| F6 Regime Favorability | 9% | HMM 後驗概率 | f6_cont（Bull 後驗概率，替代規則版） |
 | F7 Volume Surge | 6% | 成交量 | f7_cont（連續值，替代觸發式） |
 | F8 Price Momentum | 6% | 技術指標 | f8_cont + f8_lag7 + f8_lag14 |
 | F9 Funding Rate Sentiment | 7% | Bybit 期貨 | f9_cont（連續值，替代觸發式） |
-| F10 Long/Short Ratio | 7% | Bybit 期貨 | f10_norm（即時快照，校準版固定 0，XGBoost 移除） |
-| F11 Active Addresses | 7% | Blockchain.com | f11_cont（連續值，BTC only） |
+| F10 Long/Short Ratio | 5% | Bybit 期貨 | f10_norm（即時快照，校準版固定 0，XGBoost 移除） |
+| F11 Active Addresses | 6% | Blockchain.com | f11_cont（連續值，BTC only） |
 | F12 Turbulence Index | 7% | 三幣種協方差 | f12_cont（連續值）+ f12_lag7 |
-| F13 MVRV Valuation | — | CoinMetrics | f13_cont + f13_lag7 + f13_lag14 |
+| F13 MVRV Valuation | 7% | CoinMetrics | f13_cont + f13_lag7 + f13_lag14 |
 
 **重要設計決策（連續版 `_cont` 特徵）：**
 - `f2_norm`（Bollinger）、`f7_norm`（Volume）、`f9_norm`（Funding）的觸發式版本非零比例只有 4–7%，XGBoost 幾乎學不到
@@ -272,10 +272,10 @@ data/
 
 ---
 
-## 腳本清單（21個，run_update.sh 執行順序）
+## 腳本清單（23個，run_update.sh 執行順序）
 
 ```
-API調取-fetch_prices.py           ← 必須第一個
+API調取-fetch_prices.py              ← 必須第一個
 analyze_patterns.py
 analyze_fear_greed.py
 analyze_rolling_correlation.py
@@ -286,21 +286,23 @@ analyze_acf.py / analyze_walk_forward.py
 analyze_month_seasonality.py
 analyze_signals.py
 analyze_regime_transition.py
-analyze_futures_sentiment.py      ← Bybit F9/F10，增量策略
-analyze_active_addresses.py       ← Blockchain.com F11
-analyze_turbulence.py             ← F12，2021-05-20 起
-analyze_mvrv.py                   ← F13，CoinMetrics
-analyze_hmm_regime.py             ← HMM v2
-analyze_multifactor.py            ← 必須在所有因子腳本之後
+analyze_futures_sentiment.py         ← Bybit F9/F10，增量策略
+analyze_active_addresses.py          ← Blockchain.com F11
+analyze_turbulence.py                ← F12，2021-05-20 起
+analyze_mvrv.py                      ← F13，CoinMetrics
+analyze_hmm_regime.py                ← HMM v2
+analyze_regime_signal_efficacy.py    ← v20 新增，Regime 條件信號勝率 + Chi-square
+analyze_multifactor.py               ← 必須在所有因子腳本之後
 analyze_multifactor_calibration.py
-analyze_xgboost.py                ← 必須在 calibration 之後
+analyze_xgboost.py                   ← 必須在 calibration 之後
+analyze_ensemble.py                  ← v20 新增，XGBoost + LightGBM Ensemble；必須在 xgboost 之後
 analyze_consecutive_drop.py / analyze_drawdown_recovery.py / analyze_halving.py
-analyze_portfolio_optimization.py ← MVO，最後執行
+analyze_portfolio_optimization.py    ← MVO，最後執行
 ```
 
 ---
 
-## 前端組件清單（25個）
+## 前端組件清單（26個）
 
 | 組件 | 說明 |
 |------|------|
@@ -321,16 +323,17 @@ analyze_portfolio_optimization.py ← MVO，最後執行
 | HalvingPanel | 減半週期（n=4） |
 | MonteCarloPanel | 純 JS 模擬 |
 | PortfolioOptimizationPanel | MVO Max Sharpe/Min Vol，SVG pie chart |
-| PatternValidationPanel | Discovery vs Validation split |
+| PatternValidationPanel | Discovery vs Validation split，三層防過擬合說明（v20 更新） |
 | WalkForwardPanel | 滾動驗證 |
 | AcfPanel | ACF/PACF + Ljung-Box |
+| RegimeEfficacyPanel | **v20 新增**：Regime 條件信號勝率，Chi-square 顯著性，直接顯示（無 TierGate） |
 | SignalIntelligencePanel | Regime + Confluence + 條件回報 |
-| MultiFactorPanel | **13因子** + 歷史校準 + XGBoost v4.1（DirAcc/RMSE/Expected Ret） |
+| MultiFactorPanel | **13因子** + 歷史校準 + XGBoost v4.1（DirAcc/RMSE/Expected Ret）+ **Ensemble 區塊（v20）** |
 | RegimeTransitionPanel | Markov Chain 轉換矩陣 |
 
 ---
 
-## API Routes（22個）
+## API Routes（24個）
 
 ```
 /api/results / /api/summary / /api/fear-greed
@@ -341,6 +344,8 @@ analyze_portfolio_optimization.py ← MVO，最後執行
 /api/regime-transition / /api/multifactor
 /api/multifactor-calibration → summary + scatter
 /api/xgboost → folds（AUC/DirAcc/RMSE）+ importance + predictions（xgb_win_prob / xgb_expected_ret）
+/api/regime-signal-efficacy → regime_signal_efficacy.csv（v20 新增）
+/api/ensemble → ensemble_results.csv + ensemble_predictions.csv（v20 新增）
 /api/consecutive-drop / /api/drawdown-recovery / /api/halving
 /api/portfolio-optimization → weights/minvol_weights/metrics/history/frontier
 ```
