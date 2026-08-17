@@ -91,9 +91,9 @@ cd /Users/nganyukkuen/Desktop/crypto-pattern-lab-export && git pull --rebase && 
 ```
 **⚠️ 重要**：副本有 GitHub Actions 每天 UTC 03:00 自動 commit CSV，push 前必須先 `git pull --rebase`。
 
-**GitHub Actions Python 依賴：**
+**GitHub Actions Python 依賴（已更新）：**
 ```
-pandas numpy requests scipy arch statsmodels yfinance xgboost scikit-learn hmmlearn PyPortfolioOpt
+pandas numpy requests scipy arch statsmodels yfinance xgboost scikit-learn hmmlearn PyPortfolioOpt lightgbm
 ```
 
 ---
@@ -497,4 +497,32 @@ BTCUSDT: avg XGB AUC=0.529 | avg Ensemble AUC=0.532 | avg DirAcc=52.1%
 ETHUSDT: avg XGB AUC=0.543 | avg Ensemble AUC=0.546 | avg DirAcc=48.9%
 SOLUSDT: avg XGB AUC=0.514 | avg Ensemble AUC=0.511 | avg DirAcc=48.5%
 ```
+
+
+---
+
+## 下一步（v21 方向，與主文件同步）
+
+### 🔴 高優先：新增因子 F14–F16，提升 AUC
+
+目前 F3/F4/F10 XGBoost 重要性 = 0%，是無效佔位。候選新因子：
+
+| 因子 | 數據源 | 原理 | 成本 |
+|------|--------|------|------|
+| **F14 Funding Rate Trend** | 現有 `funding_rate_history.csv` | 7d 變化方向（趨勢），與 F9 當前值互補 | 零成本 |
+| **F15 BTC Dominance 變化率** | CoinGecko 免費 API | BTC 佔比上升 = 市場避險；對 ETH/SOL 尤其有效 | 免費無需 key |
+| **F16 Open Interest 變化率** | Bybit API（已有連接）| 持倉量急增+價格不動 = 不穩定 | 免費已有 API |
+
+執行順序：F14（零成本）→ F15 → F16
+
+### 🟡 中優先
+- **因子有效性時間序列分析（Factor Decay 可視化）**：用現有 `xgb_results.csv` 各年份 Feature Importance 繪製排名變化圖
+- **SOPR 鏈上指標**：與 MVRV 組合做底部識別對比（Glassnode 免費層）
+
+### 已確認待做的 ML 分支（按優先順序）
+- ~~集成學習 Ensemble~~ ✅ 已完成
+- **深度學習 LSTM** — 捕捉時序連續性，與 XGBoost 做 AUC 對比
+- **強化學習 PPO/SAC** — 需 AUC 先到 0.55+
+- **貝葉斯方法** — Bayesian Optimization 超參數自動調優
+- **圖神經網絡 GNN** — 跨資產傳導關係圖
 
