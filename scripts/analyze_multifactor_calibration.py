@@ -32,11 +32,13 @@ Multi-Factor Score 歷史校準（觸發式評分版）
     觸發式：只有 f11 > 0.5（地址萎縮）才計分，否則給 0
   F13 MVRV：從 mvrv_history.csv 逐日查詢（BTC/ETH，SOL 用 BTC 代理）
     低 MVRV（低估）= 高分，觸發式：f13 > 0.5 才計分
+  F14 Funding Rate Trend：從 funding_rate_history.csv 計算 7d 差值
+    費率急降（差值為負）= 去槓桿底部訊號 = 高分，觸發式：只有 f14 > 0.5 才計分
 
 輸出 data/multifactor_calibration.csv
 Schema:
   symbol, date, score, score_bucket,
-  f1_norm..f13_norm, outcome_7d, win
+  f1_norm..f14_norm, outcome_7d, win
 """
 
 import pandas as pd
@@ -49,26 +51,27 @@ OUT_PATH = DATA_DIR / "multifactor_calibration.csv"
 SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 
 WEIGHTS = {
-    "rsi_intensity":       0.15,
-    "bollinger_deviation": 0.11,
-    "garch_vol_regime":    0.08,
-    "fear_greed_zone":     0.09,
-    "month_seasonality":   0.09,
-    "regime_favorability": 0.09,
-    "volume_surge":        0.06,
-    "price_momentum":      0.06,
-    "funding_rate":        0.07,  # F9（逐日歷史）
-    "ls_ratio":            0.05,  # F10（固定 0，歷史太短）
-    "active_addresses":    0.06,  # F11（BTC only，ETH/SOL 固定 0.5）
-    "turbulence_calm":     0.07,  # F12（逐日歷史，低 turbulence = 高分）
-    "mvrv":                0.07,  # F13（BTC/ETH 逐日，SOL 用 BTC 代理）
+    "rsi_intensity":          0.15,
+    "bollinger_deviation":    0.11,
+    "garch_vol_regime":       0.08,
+    "fear_greed_zone":        0.09,
+    "month_seasonality":      0.09,
+    "regime_favorability":    0.09,
+    "volume_surge":           0.06,
+    "price_momentum":         0.06,
+    "funding_rate":           0.05,  # F9（逐日歷史，降 0.07→0.05）
+    "ls_ratio":               0.05,  # F10（固定 0，歷史太短）
+    "active_addresses":       0.06,  # F11（BTC only，ETH/SOL 固定 0.5）
+    "turbulence_calm":        0.07,  # F12（逐日歷史，低 turbulence = 高分）
+    "mvrv":                   0.07,  # F13（BTC/ETH 逐日，SOL 用 BTC 代理）
+    "funding_rate_trend":     0.02,  # F14（資金費率 7d 差值）
 }
 
 FACTOR_LIST = [
     "rsi_intensity", "bollinger_deviation", "garch_vol_regime",
     "fear_greed_zone", "month_seasonality", "regime_favorability",
     "volume_surge", "price_momentum", "funding_rate", "ls_ratio",
-    "active_addresses", "turbulence_calm", "mvrv",
+    "active_addresses", "turbulence_calm", "mvrv", "funding_rate_trend",
 ]
 
 
@@ -262,6 +265,14 @@ def calibrate_symbol(symbol: str) -> list[dict]:
     except Exception:
         fr_sym = pd.Series(dtype=float)
 
+    # ── Load F14: Funding Rate Trend（daily_avg 逐日序列，計算 7d 差值）──────
+    try:
+        fr_trend_df = pd.read_csv(DATA_DIR / "funding_rate_history.csv")
+        fr_trend_df["date"] = pd.to_datetime(fr_trend_df["date"])
+        fr_trend_sym = fr_trend_df[fr_trend_df["symbol"] == symbol].set_index("date")["daily_avg"].sort_index()
+    except Exception:
+        fr_trend_sym = pd.Series(dtype=float)
+
     # ── Load F12: Turbulence History（逐日）────────────────────────────────
     try:
         turb_df = pd.read_csv(DATA_DIR / "turbulence_history.csv")
@@ -369,6 +380,21 @@ def calibrate_symbol(symbol: str) -> list[dict]:
             f9_norm = 0.0
             f9_cont = 0.5
 
+        # ── F14: Funding Rate Trend（7d 差值）────────────────────────────
+        if len(fr_trend_sym) > 0:
+            past_trend = fr_trend_sym[fr_trend_sym.index <= date_i]
+            if len(past_trend) >= 8:
+                trend_val = float(past_trend.iloc[-1]) - float(past_trend.iloc[-8])
+                f14_cont  = clamp01(0.5 - trend_val * 5000)
+                # 觸發式（score 用）：費率下降（f14 > 0.5）才計分
+                f14_norm  = f14_cont if f14_cont > 0.5 else 0.0
+            else:
+                f14_norm = 0.0
+                f14_cont = 0.5
+        else:
+            f14_norm = 0.0
+            f14_cont = 0.5
+
         # ── F10: 固定 0（歷史太短）───────────────────────────────────────
         f10_norm = 0.0
 
@@ -420,7 +446,7 @@ def calibrate_symbol(symbol: str) -> list[dict]:
 
         # ── Weighted Score（用觸發式版，維持原有邏輯）────────────────────
 
-        norms = [f1_norm, f2_norm, f3_norm, f4_norm, f5_norm, f6_norm, f7_norm, f8_norm, f9_norm, f10_norm, f11_norm, f12_norm, f13_norm]
+        norms = [f1_norm, f2_norm, f3_norm, f4_norm, f5_norm, f6_norm, f7_norm, f8_norm, f9_norm, f10_norm, f11_norm, f12_norm, f13_norm, f14_norm]
         total = sum(n * WEIGHTS[f] for n, f in zip(norms, FACTOR_LIST))
         score = round(total * 100, 1)
 
@@ -443,6 +469,7 @@ def calibrate_symbol(symbol: str) -> list[dict]:
             "f11_norm":     round(f11_norm, 4),
             "f12_norm":     round(f12_norm, 4),
             "f13_norm":     round(f13_norm, 4),
+            "f14_norm":     round(f14_norm, 4),
             # 連續版（XGBoost 用，信息更豐富）
             "f1_cont":      round(f1_cont, 4),
             "f2_cont":      round(f2_cont, 4),
@@ -454,6 +481,7 @@ def calibrate_symbol(symbol: str) -> list[dict]:
             "f11_cont":     round(f11_cont, 4),
             "f12_cont":     round(f12_cont, 4),
             "f13_cont":     round(f13_cont, 4),
+            "f14_cont":     round(f14_cont, 4),
             "outcome_7d":   round(float(outcome_7d), 6),
             "win":          win,
         })

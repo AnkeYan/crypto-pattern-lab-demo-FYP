@@ -37,7 +37,8 @@ FEATURES = [
     "f1_cont", "f2_cont",
     "f5_cont", "f6_cont", "f7_cont", "f8_cont",
     "f9_cont", "f11_cont", "f12_cont", "f13_cont",
-    "f8_lag7", "f12_lag7", "f13_lag7",
+    "f14_cont",
+    "f8_lag7", "f12_lag7", "f13_lag7", "f14_lag7",
     "f8_lag14", "f13_lag14",
 ]
 
@@ -52,9 +53,11 @@ FEATURE_NAMES = {
     "f11_cont":  "Active Addresses",
     "f12_cont":  "Turbulence Calm",
     "f13_cont":  "MVRV Valuation",
+    "f14_cont":  "FR Trend (7d diff)",
     "f8_lag7":   "Momentum 7d ago",
     "f12_lag7":  "Turbulence Calm 7d ago",
     "f13_lag7":  "MVRV 7d ago",
+    "f14_lag7":  "FR Trend 7d ago",
     "f8_lag14":  "Momentum 14d ago",
     "f13_lag14": "MVRV 14d ago",
 }

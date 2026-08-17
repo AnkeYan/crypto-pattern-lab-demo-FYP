@@ -2,7 +2,7 @@
 analyze_multifactor.py
 Multi-Factor Setup Score — 跨模型加權整合
 
-整合 13 個模型的信號，輸出每個幣種當前的設置質量分 (0–100)，
+整合 14 個模型的信號，輸出每個幣種當前的設置質量分 (0–100)，
 以及每個因子的歷史邊際貢獻（用於前端顯示分解）。
 
 因子（各 0–1 分，加權後歸一化到 100）：
@@ -19,6 +19,7 @@ Multi-Factor Setup Score — 跨模型加權整合
   F11 Active addresses            — BTC 鏈上活躍地址（Blockchain.com）
   F12 Turbulence index            — 市場異常指數（低 turbulence = 高分）
   F13 MVRV valuation              — 市值 vs 實現價值（CoinMetrics，BTC/ETH；SOL 用 BTC 代理）
+  F14 Funding rate trend          — 資金費率 7d 差值（費率急降 = 去槓桿底部訊號）
 
 設計原則：
   - F1/F2 在 neutral zone (RSI≈50, BB≈0) 給予 0.35–0.40 基礎分（非超賣市場仍有基礎質量）
@@ -42,21 +43,22 @@ OUT_PATH = DATA_DIR / "multifactor_results.csv"
 SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 
 # Factor weights (sum = 1.0)
-# F13 MVRV 加入，總和維持 1.0
+# F14 Funding Rate Trend 加入，F9 降 0.07→0.05，總和維持 1.0
 WEIGHTS = {
-    "rsi_intensity":       0.15,  # F1
-    "bollinger_deviation": 0.11,  # F2
-    "garch_vol_regime":    0.08,  # F3
-    "fear_greed_zone":     0.09,  # F4
-    "month_seasonality":   0.09,  # F5
-    "regime_favorability": 0.09,  # F6
-    "volume_surge":        0.06,  # F7
-    "price_momentum":      0.06,  # F8
-    "funding_rate":        0.07,  # F9：期貨資金費率
-    "ls_ratio":            0.05,  # F10：大戶多空比
-    "active_addresses":    0.06,  # F11：BTC 鏈上活躍地址
-    "turbulence_calm":     0.07,  # F12：市場異常指數（低 turbulence = 高分）
-    "mvrv":                0.07,  # F13：市值 vs 實現價值（CoinMetrics）
+    "rsi_intensity":          0.15,  # F1
+    "bollinger_deviation":    0.11,  # F2
+    "garch_vol_regime":       0.08,  # F3
+    "fear_greed_zone":        0.09,  # F4
+    "month_seasonality":      0.09,  # F5
+    "regime_favorability":    0.09,  # F6
+    "volume_surge":           0.06,  # F7
+    "price_momentum":         0.06,  # F8
+    "funding_rate":           0.05,  # F9：期貨資金費率（降 0.07→0.05）
+    "ls_ratio":               0.05,  # F10：大戶多空比
+    "active_addresses":       0.06,  # F11：BTC 鏈上活躍地址
+    "turbulence_calm":        0.07,  # F12：市場異常指數（低 turbulence = 高分）
+    "mvrv":                   0.07,  # F13：市值 vs 實現價值（CoinMetrics）
+    "funding_rate_trend":     0.02,  # F14：資金費率 7d 差值
 }
 
 
@@ -94,42 +96,30 @@ def analyze_symbol(symbol: str) -> list[dict]:
     current_bb_dev = float(bb_dev.iloc[-1]) if not pd.isna(bb_dev.iloc[-1]) else 0.0
 
     # ── F1: RSI Oversold Intensity ────────────────────────────────────────────
-    # 設計：RSI=20 → 1.0，RSI=50 → 0.40（neutral zone 基礎分），RSI=65+ → 0
-    # 中性市場不應得 0，因為它代表「沒有反向訊號」，有一定基礎質量
     f1_raw  = current_rsi
     f1_norm = clamp01((65.0 - current_rsi) / 45.0)
     f1_desc = f"RSI-14 = {current_rsi:.1f}"
 
     # ── F2: Bollinger Deviation ───────────────────────────────────────────────
-    # 設計：dev=-2（深度超賣）→ 1.0，dev=0（中性）→ 0.40，dev=+3 → 0
-    # 中性帶有基礎分，因為「不在超買區」本身就是 neutral-to-positive 條件
     f2_raw  = current_bb_dev
     f2_norm = clamp01(0.40 - current_bb_dev * 0.20)
     f2_desc = f"BB deviation = {current_bb_dev:.2f}σ"
 
     # ── F3: GARCH Vol Regime ──────────────────────────────────────────────────
-    # Score is HIGH when vol is COMPRESSING (favours rebound setups)
-    # We use: if forecast_vol_h7 < forecast_vol_h1 → compressing → score high
     try:
         garch_df = pd.read_csv(DATA_DIR / "garch_results.csv")
         g_row = garch_df[garch_df["symbol"] == symbol].iloc[0]
         h1 = float(g_row["forecast_vol_h1"])
         h7 = float(g_row["forecast_vol_h7"])
         persistence = float(g_row["persistence"])
-        # vol trajectory: negative = compressing, positive = expanding
-        vol_slope = (h7 - h1) / h1  # pct change
-        # compressing → high score; persistence > 0.97 = very sticky vol
+        vol_slope = (h7 - h1) / h1
         f3_raw  = vol_slope
-        f3_norm = clamp01(0.5 - vol_slope * 2.0)   # slope -0.25 → 1.0, slope +0.25 → 0
+        f3_norm = clamp01(0.5 - vol_slope * 2.0)
         f3_desc = f"Vol trend = {'↓ compressing' if vol_slope < 0 else '↑ expanding'} ({vol_slope:+.1%}), persistence={persistence:.3f}"
     except Exception:
         f3_raw, f3_norm, f3_desc = 0.0, 0.5, "GARCH data unavailable"
 
     # ── F4: Fear & Greed Zone ─────────────────────────────────────────────────
-    # Per-symbol: compare Extreme Fear zone win_rate vs overall baseline win_rate.
-    # Does NOT assume contrarian universally — each symbol tells its own story.
-    # Score high if EF win_rate > baseline (fear IS a setup for this symbol).
-    # Score low if EF win_rate < baseline (fear is not helpful / even harmful).
     try:
         fg_df = pd.read_csv(DATA_DIR / "fear_greed_results.csv")
         fg_row = fg_df[
@@ -152,10 +142,7 @@ def analyze_symbol(symbol: str) -> list[dict]:
             ef_mean = float(fg_row["ef_mean"])     if pd.notna(fg_row["ef_mean"])     else 0.0
             eg_mean = float(fg_row["eg_mean"])     if pd.notna(fg_row["eg_mean"])     else 0.0
             ef_n    = int(fg_row["ef_n"])           if pd.notna(fg_row["ef_n"])        else 0
-
-            # Edge = EF win_rate minus unconditional baseline
             edge = ef_wr - all_baseline_wr
-            # Weight by sample size (ef_n) — cap at n=80 for confidence
             n_weight_fg = clamp01(ef_n / 80.0)
             f4_raw  = edge
             f4_norm = clamp01(n_weight_fg * (0.5 + edge * 3.0))
@@ -178,8 +165,6 @@ def analyze_symbol(symbol: str) -> list[dict]:
             med_ret  = float(ms_row["median_return"]) if pd.notna(ms_row["median_return"]) else 0.0
             win_rate = float(ms_row["win_rate"])      if pd.notna(ms_row["win_rate"])      else 0.5
             n        = int(ms_row["sample_size"])     if pd.notna(ms_row["sample_size"])   else 0
-            # n_weight: steep penalty for small samples
-            # n=9 → 1.0, n=7 → 0.7, n=5 → 0.3, n<5 → 0.1
             if n >= 9:
                 n_weight = 1.0
             elif n >= 7:
@@ -188,7 +173,6 @@ def analyze_symbol(symbol: str) -> list[dict]:
                 n_weight = 0.3
             else:
                 n_weight = 0.1
-            # score: combine median return direction + win rate advantage
             f5_raw  = med_ret
             f5_norm = clamp01(n_weight * (0.5 + med_ret * 2.0 + (win_rate - 0.5)))
             f5_desc = f"Month {current_month}: median={med_ret:+.1%}, wr={win_rate:.0%}, n={n}"
@@ -198,13 +182,11 @@ def analyze_symbol(symbol: str) -> list[dict]:
         f5_raw, f5_norm, f5_desc = 0.0, 0.5, "Seasonality data unavailable"
 
     # ── F6: Regime Favorability ───────────────────────────────────────────────
-    # In current regime, what is the historical win rate of ANY signal vs baseline?
     try:
         conf_df = pd.read_csv(DATA_DIR / "confluence_results.csv")
         regime_df = pd.read_csv(DATA_DIR / "regime_results.csv")
         current_regime = regime_df[regime_df["symbol"] == symbol]["regime"].iloc[-1]
 
-        # Baseline 7d win rate in current regime
         base = conf_df[
             (conf_df["symbol"] == symbol) &
             (conf_df["signals"] == "baseline") &
@@ -213,7 +195,6 @@ def analyze_symbol(symbol: str) -> list[dict]:
         ]
         base_wr = float(base["win_rate"].iloc[0]) if len(base) > 0 and pd.notna(base["win_rate"].iloc[0]) else 0.5
 
-        # Any single signal win rate in current regime
         single_sigs = conf_df[
             (conf_df["symbol"] == symbol) &
             (conf_df["n_signals"] == 1) &
@@ -223,7 +204,6 @@ def analyze_symbol(symbol: str) -> list[dict]:
         ]
         avg_sig_wr = float(single_sigs["win_rate"].mean()) if len(single_sigs) > 0 else base_wr
 
-        # Edge = signal win rate - baseline; regime is favorable if edge > 0
         edge   = avg_sig_wr - base_wr
         f6_raw  = edge
         f6_norm = clamp01(0.5 + edge * 3.0)
@@ -233,35 +213,27 @@ def analyze_symbol(symbol: str) -> list[dict]:
         current_regime = "unknown"
 
     # ── F7: Volume Surge ──────────────────────────────────────────────────────
-    # 成交量相對 20d 均值的比值。
-    # 邏輯：放量（vol > 1.5x mean）下跌後，空頭力竭，反彈概率更高。
-    # 與價格方向結合：近 3 天是下跌 + 放量 → 更高分（恐慌拋售訊號）
     vol_ma20   = vol.rolling(20).mean()
     vol_ratio  = float((vol / vol_ma20).iloc[-1]) if not pd.isna(vol_ma20.iloc[-1]) else 1.0
     price_3d   = float((close.iloc[-1] - close.iloc[-4]) / close.iloc[-4]) if len(close) >= 4 else 0.0
-    # 放量下跌 → 高分；縮量橫盤 → 中性；放量上漲 → 低分
     if price_3d < -0.02 and vol_ratio > 1.3:
         f7_norm = clamp01(0.5 + (vol_ratio - 1.0) * 0.3 + abs(price_3d) * 2.0)
     elif price_3d > 0.03 and vol_ratio > 1.5:
         f7_norm = clamp01(0.5 - (vol_ratio - 1.0) * 0.2)
     else:
-        f7_norm = clamp01(0.35 + (1.5 - vol_ratio) * 0.1)  # 縮量 → 略高基礎分
+        f7_norm = clamp01(0.35 + (1.5 - vol_ratio) * 0.1)
     f7_raw  = vol_ratio
     f7_desc = f"Vol ratio = {vol_ratio:.2f}x 20d avg, 3d price = {price_3d:+.1%}"
 
     # ── F8: Price Momentum ────────────────────────────────────────────────────
-    # 5d vs 20d 動量對比，負動量代表短期超賣壓力累積，有均值回歸潛力。
-    # 設計：-10%（強烈負動量）→ 1.0，0%（持平）→ 0.45，+10%（強勢上漲）→ 0
     mom_5d  = float((close.iloc[-1] - close.iloc[-6])  / close.iloc[-6])  if len(close) >= 6  else 0.0
     mom_20d = float((close.iloc[-1] - close.iloc[-21]) / close.iloc[-21]) if len(close) >= 21 else 0.0
-    # relative momentum: 短期比長期弱 = 更多超賣壓力
     rel_mom = mom_5d - mom_20d
     f8_raw  = rel_mom
-    f8_norm = clamp01(0.45 - rel_mom * 2.5)  # rel_mom=-0.10 → 0.70, rel_mom=+0.10 → 0.20
+    f8_norm = clamp01(0.45 - rel_mom * 2.5)
     f8_desc = f"5d mom = {mom_5d:+.1%}, 20d mom = {mom_20d:+.1%}, rel = {rel_mom:+.1%}"
 
     # ── F9: Funding Rate ──────────────────────────────────────────────────────
-    # 讀取 futures_sentiment_results.csv（由 analyze_futures_sentiment.py 產生）
     try:
         fs_df = pd.read_csv(DATA_DIR / "futures_sentiment_results.csv")
         fs_row = fs_df[fs_df["symbol"] == symbol]
@@ -305,7 +277,6 @@ def analyze_symbol(symbol: str) -> list[dict]:
             f11_raw  = addr
             f11_desc = f"addr={addr:.0f}, ma30={ma30:.0f}, ratio={ratio:.3f}, f11={f11_norm:.3f}"
         else:
-            # ETH/SOL：無免費歷史鏈上數據，中性分
             f11_raw, f11_norm, f11_desc = 0.0, 0.5, "On-chain data BTC only (N/A)"
     except Exception:
         f11_raw, f11_norm, f11_desc = 0.0, 0.5, "Active address data unavailable"
@@ -316,10 +287,8 @@ def analyze_symbol(symbol: str) -> list[dict]:
         latest_turb = turb_df.iloc[-1]
         turb_norm = float(latest_turb["turbulence_norm"])
         turb_level = str(latest_turb["turbulence_level"])
-        # 低 turbulence = 市場平靜 = 信號更可靠 = 高分
-        # turbulence_norm 越高越異常，所以取反
         f12_raw  = turb_norm
-        f12_norm = round(1.0 - turb_norm, 4)   # calm = 1.0, extreme = 0.0
+        f12_norm = round(1.0 - turb_norm, 4)
         f12_desc = f"turbulence_norm={turb_norm:.3f}, level={turb_level}, f12={f12_norm:.3f}"
     except Exception:
         f12_raw, f12_norm, f12_desc = 0.0, 0.5, "Turbulence data unavailable"
@@ -340,6 +309,26 @@ def analyze_symbol(symbol: str) -> list[dict]:
     except Exception as e:
         f13_raw, f13_norm, f13_desc = 0.0, 0.5, f"MVRV data unavailable ({e})"
 
+    # ── F14: Funding Rate Trend ───────────────────────────────────────────────
+    # 資金費率 7d 差值：今天的 daily_avg - 7天前的 daily_avg
+    # 費率急降（差值為負）→ 多頭去槓桿 → 潛在底部訊號 → 高分
+    # 費率急升（差值為正）→ 市場貪婪過熱 → 低分
+    # 設計：差值 = -0.0002（明顯下降）→ 1.0；差值 = 0（持平）→ 0.5；差值 = +0.0002 → 0
+    try:
+        fr_hist = pd.read_csv(DATA_DIR / "funding_rate_history.csv", parse_dates=["date"])
+        fr_sym  = fr_hist[fr_hist["symbol"] == symbol].sort_values("date").reset_index(drop=True)
+        if len(fr_sym) >= 8:
+            latest_fr  = float(fr_sym["daily_avg"].iloc[-1])
+            lag7_fr    = float(fr_sym["daily_avg"].iloc[-8])   # 7天前
+            trend_val  = latest_fr - lag7_fr
+            f14_raw  = trend_val
+            f14_norm = clamp01(0.5 - trend_val * 5000)
+            f14_desc = f"FR trend (7d diff) = {trend_val:+.6f}, f14={f14_norm:.3f}"
+        else:
+            f14_raw, f14_norm, f14_desc = 0.0, 0.5, "Funding rate trend: insufficient history"
+    except Exception as e:
+        f14_raw, f14_norm, f14_desc = 0.0, 0.5, f"Funding rate trend unavailable ({e})"
+
     # ── Assemble factor rows ──────────────────────────────────────────────────
     factors = [
         ("rsi_intensity",       f1_raw,  f1_norm,  f1_desc),
@@ -355,6 +344,7 @@ def analyze_symbol(symbol: str) -> list[dict]:
         ("active_addresses",    f11_raw, f11_norm, f11_desc),
         ("turbulence_calm",     f12_raw, f12_norm, f12_desc),
         ("mvrv",                f13_raw, f13_norm, f13_desc),
+        ("funding_rate_trend",  f14_raw, f14_norm, f14_desc),
     ]
 
     total_weighted = 0.0
