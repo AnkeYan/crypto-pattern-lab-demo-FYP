@@ -217,11 +217,12 @@ def main():
         s["f8_lag7"]   = s["f8_cont"].shift(7)
         s["f12_lag7"]  = s["f12_cont"].shift(7)
         s["f13_lag7"]  = s["f13_cont"].shift(7)
+        s["f14_lag7"]  = s["f14_cont"].shift(7)
         s["f8_lag14"]  = s["f8_cont"].shift(14)
         s["f13_lag14"] = s["f13_cont"].shift(14)
         lag_frames.append(s)
     calib_df = pd.concat(lag_frames, ignore_index=True)
-    for col in ["f8_lag7", "f12_lag7", "f13_lag7", "f8_lag14", "f13_lag14"]:
+    for col in ["f8_lag7", "f12_lag7", "f13_lag7", "f14_lag7", "f8_lag14", "f13_lag14"]:
         calib_df[col] = calib_df[col].fillna(0.5)
 
     if TRAIN_START:
