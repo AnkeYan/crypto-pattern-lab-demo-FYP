@@ -13,19 +13,14 @@ type Section = {
 };
 
 const SECTIONS: Section[] = [
-  { id: "summary",                label: "AI Summary",            labelZh: "AI 摘要"       },
-  { id: "results",                label: "Pattern Results",       labelZh: "模式統計表"    },
-  { id: "fear-greed",             label: "Fear & Greed",          labelZh: "恐懼貪婪"      },
-  { id: "rsi",                    label: "RSI Analysis",          labelZh: "RSI 超賣"      },
-  { id: "bollinger",              label: "Bollinger Band",        labelZh: "布林帶"        },
-  { id: "seasonality",            label: "Month Seasonality",     labelZh: "月份季節性"    },
-  { id: "consecutive-drop",       label: "Consecutive Drop",      labelZh: "連跌分析"      },
-  { id: "correlation",            label: "Rolling Correlation",   labelZh: "滾動相關係數"  },
-  { id: "garch",                  label: "GARCH Volatility",      labelZh: "波動率預測"    },
-  { id: "drawdown-recovery",      label: "Drawdown Recovery",     labelZh: "回撤恢復"      },
-  { id: "halving",                label: "Halving Cycle",         labelZh: "減半週期"      },
-  { id: "monte-carlo",            label: "Monte Carlo",           labelZh: "蒙特卡洛"      },
-  { id: "portfolio-optimization", label: "Portfolio Optimization",labelZh: "配比優化"      },
+  { id: "summary",          label: "AI Summary",        labelZh: "AI 摘要"    },
+  { id: "results",          label: "Pattern Results",   labelZh: "模式統計表" },
+  { id: "fear-greed",       label: "Fear & Greed",      labelZh: "恐懼貪婪"   },
+  { id: "rsi",              label: "RSI Analysis",      labelZh: "RSI 超賣"   },
+  { id: "bollinger",        label: "Bollinger Band",    labelZh: "布林帶"     },
+  { id: "seasonality",      label: "Month Seasonality", labelZh: "月份季節性" },
+  { id: "consecutive-drop", label: "Consecutive Drop",  labelZh: "連跌分析"   },
+  { id: "halving",          label: "Halving Cycle",     labelZh: "減半週期"   },
 ];
 
 function scrollTo(id: string) {

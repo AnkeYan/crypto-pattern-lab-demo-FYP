@@ -4,6 +4,8 @@ import WorkspaceHeader from "../components/WorkspaceHeader";
 import SignalIntelligencePanel from "../components/SignalIntelligencePanel";
 import RegimeTransitionPanel, { RegimeTransitionRow } from "../components/RegimeTransitionPanel";
 import MultiFactorPanel, { MultifactorRow, EnsembleFold, EnsemblePrediction } from "../components/MultiFactorPanel";
+import MonteCarloPanel from "../components/MonteCarloPanel";
+import PortfolioOptimizationPanel from "../components/PortfolioOptimizationPanel";
 import TierGate from "../components/TierGate";
 
 type SignalSummary = {
@@ -95,7 +97,7 @@ export type CalibScatterPoint = {
 
 export default async function SignalsPage() {
   const BASE = baseUrl();
-  const [signalsRes, rtRes, mfRes, mfCalibRes, xgbRes, ensRes, garchRes, rcRes] = await Promise.all([
+  const [signalsRes, rtRes, mfRes, mfCalibRes, xgbRes, ensRes, garchRes, rcRes, portRes] = await Promise.all([
     fetch(`${BASE}/api/signals`,                  { cache: "no-store" }),
     fetch(`${BASE}/api/regime-transition`,        { cache: "no-store" }),
     fetch(`${BASE}/api/multifactor`,              { cache: "no-store" }),
@@ -104,6 +106,7 @@ export default async function SignalsPage() {
     fetch(`${BASE}/api/ensemble`,                 { cache: "no-store" }),
     fetch(`${BASE}/api/garch`,                    { cache: "no-store" }),
     fetch(`${BASE}/api/rolling-correlation`,      { cache: "no-store" }),
+    fetch(`${BASE}/api/portfolio-optimization`,   { cache: "no-store" }),
   ]);
 
   const { summary, confluence }: {
@@ -128,6 +131,8 @@ export default async function SignalsPage() {
   } = await ensRes.json();
   const garchData: GarchRow[]         = await garchRes.json();
   const rcData: RollingCorrRow[]      = await rcRes.json();
+  type PortRow = { row_type: string; label: string; value: number | null; extra: string };
+  const portData: PortRow[]           = await portRes.json();
 
   // Derive GARCH context per symbol for SignalIntelligencePanel
   const garchContext = Object.fromEntries(
@@ -184,9 +189,9 @@ export default async function SignalsPage() {
             </TierGate>
           </div>
 
-          {/* ── 2. Multi-Factor Setup Score — Research ── */}
+          {/* ── 2. Multi-Factor Setup Score — Pro ── */}
           <div id="multifactor" className="mt-8">
-            <TierGate requiredTier="pro" title="Multi-Factor Setup Score" description="Weighted synthesis of 6 models into a single 0–100 setup quality score: RSI intensity, Bollinger deviation, GARCH vol regime, Fear & Greed zone, seasonality bias, regime favorability. 多因子跨模型加權評分。">
+            <TierGate requiredTier="pro" title="Multi-Factor Setup Score" description="Weighted synthesis of 15 factors into a single 0–100 setup quality score. Includes XGBoost v4.1 (DirAcc 52%) and Ensemble (XGB+LGB) predictions. 15因子加權評分 + XGBoost + Ensemble 預測。">
               <MultiFactorPanel
                 data={mfData}
                 calibSummary={calibSummary}
@@ -204,6 +209,20 @@ export default async function SignalsPage() {
           <div id="regime-transition" className="mt-8">
             <TierGate requiredTier="research" title="Regime Transition Probabilities" description="Markov Chain analysis of historical regime switches — transition matrix, average duration per regime, current streak, and next-regime probability. 市場狀態轉換概率矩陣（馬可夫鏈）。">
               <RegimeTransitionPanel data={rtData} />
+            </TierGate>
+          </div>
+
+          {/* ── 4. Monte Carlo Simulation — Research ── */}
+          <div id="monte-carlo" className="mt-8">
+            <TierGate requiredTier="research" title="Monte Carlo Price Simulation" description="10,000 price path simulations using bootstrapped returns — P10/P50/P90 probability bands for 1–30 day horizons. 蒙特卡洛價格模擬，概率扇形圖。">
+              <MonteCarloPanel />
+            </TierGate>
+          </div>
+
+          {/* ── 5. Portfolio Optimization — Research ── */}
+          <div id="portfolio-optimization" className="mt-8">
+            <TierGate requiredTier="research" title="Portfolio Optimization (MVO)" description="Markowitz Mean-Variance Optimization — Max Sharpe (BTC 57% + SOL 43%) and Min Volatility allocations, efficient frontier, and historical performance comparison. 馬可維茲最優配比分析。">
+              <PortfolioOptimizationPanel data={portData} />
             </TierGate>
           </div>
         </div>
