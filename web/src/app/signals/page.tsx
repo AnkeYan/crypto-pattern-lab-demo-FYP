@@ -7,6 +7,15 @@ import MultiFactorPanel, { MultifactorRow, EnsembleFold, EnsemblePrediction } fr
 import MonteCarloPanel from "../components/MonteCarloPanel";
 import PortfolioOptimizationPanel from "../components/PortfolioOptimizationPanel";
 import TierGate from "../components/TierGate";
+import WorkspaceTOC, { TocSection } from "../components/WorkspaceTOC";
+
+const SIGNALS_SECTIONS: TocSection[] = [
+  { id: "signals-overview",    label: "Signal Intelligence",  labelZh: "信號智慧",     tier: "pro"      },
+  { id: "multifactor",         label: "Multi-Factor Score",   labelZh: "多因子評分",   tier: "pro"      },
+  { id: "monte-carlo",         label: "Monte Carlo",          labelZh: "蒙特卡洛",     tier: "pro"      },
+  { id: "regime-transition",   label: "Regime Transition",    labelZh: "狀態轉換",     tier: "research" },
+  { id: "portfolio-optimization", label: "Portfolio Optim.", labelZh: "配比優化",     tier: "research" },
+];
 
 type SignalSummary = {
   symbol: string;
@@ -177,6 +186,14 @@ export default async function SignalsPage() {
             </p>
           </div>
 
+          {/* Mobile TOC */}
+          <WorkspaceTOC sections={SIGNALS_SECTIONS} mobileOnly accentColor="text-purple-400" />
+
+          <div className="xl:flex xl:gap-8 xl:items-start">
+            <WorkspaceTOC sections={SIGNALS_SECTIONS} desktopOnly accentColor="text-purple-400" />
+
+            <div className="flex-1 min-w-0 space-y-8">
+
           {/* ── 1. Signal Intelligence — Pro ── */}
           <div id="signals-overview">
             <TierGate requiredTier="pro" title="Signal Intelligence" description="Real-time regime classification (Bull/Bear/Sideways), oversold signal detection, Confluence Score, GARCH vol context, and cross-asset confirmation. 市場狀態分類 + 信號匯聚評分 + 條件回報統計。">
@@ -189,9 +206,9 @@ export default async function SignalsPage() {
             </TierGate>
           </div>
 
-          {/* ── 2. Multi-Factor Setup Score — Pro ── */}
+          {/* ── 2. Multi-Factor Setup Score — Research ── */}
           <div id="multifactor" className="mt-8">
-            <TierGate requiredTier="pro" title="Multi-Factor Setup Score" description="Weighted synthesis of 15 factors into a single 0–100 setup quality score. Includes XGBoost v4.1 (DirAcc 52%) and Ensemble (XGB+LGB) predictions. 15因子加權評分 + XGBoost + Ensemble 預測。">
+            <TierGate requiredTier="pro" title="Multi-Factor Setup Score" description="Weighted synthesis of 13 factors into a single 0–100 setup quality score: RSI intensity, Bollinger deviation, MVRV valuation, Turbulence index, funding rate, active addresses, HMM regime & more. 13因子跨模型加權評分。">
               <MultiFactorPanel
                 data={mfData}
                 calibSummary={calibSummary}
@@ -214,7 +231,7 @@ export default async function SignalsPage() {
 
           {/* ── 4. Monte Carlo Simulation — Research ── */}
           <div id="monte-carlo" className="mt-8">
-            <TierGate requiredTier="research" title="Monte Carlo Price Simulation" description="10,000 price path simulations using bootstrapped returns — P10/P50/P90 probability bands for 1–30 day horizons. 蒙特卡洛價格模擬，概率扇形圖。">
+            <TierGate requiredTier="pro" title="Monte Carlo Price Simulation" description="10,000 price path simulations using bootstrapped returns — P10/P50/P90 probability bands for 1–30 day horizons. 蒙特卡洛價格模擬，概率扇形圖。">
               <MonteCarloPanel />
             </TierGate>
           </div>
@@ -225,6 +242,8 @@ export default async function SignalsPage() {
               <PortfolioOptimizationPanel data={portData} />
             </TierGate>
           </div>
+            </div>{/* end panels */}
+          </div>{/* end TOC + panels flex */}
         </div>
       </div>
     </main>

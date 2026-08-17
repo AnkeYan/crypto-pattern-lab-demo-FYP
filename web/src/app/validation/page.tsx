@@ -9,6 +9,17 @@ import WorkspaceHeader from "../components/WorkspaceHeader";
 import FactorIcPanel from "../components/FactorIcPanel";
 import RollingCorrelationChart from "../components/RollingCorrelationChart";
 import VolumeMomentumPanel from "../components/VolumeMomentumPanel";
+import WorkspaceTOC, { TocSection } from "../components/WorkspaceTOC";
+
+const VALIDATION_SECTIONS: TocSection[] = [
+  { id: "pattern-validation", label: "Pattern Validation",  labelZh: "模式驗證",       tier: "pro"      },
+  { id: "regime-efficacy",    label: "Regime Efficacy",     labelZh: "Regime 信號勝率", tier: "pro"      },
+  { id: "correlation",        label: "Rolling Correlation", labelZh: "滾動相關係數",    tier: "pro"      },
+  { id: "volume-momentum",    label: "Vol & Momentum",      labelZh: "成交量×動量",     tier: "pro"      },
+  { id: "walk-forward",       label: "Walk-Forward",        labelZh: "滾動驗證",        tier: "research" },
+  { id: "acf",                label: "ACF / PACF",          labelZh: "自相關檢定",      tier: "research" },
+  { id: "factor-ic",          label: "Factor IC",           labelZh: "因子 IC 分析",    tier: "research" },
+];
 
 type AcfRow = {
   symbol: string;
@@ -114,41 +125,59 @@ export default async function ValidationPage() {
           </p>
           </div>
 
-          <TierGate requiredTier="pro" title="Pattern Validation" description="Discovery vs. validation split at 2022-12-31. Checks whether patterns survived out-of-sample after 2023 — confidence score, consistency flag, and reasons. 模式發現期 vs 驗證期分析，防止 overfitting。">
-            <PatternValidationPanel data={data} />
-          </TierGate>
+          {/* Mobile TOC pill bar */}
+          <WorkspaceTOC sections={VALIDATION_SECTIONS} mobileOnly accentColor="text-cyan-500" />
 
-          <div id="walk-forward" className="mt-10">
-            <TierGate requiredTier="research" title="Walk-Forward Validation" description="Rolling train/test folds across market cycles. Tests whether each threshold's edge is consistent or only appeared in a specific era. 滾動驗證折疊，跨市場週期穩定性分析。">
-              <WalkForwardPanel data={wfData} />
-            </TierGate>
-          </div>
+          {/* Desktop: TOC sidebar + panels */}
+          <div className="xl:flex xl:gap-8 xl:items-start">
+            <WorkspaceTOC sections={VALIDATION_SECTIONS} desktopOnly accentColor="text-cyan-500" />
 
-          <div id="acf" className="mt-10">
-            <TierGate requiredTier="research" title="ACF / PACF Autocorrelation" description="Autocorrelation and partial autocorrelation up to 30 lags, with Ljung-Box test. Tests whether BTC/ETH/SOL returns contain exploitable serial dependence. 自相關與 Ljung-Box 檢定，驗證 random walk 假設。">
-              <AcfPanel acfData={acfData} lbData={lbData} />
-            </TierGate>
-          </div>
+            <div className="flex-1 min-w-0 space-y-10">
 
-          <div id="regime-efficacy" className="mt-10">
-            <RegimeEfficacyPanel data={reData} />
-          </div>
+              <div id="pattern-validation">
+                <TierGate requiredTier="pro" title="Pattern Validation" description="Discovery vs. validation split at 2022-12-31. Checks whether patterns survived out-of-sample after 2023 — confidence score, consistency flag, and reasons. 模式發現期 vs 驗證期分析，防止 overfitting。">
+                  <PatternValidationPanel data={data} />
+                </TierGate>
+              </div>
 
-          <div id="factor-ic" className="mt-10">
-            <FactorIcPanel />
-          </div>
+              <div id="regime-efficacy">
+                <TierGate requiredTier="pro" title="Regime Signal Efficacy" description="Win rates of Vol Spike and Drop3 signals across Bull/Bear/Sideways regimes. Chi-square significance test. Signal effectiveness is regime-dependent. 信號在不同市場狀態下的勝率對比，Chi-square 顯著性檢定。">
+                  <RegimeEfficacyPanel data={reData} />
+                </TierGate>
+              </div>
 
-          <div id="correlation" className="mt-10">
-            <TierGate requiredTier="pro" title="Rolling Correlation" description="60-day rolling correlation between BTC, ETH, SOL. Validates diversification assumptions and detects regime-dependent co-movement. 60日滾動相關係數，驗證分散化效果。">
-              <RollingCorrelationChart data={rcData} />
-            </TierGate>
-          </div>
+              <div id="correlation">
+                <TierGate requiredTier="pro" title="Rolling Correlation" description="60-day rolling correlation between ETH/BTC and SOL/BTC. Validates diversification assumptions and detects regime-dependent co-movement. 60日滾動相關係數，驗證分散化效果。">
+                  <RollingCorrelationChart data={rcData} />
+                </TierGate>
+              </div>
 
-          <div id="volume-momentum" className="mt-10">
-            <TierGate requiredTier="pro" title="Volume & Momentum (F7+F8)" description="F7 volume surge × F8 price momentum. Validates whether high-score setups coincide with real volume confirmation. 成交量 × 動量信號，驗證買賣訊號是否有量佐證。">
-              <VolumeMomentumPanel />
-            </TierGate>
-          </div>
+              <div id="volume-momentum">
+                <TierGate requiredTier="pro" title="Volume & Momentum (F7+F8)" description="F7 volume surge × F8 price momentum score history. Validates whether high Multi-Factor scores coincide with real volume confirmation. 成交量 × 動量，驗證高分設置是否有量佐證。">
+                  <VolumeMomentumPanel />
+                </TierGate>
+              </div>
+
+              <div id="walk-forward">
+                <TierGate requiredTier="research" title="Walk-Forward Validation" description="Rolling train/test folds across market cycles. Tests whether each threshold's edge is consistent or only appeared in a specific era. 滾動驗證折疊，跨市場週期穩定性分析。">
+                  <WalkForwardPanel data={wfData} />
+                </TierGate>
+              </div>
+
+              <div id="acf">
+                <TierGate requiredTier="research" title="ACF / PACF Autocorrelation" description="Autocorrelation and partial autocorrelation up to 30 lags, with Ljung-Box test. Tests whether BTC/ETH/SOL returns contain exploitable serial dependence. 自相關與 Ljung-Box 檢定，驗證 random walk 假設。">
+                  <AcfPanel acfData={acfData} lbData={lbData} />
+                </TierGate>
+              </div>
+
+              <div id="factor-ic">
+                <TierGate requiredTier="research" title="Factor IC Analysis" description="Spearman IC and IC IR for each of the 15 factors across BTC/ETH/SOL. Validates which factors have stable predictive power. 因子 IC 分析，驗證各因子預測力穩定性。">
+                  <FactorIcPanel />
+                </TierGate>
+              </div>
+
+            </div>{/* end panels */}
+          </div>{/* end TOC + panels flex */}
         </div>
       </div>
     </main>

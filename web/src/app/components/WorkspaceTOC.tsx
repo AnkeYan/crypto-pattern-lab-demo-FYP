@@ -1,33 +1,30 @@
 "use client";
 
-// ResearchTOC — FYP 副本版（無 Tier 顏色點和 legend）
-// Desktop: sticky sidebar with section links + active highlighting
-// Mobile: horizontal scrollable pill bar
+// WorkspaceTOC — 通用 sidebar/pill TOC，供 Validation/Signals/Factors 使用
+// 用 tier 顏色點區分 Free/Pro/Research
 
 import { useEffect, useState } from "react";
 
-type Section = {
+export type TocSection = {
   id: string;
   label: string;
   labelZh: string;
   tier: "free" | "pro" | "research";
 };
 
-const SECTIONS: Section[] = [
-  { id: "summary",          label: "AI Summary",        labelZh: "AI 摘要",    tier: "free"     },
-  { id: "results",          label: "Pattern Results",   labelZh: "模式統計表", tier: "free"     },
-  { id: "fear-greed",       label: "Fear & Greed",      labelZh: "恐懼貪婪",   tier: "free"     },
-  { id: "rsi",              label: "RSI Analysis",      labelZh: "RSI 超賣",   tier: "pro"      },
-  { id: "bollinger",        label: "Bollinger Band",    labelZh: "布林帶",     tier: "pro"      },
-  { id: "seasonality",      label: "Month Seasonality", labelZh: "月份季節性", tier: "pro"      },
-  { id: "consecutive-drop", label: "Consecutive Drop",  labelZh: "連跌分析",   tier: "pro"      },
-  { id: "halving",          label: "Halving Cycle",     labelZh: "減半週期",   tier: "pro"      },
-];
-
 const TIER_DOT: Record<string, string> = {
   free:     "bg-green-400",
   pro:      "bg-cyan-400",
   research: "bg-purple-400",
+};
+
+type Props = {
+  sections: TocSection[];
+  /** Show only on mobile (below xl) */
+  mobileOnly?: boolean;
+  /** Show only on desktop (xl+) */
+  desktopOnly?: boolean;
+  accentColor?: string; // tailwind text color class for "Sections" heading, e.g. "text-cyan-500"
 };
 
 function scrollTo(id: string) {
@@ -38,12 +35,12 @@ function scrollTo(id: string) {
   window.scrollTo({ top, behavior: "smooth" });
 }
 
-type Props = {
-  mobileOnly?: boolean;
-  desktopOnly?: boolean;
-};
-
-export default function ResearchTOC({ mobileOnly, desktopOnly }: Props) {
+export default function WorkspaceTOC({
+  sections,
+  mobileOnly,
+  desktopOnly,
+  accentColor = "text-gray-500",
+}: Props) {
   const [activeId, setActiveId] = useState<string>("");
 
   useEffect(() => {
@@ -52,28 +49,21 @@ export default function ResearchTOC({ mobileOnly, desktopOnly }: Props) {
         const visible = entries
           .filter((e) => e.isIntersecting)
           .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible.length > 0) {
-          setActiveId(visible[0].target.id);
-        }
+        if (visible.length > 0) setActiveId(visible[0].target.id);
       },
-      {
-        rootMargin: "-80px 0px -60% 0px",
-        threshold: 0,
-      }
+      { rootMargin: "-80px 0px -60% 0px", threshold: 0 }
     );
-
-    SECTIONS.forEach(({ id }) => {
+    sections.forEach(({ id }) => {
       const el = document.getElementById(id);
       if (el) observer.observe(el);
     });
-
     return () => observer.disconnect();
-  }, []);
+  }, [sections]);
 
   if (mobileOnly) return (
     <div className="xl:hidden -mx-4 px-4 mb-6 overflow-x-auto">
       <div className="flex gap-1.5 w-max pb-1">
-        {SECTIONS.map(({ id, label, tier }) => {
+        {sections.map(({ id, label, tier }) => {
           const isActive = activeId === id;
           return (
             <button
@@ -94,20 +84,20 @@ export default function ResearchTOC({ mobileOnly, desktopOnly }: Props) {
     </div>
   );
 
-  return (
+  if (desktopOnly) return (
     <div className="hidden xl:block w-44 flex-shrink-0 sticky top-28 self-start max-h-[calc(100vh-8rem)] overflow-y-auto">
-      <p className="text-xs font-semibold tracking-widest text-gray-500 uppercase mb-3 px-1">
+      <p className={`text-xs font-semibold tracking-widest uppercase mb-3 px-1 ${accentColor}`}>
         Sections
       </p>
 
       <nav className="space-y-0.5">
-        {SECTIONS.map(({ id, label, labelZh, tier }) => {
+        {sections.map(({ id, label, labelZh, tier }) => {
           const isActive = activeId === id;
           return (
             <button
               key={id}
               onClick={() => scrollTo(id)}
-              className={`w-full text-left flex items-start gap-2 px-2 py-1.5 rounded-md text-xs transition-colors group ${
+              className={`w-full text-left flex items-start gap-2 px-2 py-1.5 rounded-md text-xs transition-colors ${
                 isActive
                   ? "bg-white/[0.06] text-white"
                   : "text-gray-500 hover:text-gray-200 hover:bg-white/[0.03]"
@@ -133,5 +123,13 @@ export default function ResearchTOC({ mobileOnly, desktopOnly }: Props) {
         ))}
       </div>
     </div>
+  );
+
+  // Default: render both (desktop sidebar + mobile pills together)
+  return (
+    <>
+      <WorkspaceTOC sections={sections} mobileOnly accentColor={accentColor} />
+      <WorkspaceTOC sections={sections} desktopOnly accentColor={accentColor} />
+    </>
   );
 }
