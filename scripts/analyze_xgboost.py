@@ -52,8 +52,9 @@ FEATURES = [
     "f5_cont", "f6_cont", "f7_cont", "f8_cont",
     "f9_cont", "f11_cont", "f12_cont", "f13_cont",
     "f14_cont",
+    "f15_cont",
     # Lag Features：7天前
-    "f8_lag7", "f12_lag7", "f13_lag7", "f14_lag7",
+    "f8_lag7", "f12_lag7", "f13_lag7", "f14_lag7", "f15_lag7",
     # Lag Features：14天前
     "f8_lag14", "f13_lag14",
 ]
@@ -70,10 +71,12 @@ FEATURE_NAMES = {
     "f12_cont":  "Turbulence Calm",
     "f13_cont":  "MVRV Valuation",
     "f14_cont":  "FR Trend (7d diff)",
+    "f15_cont":  "BTC Dominance Change",
     "f8_lag7":   "Momentum 7d ago",
     "f12_lag7":  "Turbulence Calm 7d ago",
     "f13_lag7":  "MVRV 7d ago",
     "f14_lag7":  "FR Trend 7d ago",
+    "f15_lag7":  "BTC Dom Change 7d ago",
     "f8_lag14":  "Momentum 14d ago",
     "f13_lag14": "MVRV 14d ago",
 }
@@ -270,13 +273,14 @@ def main():
         s["f12_lag7"]  = s["f12_cont"].shift(7)
         s["f13_lag7"]  = s["f13_cont"].shift(7)
         s["f14_lag7"]  = s["f14_cont"].shift(7)
+        s["f15_lag7"]  = s["f15_cont"].shift(7)
         s["f8_lag14"]  = s["f8_cont"].shift(14)
         s["f13_lag14"] = s["f13_cont"].shift(14)
         lag_frames.append(s)
     calib_df = pd.concat(lag_frames, ignore_index=True)
 
     # 填補 lag 的 NaN（最前面幾行沒有足夠歷史）→ 用中性值 0.5
-    for col in ["f8_lag7", "f12_lag7", "f13_lag7", "f14_lag7", "f8_lag14", "f13_lag14"]:
+    for col in ["f8_lag7", "f12_lag7", "f13_lag7", "f14_lag7", "f15_lag7", "f8_lag14", "f13_lag14"]:
         calib_df[col] = calib_df[col].fillna(0.5)
 
     print(f"Lag features computed. Sample: f8_lag7 non-null={calib_df['f8_lag7'].notna().sum()}")

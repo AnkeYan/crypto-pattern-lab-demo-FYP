@@ -52,19 +52,20 @@ SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 
 WEIGHTS = {
     "rsi_intensity":          0.15,
-    "bollinger_deviation":    0.11,
-    "garch_vol_regime":       0.08,
+    "bollinger_deviation":    0.07,  # 降 0.11→0.07
+    "garch_vol_regime":       0.06,  # 降 0.08→0.06
     "fear_greed_zone":        0.09,
     "month_seasonality":      0.09,
     "regime_favorability":    0.09,
     "volume_surge":           0.06,
     "price_momentum":         0.06,
-    "funding_rate":           0.05,  # F9（逐日歷史，降 0.07→0.05）
-    "ls_ratio":               0.05,  # F10（固定 0，歷史太短）
+    "funding_rate":           0.05,  # F9（逐日歷史）
+    "ls_ratio":               0.04,  # 降 0.05→0.04
     "active_addresses":       0.06,  # F11（BTC only，ETH/SOL 固定 0.5）
     "turbulence_calm":        0.07,  # F12（逐日歷史，低 turbulence = 高分）
     "mvrv":                   0.07,  # F13（BTC/ETH 逐日，SOL 用 BTC 代理）
     "funding_rate_trend":     0.02,  # F14（資金費率 7d 差值）
+    "btc_dominance_change":   0.02,  # F15（BTC 佔有率 7d 變化率）
 }
 
 FACTOR_LIST = [
@@ -72,6 +73,7 @@ FACTOR_LIST = [
     "fear_greed_zone", "month_seasonality", "regime_favorability",
     "volume_surge", "price_momentum", "funding_rate", "ls_ratio",
     "active_addresses", "turbulence_calm", "mvrv", "funding_rate_trend",
+    "btc_dominance_change",
 ]
 
 
@@ -273,6 +275,14 @@ def calibrate_symbol(symbol: str) -> list[dict]:
     except Exception:
         fr_trend_sym = pd.Series(dtype=float)
 
+    # ── Load F15: BTC Dominance History（逐日）─────────────────────────────
+    try:
+        dom_hist = pd.read_csv(DATA_DIR / "btc_dominance_history.csv", parse_dates=["date"])
+        dom_hist["date"] = pd.to_datetime(dom_hist["date"])
+        dom_series = dom_hist.set_index("date")["btc_dominance"].sort_index()
+    except Exception:
+        dom_series = pd.Series(dtype=float)
+
     # ── Load F12: Turbulence History（逐日）────────────────────────────────
     try:
         turb_df = pd.read_csv(DATA_DIR / "turbulence_history.csv")
@@ -395,6 +405,25 @@ def calibrate_symbol(symbol: str) -> list[dict]:
             f14_norm = 0.0
             f14_cont = 0.5
 
+        # ── F15: BTC Dominance Change ─────────────────────────────────────
+        if len(dom_series) > 0:
+            past_dom = dom_series[dom_series.index <= date_i]
+            if len(past_dom) >= 8:
+                dom_now    = float(past_dom.iloc[-1])
+                dom_7d_ago = float(past_dom.iloc[-8])
+                dom_change = dom_now - dom_7d_ago  # 百分點差值
+                if symbol == "BTCUSDT":
+                    f15_cont = float(max(0.0, min(1.0, 0.5 + dom_change * (0.25 / 3.0))))
+                else:
+                    f15_cont = float(max(0.0, min(1.0, 0.5 - dom_change * (0.25 / 3.0))))
+                f15_norm = f15_cont if abs(f15_cont - 0.5) > 0.05 else 0.0
+            else:
+                f15_norm = 0.0
+                f15_cont = 0.5
+        else:
+            f15_norm = 0.0
+            f15_cont = 0.5
+
         # ── F10: 固定 0（歷史太短）───────────────────────────────────────
         f10_norm = 0.0
 
@@ -446,7 +475,7 @@ def calibrate_symbol(symbol: str) -> list[dict]:
 
         # ── Weighted Score（用觸發式版，維持原有邏輯）────────────────────
 
-        norms = [f1_norm, f2_norm, f3_norm, f4_norm, f5_norm, f6_norm, f7_norm, f8_norm, f9_norm, f10_norm, f11_norm, f12_norm, f13_norm, f14_norm]
+        norms = [f1_norm, f2_norm, f3_norm, f4_norm, f5_norm, f6_norm, f7_norm, f8_norm, f9_norm, f10_norm, f11_norm, f12_norm, f13_norm, f14_norm, f15_norm]
         total = sum(n * WEIGHTS[f] for n, f in zip(norms, FACTOR_LIST))
         score = round(total * 100, 1)
 
@@ -470,6 +499,7 @@ def calibrate_symbol(symbol: str) -> list[dict]:
             "f12_norm":     round(f12_norm, 4),
             "f13_norm":     round(f13_norm, 4),
             "f14_norm":     round(f14_norm, 4),
+            "f15_norm":     round(f15_norm, 4),
             # 連續版（XGBoost 用，信息更豐富）
             "f1_cont":      round(f1_cont, 4),
             "f2_cont":      round(f2_cont, 4),
@@ -482,6 +512,7 @@ def calibrate_symbol(symbol: str) -> list[dict]:
             "f12_cont":     round(f12_cont, 4),
             "f13_cont":     round(f13_cont, 4),
             "f14_cont":     round(f14_cont, 4),
+            "f15_cont":     round(f15_cont, 4),
             "outcome_7d":   round(float(outcome_7d), 6),
             "win":          win,
         })

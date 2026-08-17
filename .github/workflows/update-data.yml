@@ -30,6 +30,7 @@ jobs:
           python3 scripts/analyze_futures_sentiment.py
           python3 scripts/analyze_active_addresses.py
           python3 scripts/analyze_mvrv.py
+          python3 scripts/analyze_btc_dominance.py
           python3 scripts/analyze_hmm_regime.py
           python3 scripts/analyze_turbulence.py
           python3 scripts/analyze_portfolio_optimization.py

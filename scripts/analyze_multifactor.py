@@ -20,6 +20,7 @@ Multi-Factor Setup Score — 跨模型加權整合
   F12 Turbulence index            — 市場異常指數（低 turbulence = 高分）
   F13 MVRV valuation              — 市值 vs 實現價值（CoinMetrics，BTC/ETH；SOL 用 BTC 代理）
   F14 Funding rate trend          — 資金費率 7d 差值（費率急降 = 去槓桿底部訊號）
+  F15 BTC dominance change        — BTC 佔有率 7d 變化率（分幣種：BTC 反向 ETH/SOL）
 
 設計原則：
   - F1/F2 在 neutral zone (RSI≈50, BB≈0) 給予 0.35–0.40 基礎分（非超賣市場仍有基礎質量）
@@ -46,19 +47,20 @@ SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT"]
 # F14 Funding Rate Trend 加入，F9 降 0.07→0.05，總和維持 1.0
 WEIGHTS = {
     "rsi_intensity":          0.15,  # F1
-    "bollinger_deviation":    0.11,  # F2
-    "garch_vol_regime":       0.08,  # F3
+    "bollinger_deviation":    0.07,  # F2（降 0.11→0.07 為 F15 讓位）
+    "garch_vol_regime":       0.06,  # F3（降 0.08→0.06 為 F15 讓位）
     "fear_greed_zone":        0.09,  # F4
     "month_seasonality":      0.09,  # F5
     "regime_favorability":    0.09,  # F6
     "volume_surge":           0.06,  # F7
     "price_momentum":         0.06,  # F8
-    "funding_rate":           0.05,  # F9：期貨資金費率（降 0.07→0.05）
-    "ls_ratio":               0.05,  # F10：大戶多空比
+    "funding_rate":           0.05,  # F9：期貨資金費率
+    "ls_ratio":               0.04,  # F10：大戶多空比（降 0.05→0.04 為 F15 讓位）
     "active_addresses":       0.06,  # F11：BTC 鏈上活躍地址
     "turbulence_calm":        0.07,  # F12：市場異常指數（低 turbulence = 高分）
     "mvrv":                   0.07,  # F13：市值 vs 實現價值（CoinMetrics）
     "funding_rate_trend":     0.02,  # F14：資金費率 7d 差值
+    "btc_dominance_change":   0.02,  # F15：BTC 佔有率 7d 變化率
 }
 
 
@@ -329,6 +331,24 @@ def analyze_symbol(symbol: str) -> list[dict]:
     except Exception as e:
         f14_raw, f14_norm, f14_desc = 0.0, 0.5, f"Funding rate trend unavailable ({e})"
 
+
+    # ── F15: BTC Dominance Change ─────────────────────────────────────────────
+    # BTC Dom 7d 差值：分幣種給分（BTC 與 ETH/SOL 方向相反）
+    try:
+        dom_df = pd.read_csv(DATA_DIR / "btc_dominance_results.csv")
+        dom_row = dom_df[dom_df["symbol"] == symbol]
+        if len(dom_row) > 0:
+            dom_row = dom_row.iloc[0]
+            f15_norm = float(dom_row["f15_cont"]) if pd.notna(dom_row["f15_cont"]) else 0.5
+            dom_change = float(dom_row["dom_change_7d"]) if pd.notna(dom_row["dom_change_7d"]) else 0.0
+            btc_dom = float(dom_row["btc_dominance"]) if pd.notna(dom_row["btc_dominance"]) else 0.0
+            f15_raw  = dom_change
+            f15_desc = f"BTC dom={btc_dom:.2f}%, 7d change={dom_change:+.2f}pp, f15={f15_norm:.3f}"
+        else:
+            f15_raw, f15_norm, f15_desc = 0.0, 0.5, "BTC dominance data unavailable"
+    except Exception as e:
+        f15_raw, f15_norm, f15_desc = 0.0, 0.5, f"BTC dominance unavailable ({e})"
+
     # ── Assemble factor rows ──────────────────────────────────────────────────
     factors = [
         ("rsi_intensity",       f1_raw,  f1_norm,  f1_desc),
@@ -345,6 +365,7 @@ def analyze_symbol(symbol: str) -> list[dict]:
         ("turbulence_calm",     f12_raw, f12_norm, f12_desc),
         ("mvrv",                f13_raw, f13_norm, f13_desc),
         ("funding_rate_trend",  f14_raw, f14_norm, f14_desc),
+        ("btc_dominance_change", f15_raw, f15_norm, f15_desc),
     ]
 
     total_weighted = 0.0
