@@ -105,7 +105,7 @@ export default async function ValidationPage() {
   const rcData: { date: string; eth_btc_corr: number | null; sol_btc_corr: number | null; eth_btc_ratio: number | null }[] = await rcRes.json();
 
   return (
-    <main className="min-h-screen bg-gray-950 text-white overflow-x-hidden">
+    <main className="min-h-screen bg-gray-950 text-white">
       <Suspense>
         <WorkspaceHeader activeView="validation" maxWidthClass="max-w-6xl" />
       </Suspense>
