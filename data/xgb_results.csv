@@ -1,67 +1,71 @@
 symbol,test_year,n_train,n_test,auc,rmse,dir_acc,train_start,train_end,cv_method,row_type,feature,feature_name,importance,rank
-BTCUSDT,2019.0,419.0,365.0,0.5304,0.1322,0.5534,2017-11-01,2018-12-24,purged_expanding (embargo=7d),fold,,,,
-BTCUSDT,2020.0,784.0,366.0,0.5552,0.1146,0.5055,2017-11-01,2019-12-24,purged_expanding (embargo=7d),fold,,,,
-BTCUSDT,2021.0,1150.0,365.0,0.5292,0.1273,0.526,2017-11-01,2020-12-24,purged_expanding (embargo=7d),fold,,,,
-BTCUSDT,2022.0,1515.0,365.0,0.4905,0.0979,0.4384,2017-11-01,2021-12-24,purged_expanding (embargo=7d),fold,,,,
-BTCUSDT,2023.0,1880.0,365.0,0.4911,0.0793,0.4685,2017-11-01,2022-12-24,purged_expanding (embargo=7d),fold,,,,
-BTCUSDT,2024.0,2245.0,366.0,0.5518,0.0731,0.6257,2017-11-01,2023-12-24,purged_expanding (embargo=7d),fold,,,,
-BTCUSDT,2025.0,2611.0,365.0,0.5159,0.0606,0.5123,2017-11-01,2024-12-24,purged_expanding (embargo=7d),fold,,,,
-BTCUSDT,2026.0,2976.0,219.0,0.5754,0.067,0.5388,2017-11-01,2025-12-24,purged_expanding (embargo=7d),fold,,,,
-ETHUSDT,2019.0,391.0,365.0,0.4152,0.1458,0.4959,2017-11-29,2018-12-24,purged_expanding (embargo=7d),fold,,,,
-ETHUSDT,2020.0,756.0,366.0,0.4947,0.206,0.4153,2017-11-29,2019-12-24,purged_expanding (embargo=7d),fold,,,,
-ETHUSDT,2021.0,1122.0,365.0,0.4725,0.1846,0.4603,2017-11-29,2020-12-24,purged_expanding (embargo=7d),fold,,,,
-ETHUSDT,2022.0,1487.0,365.0,0.5418,0.1285,0.4877,2017-11-29,2021-12-24,purged_expanding (embargo=7d),fold,,,,
-ETHUSDT,2023.0,1852.0,365.0,0.5327,0.0743,0.5068,2017-11-29,2022-12-24,purged_expanding (embargo=7d),fold,,,,
-ETHUSDT,2024.0,2217.0,366.0,0.5869,0.0973,0.5519,2017-11-29,2023-12-24,purged_expanding (embargo=7d),fold,,,,
-ETHUSDT,2025.0,2583.0,365.0,0.5956,0.1043,0.5507,2017-11-29,2024-12-24,purged_expanding (embargo=7d),fold,,,,
-ETHUSDT,2026.0,2948.0,219.0,0.6175,0.0892,0.4886,2017-11-29,2025-12-24,purged_expanding (embargo=7d),fold,,,,
-SOLUSDT,2022.0,452.0,365.0,0.5094,0.2015,0.4329,2020-09-29,2021-12-24,purged_expanding (embargo=7d),fold,,,,
-SOLUSDT,2023.0,817.0,365.0,0.5163,0.2008,0.5014,2020-09-29,2022-12-24,purged_expanding (embargo=7d),fold,,,,
-SOLUSDT,2024.0,1182.0,366.0,0.5006,0.1262,0.5219,2020-09-29,2023-12-24,purged_expanding (embargo=7d),fold,,,,
-SOLUSDT,2025.0,1548.0,365.0,0.5626,0.1134,0.5644,2020-09-29,2024-12-24,purged_expanding (embargo=7d),fold,,,,
-SOLUSDT,2026.0,1913.0,219.0,0.4211,0.1007,0.4247,2020-09-29,2025-12-24,purged_expanding (embargo=7d),fold,,,,
-BTCUSDT,,,,,,,,,,importance,f5_cont,Month Seasonality,0.0789,1.0
-BTCUSDT,,,,,,,,,,importance,f1_cont,RSI (continuous),0.0729,2.0
-BTCUSDT,,,,,,,,,,importance,f8_lag7,Momentum 7d ago,0.0718,3.0
-BTCUSDT,,,,,,,,,,importance,f13_cont,MVRV Valuation,0.0718,4.0
-BTCUSDT,,,,,,,,,,importance,f13_lag14,MVRV 14d ago,0.0687,5.0
-BTCUSDT,,,,,,,,,,importance,f13_lag7,MVRV 7d ago,0.0684,6.0
-BTCUSDT,,,,,,,,,,importance,f6_cont,HMM Regime (Bull prob),0.0668,7.0
-BTCUSDT,,,,,,,,,,importance,f2_cont,Bollinger Position,0.0662,8.0
-BTCUSDT,,,,,,,,,,importance,f8_cont,Price Momentum,0.0657,9.0
-BTCUSDT,,,,,,,,,,importance,f11_cont,Active Addresses,0.0655,10.0
-BTCUSDT,,,,,,,,,,importance,f9_cont,Funding Rate,0.0643,11.0
-BTCUSDT,,,,,,,,,,importance,f8_lag14,Momentum 14d ago,0.0626,12.0
-BTCUSDT,,,,,,,,,,importance,f12_cont,Turbulence Calm,0.0617,13.0
-BTCUSDT,,,,,,,,,,importance,f7_cont,Volume Direction,0.0576,14.0
-BTCUSDT,,,,,,,,,,importance,f12_lag7,Turbulence Calm 7d ago,0.0572,15.0
-ETHUSDT,,,,,,,,,,importance,f5_cont,Month Seasonality,0.0999,1.0
-ETHUSDT,,,,,,,,,,importance,f9_cont,Funding Rate,0.0896,2.0
-ETHUSDT,,,,,,,,,,importance,f13_lag7,MVRV 7d ago,0.082,3.0
-ETHUSDT,,,,,,,,,,importance,f8_lag14,Momentum 14d ago,0.0803,4.0
-ETHUSDT,,,,,,,,,,importance,f8_lag7,Momentum 7d ago,0.0773,5.0
-ETHUSDT,,,,,,,,,,importance,f1_cont,RSI (continuous),0.0752,6.0
-ETHUSDT,,,,,,,,,,importance,f13_lag14,MVRV 14d ago,0.0736,7.0
-ETHUSDT,,,,,,,,,,importance,f13_cont,MVRV Valuation,0.0697,8.0
-ETHUSDT,,,,,,,,,,importance,f8_cont,Price Momentum,0.0644,9.0
-ETHUSDT,,,,,,,,,,importance,f6_cont,HMM Regime (Bull prob),0.0612,10.0
-ETHUSDT,,,,,,,,,,importance,f2_cont,Bollinger Position,0.0584,11.0
-ETHUSDT,,,,,,,,,,importance,f12_cont,Turbulence Calm,0.0571,12.0
-ETHUSDT,,,,,,,,,,importance,f7_cont,Volume Direction,0.057,13.0
-ETHUSDT,,,,,,,,,,importance,f12_lag7,Turbulence Calm 7d ago,0.0543,14.0
-ETHUSDT,,,,,,,,,,importance,f11_cont,Active Addresses,0.0,15.0
-SOLUSDT,,,,,,,,,,importance,f13_lag7,MVRV 7d ago,0.0913,1.0
-SOLUSDT,,,,,,,,,,importance,f13_cont,MVRV Valuation,0.0884,2.0
-SOLUSDT,,,,,,,,,,importance,f13_lag14,MVRV 14d ago,0.0859,3.0
-SOLUSDT,,,,,,,,,,importance,f2_cont,Bollinger Position,0.0813,4.0
-SOLUSDT,,,,,,,,,,importance,f8_cont,Price Momentum,0.0804,5.0
-SOLUSDT,,,,,,,,,,importance,f9_cont,Funding Rate,0.0736,6.0
-SOLUSDT,,,,,,,,,,importance,f8_lag7,Momentum 7d ago,0.0729,7.0
-SOLUSDT,,,,,,,,,,importance,f1_cont,RSI (continuous),0.0722,8.0
-SOLUSDT,,,,,,,,,,importance,f5_cont,Month Seasonality,0.0655,9.0
-SOLUSDT,,,,,,,,,,importance,f8_lag14,Momentum 14d ago,0.0628,10.0
-SOLUSDT,,,,,,,,,,importance,f12_cont,Turbulence Calm,0.0603,11.0
-SOLUSDT,,,,,,,,,,importance,f12_lag7,Turbulence Calm 7d ago,0.0599,12.0
-SOLUSDT,,,,,,,,,,importance,f7_cont,Volume Direction,0.0576,13.0
-SOLUSDT,,,,,,,,,,importance,f6_cont,HMM Regime (Bull prob),0.0479,14.0
-SOLUSDT,,,,,,,,,,importance,f11_cont,Active Addresses,0.0,15.0
+BTCUSDT,2019.0,419.0,365.0,0.5374,0.1347,0.5425,2017-11-01,2018-12-24,purged_expanding (embargo=7d),fold,,,,
+BTCUSDT,2020.0,784.0,366.0,0.5582,0.1123,0.5273,2017-11-01,2019-12-24,purged_expanding (embargo=7d),fold,,,,
+BTCUSDT,2021.0,1150.0,365.0,0.5456,0.1306,0.5178,2017-11-01,2020-12-24,purged_expanding (embargo=7d),fold,,,,
+BTCUSDT,2022.0,1515.0,365.0,0.4986,0.0965,0.4329,2017-11-01,2021-12-24,purged_expanding (embargo=7d),fold,,,,
+BTCUSDT,2023.0,1880.0,365.0,0.4785,0.0772,0.4849,2017-11-01,2022-12-24,purged_expanding (embargo=7d),fold,,,,
+BTCUSDT,2024.0,2245.0,366.0,0.5513,0.0745,0.6175,2017-11-01,2023-12-24,purged_expanding (embargo=7d),fold,,,,
+BTCUSDT,2025.0,2611.0,365.0,0.5015,0.0594,0.5096,2017-11-01,2024-12-24,purged_expanding (embargo=7d),fold,,,,
+BTCUSDT,2026.0,2976.0,220.0,0.592,0.0685,0.5364,2017-11-01,2025-12-24,purged_expanding (embargo=7d),fold,,,,
+ETHUSDT,2019.0,391.0,365.0,0.4136,0.1484,0.4959,2017-11-29,2018-12-24,purged_expanding (embargo=7d),fold,,,,
+ETHUSDT,2020.0,756.0,366.0,0.492,0.2048,0.4126,2017-11-29,2019-12-24,purged_expanding (embargo=7d),fold,,,,
+ETHUSDT,2021.0,1122.0,365.0,0.4753,0.189,0.5014,2017-11-29,2020-12-24,purged_expanding (embargo=7d),fold,,,,
+ETHUSDT,2022.0,1487.0,365.0,0.5457,0.1345,0.4658,2017-11-29,2021-12-24,purged_expanding (embargo=7d),fold,,,,
+ETHUSDT,2023.0,1852.0,365.0,0.5175,0.073,0.5151,2017-11-29,2022-12-24,purged_expanding (embargo=7d),fold,,,,
+ETHUSDT,2024.0,2217.0,366.0,0.6062,0.0967,0.5601,2017-11-29,2023-12-24,purged_expanding (embargo=7d),fold,,,,
+ETHUSDT,2025.0,2583.0,365.0,0.5452,0.1052,0.4767,2017-11-29,2024-12-24,purged_expanding (embargo=7d),fold,,,,
+ETHUSDT,2026.0,2948.0,220.0,0.6107,0.086,0.4636,2017-11-29,2025-12-24,purged_expanding (embargo=7d),fold,,,,
+SOLUSDT,2022.0,452.0,365.0,0.5104,0.2129,0.389,2020-09-29,2021-12-24,purged_expanding (embargo=7d),fold,,,,
+SOLUSDT,2023.0,817.0,365.0,0.5363,0.1984,0.4849,2020-09-29,2022-12-24,purged_expanding (embargo=7d),fold,,,,
+SOLUSDT,2024.0,1182.0,366.0,0.4881,0.13,0.5137,2020-09-29,2023-12-24,purged_expanding (embargo=7d),fold,,,,
+SOLUSDT,2025.0,1548.0,365.0,0.564,0.1132,0.5644,2020-09-29,2024-12-24,purged_expanding (embargo=7d),fold,,,,
+SOLUSDT,2026.0,1913.0,220.0,0.4114,0.1003,0.4409,2020-09-29,2025-12-24,purged_expanding (embargo=7d),fold,,,,
+BTCUSDT,,,,,,,,,,importance,f13_cont,MVRV Valuation,0.0703,1.0
+BTCUSDT,,,,,,,,,,importance,f1_cont,RSI (continuous),0.0668,2.0
+BTCUSDT,,,,,,,,,,importance,f5_cont,Month Seasonality,0.0655,3.0
+BTCUSDT,,,,,,,,,,importance,f13_lag14,MVRV 14d ago,0.0644,4.0
+BTCUSDT,,,,,,,,,,importance,f13_lag7,MVRV 7d ago,0.0631,5.0
+BTCUSDT,,,,,,,,,,importance,f8_lag7,Momentum 7d ago,0.0618,6.0
+BTCUSDT,,,,,,,,,,importance,f8_lag14,Momentum 14d ago,0.0617,7.0
+BTCUSDT,,,,,,,,,,importance,f9_cont,Funding Rate,0.0607,8.0
+BTCUSDT,,,,,,,,,,importance,f14_lag7,FR Trend 7d ago,0.0601,9.0
+BTCUSDT,,,,,,,,,,importance,f12_cont,Turbulence Calm,0.059,10.0
+BTCUSDT,,,,,,,,,,importance,f8_cont,Price Momentum,0.057,11.0
+BTCUSDT,,,,,,,,,,importance,f11_cont,Active Addresses,0.0568,12.0
+BTCUSDT,,,,,,,,,,importance,f2_cont,Bollinger Position,0.0519,13.0
+BTCUSDT,,,,,,,,,,importance,f6_cont,HMM Regime (Bull prob),0.0512,14.0
+BTCUSDT,,,,,,,,,,importance,f12_lag7,Turbulence Calm 7d ago,0.0506,15.0
+BTCUSDT,,,,,,,,,,importance,f7_cont,Volume Direction,0.0496,16.0
+BTCUSDT,,,,,,,,,,importance,f14_cont,FR Trend (7d diff),0.0495,17.0
+ETHUSDT,,,,,,,,,,importance,f5_cont,Month Seasonality,0.0865,1.0
+ETHUSDT,,,,,,,,,,importance,f8_lag14,Momentum 14d ago,0.0767,2.0
+ETHUSDT,,,,,,,,,,importance,f13_lag14,MVRV 14d ago,0.069,3.0
+ETHUSDT,,,,,,,,,,importance,f13_lag7,MVRV 7d ago,0.0664,4.0
+ETHUSDT,,,,,,,,,,importance,f1_cont,RSI (continuous),0.065,5.0
+ETHUSDT,,,,,,,,,,importance,f8_lag7,Momentum 7d ago,0.0647,6.0
+ETHUSDT,,,,,,,,,,importance,f13_cont,MVRV Valuation,0.0646,7.0
+ETHUSDT,,,,,,,,,,importance,f9_cont,Funding Rate,0.0642,8.0
+ETHUSDT,,,,,,,,,,importance,f14_cont,FR Trend (7d diff),0.0636,9.0
+ETHUSDT,,,,,,,,,,importance,f14_lag7,FR Trend 7d ago,0.0594,10.0
+ETHUSDT,,,,,,,,,,importance,f6_cont,HMM Regime (Bull prob),0.0592,11.0
+ETHUSDT,,,,,,,,,,importance,f2_cont,Bollinger Position,0.0578,12.0
+ETHUSDT,,,,,,,,,,importance,f8_cont,Price Momentum,0.0551,13.0
+ETHUSDT,,,,,,,,,,importance,f12_cont,Turbulence Calm,0.0503,14.0
+ETHUSDT,,,,,,,,,,importance,f7_cont,Volume Direction,0.0497,15.0
+ETHUSDT,,,,,,,,,,importance,f12_lag7,Turbulence Calm 7d ago,0.0478,16.0
+SOLUSDT,,,,,,,,,,importance,f13_lag14,MVRV 14d ago,0.0826,1.0
+SOLUSDT,,,,,,,,,,importance,f13_cont,MVRV Valuation,0.0756,2.0
+SOLUSDT,,,,,,,,,,importance,f13_lag7,MVRV 7d ago,0.0721,3.0
+SOLUSDT,,,,,,,,,,importance,f8_cont,Price Momentum,0.0713,4.0
+SOLUSDT,,,,,,,,,,importance,f8_lag7,Momentum 7d ago,0.0651,5.0
+SOLUSDT,,,,,,,,,,importance,f5_cont,Month Seasonality,0.0644,6.0
+SOLUSDT,,,,,,,,,,importance,f1_cont,RSI (continuous),0.0643,7.0
+SOLUSDT,,,,,,,,,,importance,f2_cont,Bollinger Position,0.0642,8.0
+SOLUSDT,,,,,,,,,,importance,f14_cont,FR Trend (7d diff),0.0637,9.0
+SOLUSDT,,,,,,,,,,importance,f9_cont,Funding Rate,0.0599,10.0
+SOLUSDT,,,,,,,,,,importance,f8_lag14,Momentum 14d ago,0.058,11.0
+SOLUSDT,,,,,,,,,,importance,f7_cont,Volume Direction,0.0556,12.0
+SOLUSDT,,,,,,,,,,importance,f12_cont,Turbulence Calm,0.0537,13.0
+SOLUSDT,,,,,,,,,,importance,f12_lag7,Turbulence Calm 7d ago,0.0524,14.0
+SOLUSDT,,,,,,,,,,importance,f6_cont,HMM Regime (Bull prob),0.0485,15.0
+SOLUSDT,,,,,,,,,,importance,f14_lag7,FR Trend 7d ago,0.0484,16.0
