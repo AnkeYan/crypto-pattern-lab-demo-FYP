@@ -34,7 +34,8 @@ python3 scripts/analyze_signals.py >> /tmp/crypto-pattern-lab-update.log 2>&1
 python3 scripts/analyze_regime_signal_efficacy.py >> /tmp/crypto-pattern-lab-update.log 2>&1
 python3 scripts/analyze_regime_transition.py >> /tmp/crypto-pattern-lab-update.log 2>&1
 python3 scripts/analyze_multifactor.py >> /tmp/crypto-pattern-lab-update.log 2>&1
-python3 scripts/analyze_multifactor_calibration.py >> /tmp/crypto-pattern-lab-update.log 2>&1
+python3 scripts/analyze_multifactor_calibration.py
+python3 scripts/analyze_factor_ic.py >> /tmp/crypto-pattern-lab-update.log 2>&1
 python3 scripts/analyze_xgboost.py >> /tmp/crypto-pattern-lab-update.log 2>&1
 python3 scripts/analyze_ensemble.py >> /tmp/crypto-pattern-lab-update.log 2>&1
 

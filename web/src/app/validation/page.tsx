@@ -6,6 +6,7 @@ import WalkForwardPanel from "../components/WalkForwardPanel";
 import RegimeEfficacyPanel, { EfficacyRow } from "../components/RegimeEfficacyPanel";
 import TierGate from "../components/TierGate";
 import WorkspaceHeader from "../components/WorkspaceHeader";
+import FactorIcPanel from "../components/FactorIcPanel";
 
 type AcfRow = {
   symbol: string;
@@ -127,6 +128,10 @@ export default async function ValidationPage() {
 
           <div id="regime-efficacy" className="mt-10">
             <RegimeEfficacyPanel data={reData} />
+          </div>
+
+          <div id="factor-ic" className="mt-10">
+            <FactorIcPanel />
           </div>
         </div>
       </div>
