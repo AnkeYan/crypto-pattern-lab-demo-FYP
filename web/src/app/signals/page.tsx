@@ -222,17 +222,17 @@ export default async function SignalsPage() {
             </TierGate>
           </div>
 
-          {/* ── 3. Regime Transition — Research ── */}
-          <div id="regime-transition" className="mt-8">
-            <TierGate requiredTier="research" title="Regime Transition Probabilities" description="Markov Chain analysis of historical regime switches — transition matrix, average duration per regime, current streak, and next-regime probability. 市場狀態轉換概率矩陣（馬可夫鏈）。">
-              <RegimeTransitionPanel data={rtData} />
-            </TierGate>
-          </div>
-
-          {/* ── 4. Monte Carlo Simulation — Research ── */}
+          {/* ── 3. Monte Carlo Simulation — Pro ── */}
           <div id="monte-carlo" className="mt-8">
             <TierGate requiredTier="pro" title="Monte Carlo Price Simulation" description="10,000 price path simulations using bootstrapped returns — P10/P50/P90 probability bands for 1–30 day horizons. 蒙特卡洛價格模擬，概率扇形圖。">
               <MonteCarloPanel />
+            </TierGate>
+          </div>
+
+          {/* ── 4. Regime Transition — Research ── */}
+          <div id="regime-transition" className="mt-8">
+            <TierGate requiredTier="research" title="Regime Transition Probabilities" description="Markov Chain analysis of historical regime switches — transition matrix, average duration per regime, current streak, and next-regime probability. 市場狀態轉換概率矩陣（馬可夫鏈）。">
+              <RegimeTransitionPanel data={rtData} />
             </TierGate>
           </div>
 
