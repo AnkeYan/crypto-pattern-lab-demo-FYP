@@ -199,20 +199,68 @@ export default function RegimeEfficacyPanel({ data }: { data: EfficacyRow[] }) {
       {rows.length > 0 && (() => {
         const baselineWr = parseFloat(rows[0]?.baseline_wr ?? "0.5");
         if (sigCount > 0 && bestFinds.length > 0) {
-          const top = bestFinds[0];
+          // 找出每個顯著信號的最佳 regime 詳情
+          const sigRows = rows.filter(r => r.significant === "True");
+          const sigDetails = sigRows.map(r => {
+            const best = r.best_regime;
+            const bestWr = parseFloat(r[`${best}_wr` as keyof EfficacyRow] as string);
+            const bestEdge = parseFloat(r[`${best}_edge` as keyof EfficacyRow] as string);
+            const pval = parseFloat(r.chi2_pvalue);
+            return {
+              signalEn: SIGNAL_LABELS[r.signal]?.en ?? r.signal,
+              signalZh: SIGNAL_LABELS[r.signal]?.zh ?? r.signal,
+              regime: best,
+              wr: bestWr,
+              edgePp: bestEdge,
+              pval,
+            };
+          });
+
+          const zhLines = sigDetails.map(d =>
+            `${d.signalZh} 在${d.regime === "bull" ? "牛市" : d.regime === "bear" ? "熊市" : "橫盤"}表現最佳 — 勝率 ${(d.wr * 100).toFixed(1)}%（相對基準 ${d.edgePp >= 0 ? "+" : ""}${(d.edgePp * 100).toFixed(1)}pp，p=${d.pval.toFixed(3)}）`
+          );
+
           return (
             <div className="mb-4 rounded-lg border border-green-500/30 bg-green-500/5 px-4 py-3 text-sm">
-              <div className="font-medium text-green-400 mb-1">✓ Regime-dependent patterns found</div>
-              <div className="text-gray-300">{sigCount} signal{sigCount > 1 ? "s" : ""} show statistically significant regime differences (p &lt; 0.05). {SIGNAL_LABELS[rows.find(r => r.significant === "True")?.signal ?? ""]?.en} performs best in <span className={REGIME_COLORS[top.regime]}>{REGIME_LABELS[top.regime]}</span> regime ({(top.wr * 100).toFixed(1)}% win rate vs {(baselineWr * 100).toFixed(1)}% baseline).</div>
-              <div className="text-gray-500 mt-1">{sigCount} 個信號的勝率在不同市場狀態間存在統計顯著差異——信號有效性是 Regime 依賴的。</div>
+              <div className="font-medium text-green-400 mb-2">✓ Regime-dependent patterns found · 發現 Regime 依賴規律</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <p className="text-gray-300 mb-1.5">
+                    {sigCount} signal{sigCount > 1 ? "s" : ""} show statistically significant win rate differences across regimes (p &lt; 0.05), out of {rows.length} tested. Baseline: {(baselineWr * 100).toFixed(1)}%.
+                  </p>
+                  <ul className="space-y-0.5">
+                    {sigDetails.map((d, i) => (
+                      <li key={i} className="text-gray-400 text-xs">
+                        · {d.signalEn} best in <span className={REGIME_COLORS[d.regime]}>{REGIME_LABELS[d.regime]}</span> — {(d.wr * 100).toFixed(1)}% win rate ({d.edgePp >= 0 ? "+" : ""}{(d.edgePp * 100).toFixed(1)}pp edge, p={d.pval.toFixed(3)})
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <p className="text-gray-500 mb-1.5">
+                    {sigCount} 個信號的勝率在三種市場狀態間存在統計顯著差異，共測試 {rows.length} 個信號。無條件基準：{(baselineWr * 100).toFixed(1)}%。
+                  </p>
+                  <ul className="space-y-0.5">
+                    {zhLines.map((line, i) => (
+                      <li key={i} className="text-gray-500 text-xs">· {line}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             </div>
           );
         }
         return (
           <div className="mb-4 rounded-lg border border-gray-700 bg-white/[0.03] px-4 py-3 text-sm">
-            <div className="font-medium text-gray-400 mb-1">~ No statistically significant regime differences (p ≥ 0.05)</div>
-            <div className="text-gray-500">Signals perform similarly across Bull / Bear / Sideways regimes for {symLabel} at {hd}d holding. The differences observed may be due to sampling variation.</div>
-            <div className="text-gray-600 mt-1">在此篩選條件下，各信號在不同 Regime 的勝率差異未達統計顯著水平。</div>
+            <div className="font-medium text-gray-400 mb-2">~ No statistically significant regime differences · 未見顯著 Regime 差異</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <p className="text-gray-500">All {rows.length} signals tested show similar win rates across Bull / Bear / Sideways for {symLabel} at {hd}d holding (p ≥ 0.05). The observed differences are likely due to sampling variation rather than genuine regime effects.</p>
+              </div>
+              <div>
+                <p className="text-gray-600">共測試 {rows.length} 個信號，{symLabel} 在持有 {hd} 天的條件下，各信號在牛市、熊市、橫盤的勝率差異均未達統計顯著水平（p ≥ 0.05）。差異很可能來自抽樣波動，而非真實的 Regime 效應。</p>
+              </div>
+            </div>
           </div>
         );
       })()}
