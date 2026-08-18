@@ -96,7 +96,7 @@ export default function ActiveAddressesPanel() {
   const [data, setData] = useState<AddrRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showRecent, setShowRecent] = useState(false);
+  const [showRecent, setShowRecent] = useState(true);
   const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
@@ -160,7 +160,7 @@ export default function ActiveAddressesPanel() {
         </div>
         <div className="flex items-center gap-2 flex-shrink-0 ml-4">
           <button onClick={() => setShowRecent((v) => !v)} className="px-2 py-0.5 text-xs rounded border border-gray-700 text-gray-400 hover:text-gray-200 transition-colors">
-            {showRecent ? "All History" : "Last 1Y"}
+            {showRecent ? "Last 1Y" : "All History"}
           </button>
           <button onClick={() => setOpen(o => !o)} className="text-xs text-gray-500 hover:text-gray-300 whitespace-nowrap">
             {open ? "▾" : "▸"} How to read this?

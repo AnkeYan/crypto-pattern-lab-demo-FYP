@@ -77,27 +77,6 @@ export default async function FactorsPage() {
 
           <div className="flex-1 min-w-0 space-y-10">
 
-        {/* Section: Valuation & On-chain */}
-        <section className="space-y-6">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-amber-400/80">
-            Valuation &amp; On-chain
-          </h2>
-
-          <TierGate requiredTier="research" title="MVRV Valuation (F13)"
-            description="Market Value / Realized Value — IC IR = 1.76 (strongest factor). Identifies market overheating and deep value zones. MVRV 是 IC 最強因子，識別過熱和底部區域。">
-            <div id="mvrv">
-              <MvrvPanel />
-            </div>
-          </TierGate>
-
-          <TierGate requiredTier="pro" title="Active Addresses (F11)"
-            description="BTC on-chain unique active addresses vs 30-day MA. Measures real blockchain usage growth. BTC 鏈上活躍地址數，衡量真實使用量。">
-            <div id="active-addresses">
-              <ActiveAddressesPanel />
-            </div>
-          </TierGate>
-        </section>
-
         {/* Section: Futures & Sentiment */}
         <section className="space-y-6">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-amber-400/80">
@@ -119,10 +98,38 @@ export default async function FactorsPage() {
           </TierGate>
         </section>
 
-        {/* Section: Market Stress */}
+        {/* Section: Valuation & On-chain */}
         <section className="space-y-6">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-amber-400/80">
-            Market Stress
+            Valuation &amp; On-chain
+          </h2>
+
+          <TierGate requiredTier="pro" title="Active Addresses (F11)"
+            description="BTC on-chain unique active addresses vs 30-day MA. Measures real blockchain usage growth. BTC 鏈上活躍地址數，衡量真實使用量。">
+            <div id="active-addresses">
+              <ActiveAddressesPanel />
+            </div>
+          </TierGate>
+
+          <TierGate requiredTier="pro" title="Drawdown Recovery Analysis"
+            description="After N% drawdown from rolling high, historical recovery statistics within 90 days. 從滾動高點回撤 N% 後，90日內回到前高的歷史統計。">
+            <div id="drawdown-recovery">
+              <DrawdownRecoveryPanel data={drData} />
+            </div>
+          </TierGate>
+
+          <TierGate requiredTier="research" title="MVRV Valuation (F13)"
+            description="Market Value / Realized Value — IC IR = 1.76 (strongest factor). Identifies market overheating and deep value zones. MVRV 是 IC 最強因子，識別過熱和底部區域。">
+            <div id="mvrv">
+              <MvrvPanel />
+            </div>
+          </TierGate>
+        </section>
+
+        {/* Section: Market Stress & Volatility */}
+        <section className="space-y-6">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-amber-400/80">
+            Market Stress &amp; Volatility
           </h2>
 
           <TierGate requiredTier="research" title="Turbulence Index (F12)"
@@ -131,25 +138,11 @@ export default async function FactorsPage() {
               <TurbulencePanel />
             </div>
           </TierGate>
-        </section>
-
-        {/* Section: Volatility & Recovery */}
-        <section className="space-y-6">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-amber-400/80">
-            Volatility &amp; Recovery
-          </h2>
 
           <TierGate requiredTier="research" title="GARCH Volatility Forecast"
             description="GARCH(1,1) with Student-t distribution. Forecasts 7-day volatility and persistence. BTC/ETH show IGARCH (persistence = 1.0). GARCH 波動率預測，BTC/ETH 為 IGARCH。">
             <div id="garch">
               <GarchPanel data={garchData} />
-            </div>
-          </TierGate>
-
-          <TierGate requiredTier="pro" title="Drawdown Recovery Analysis"
-            description="After N% drawdown from rolling high, historical recovery statistics within 90 days. 從滾動高點回撤 N% 後，90日內回到前高的歷史統計。">
-            <div id="drawdown-recovery">
-              <DrawdownRecoveryPanel data={drData} />
             </div>
           </TierGate>
         </section>
