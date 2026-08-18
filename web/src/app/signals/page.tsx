@@ -3,7 +3,7 @@ import { baseUrl } from "../lib/baseUrl";
 import WorkspaceHeader from "../components/WorkspaceHeader";
 import SignalIntelligencePanel from "../components/SignalIntelligencePanel";
 import RegimeTransitionPanel, { RegimeTransitionRow } from "../components/RegimeTransitionPanel";
-import MultiFactorPanel, { MultifactorRow, EnsembleFold, EnsemblePrediction } from "../components/MultiFactorPanel";
+import MultiFactorPanel, { MultifactorRow, EnsembleFold, EnsemblePrediction, LstmFold, LstmPrediction } from "../components/MultiFactorPanel";
 import MonteCarloPanel from "../components/MonteCarloPanel";
 import PortfolioOptimizationPanel from "../components/PortfolioOptimizationPanel";
 import TierGate from "../components/TierGate";
@@ -106,13 +106,14 @@ export type CalibScatterPoint = {
 
 export default async function SignalsPage() {
   const BASE = baseUrl();
-  const [signalsRes, rtRes, mfRes, mfCalibRes, xgbRes, ensRes, garchRes, rcRes, portRes] = await Promise.all([
+  const [signalsRes, rtRes, mfRes, mfCalibRes, xgbRes, ensRes, lstmRes, garchRes, rcRes, portRes] = await Promise.all([
     fetch(`${BASE}/api/signals`,                  { cache: "no-store" }),
     fetch(`${BASE}/api/regime-transition`,        { cache: "no-store" }),
     fetch(`${BASE}/api/multifactor`,              { cache: "no-store" }),
     fetch(`${BASE}/api/multifactor-calibration`,  { cache: "no-store" }),
     fetch(`${BASE}/api/xgboost`,                  { cache: "no-store" }),
     fetch(`${BASE}/api/ensemble`,                 { cache: "no-store" }),
+    fetch(`${BASE}/api/lstm`,                     { cache: "no-store" }),
     fetch(`${BASE}/api/garch`,                    { cache: "no-store" }),
     fetch(`${BASE}/api/rolling-correlation`,      { cache: "no-store" }),
     fetch(`${BASE}/api/portfolio-optimization`,   { cache: "no-store" }),
@@ -138,6 +139,10 @@ export default async function SignalsPage() {
     folds:       EnsembleFold[];
     predictions: EnsemblePrediction[];
   } = await ensRes.json();
+  const { folds: lstmFolds, predictions: lstmPredictions }: {
+    folds:       LstmFold[];
+    predictions: LstmPrediction[];
+  } = await lstmRes.json();
   const garchData: GarchRow[]         = await garchRes.json();
   const rcData: RollingCorrRow[]      = await rcRes.json();
   type PortRow = { row_type: string; label: string; value: number | null; extra: string };
@@ -208,7 +213,7 @@ export default async function SignalsPage() {
 
           {/* ── 2. Multi-Factor Setup Score — Research ── */}
           <div id="multifactor" className="mt-8">
-            <TierGate requiredTier="pro" title="Multi-Factor Setup Score" description="Weighted synthesis of 13 factors into a single 0–100 setup quality score: RSI intensity, Bollinger deviation, MVRV valuation, Turbulence index, funding rate, active addresses, HMM regime & more. 13因子跨模型加權評分。">
+            <TierGate requiredTier="pro" title="Multi-Factor Setup Score" description="Weighted synthesis of 15 factors into a single 0–100 setup quality score: RSI, Bollinger, MVRV, Turbulence, Funding Rate, Active Addresses, HMM Regime & more. Includes XGBoost, Ensemble, and Bi-LSTM models. 15因子跨模型加權評分。">
               <MultiFactorPanel
                 data={mfData}
                 calibSummary={calibSummary}
@@ -218,6 +223,8 @@ export default async function SignalsPage() {
                 xgbPredictions={xgbPredictions}
                 ensembleFolds={ensembleFolds}
                 ensemblePredictions={ensemblePredictions}
+                lstmFolds={lstmFolds}
+                lstmPredictions={lstmPredictions}
               />
             </TierGate>
           </div>

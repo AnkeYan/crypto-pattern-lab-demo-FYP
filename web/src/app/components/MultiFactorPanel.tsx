@@ -235,6 +235,23 @@ function CalibScatter({
   );
 }
 
+export type LstmFold = {
+  symbol:      string;
+  test_year:   number | null;
+  n_train:     number | null;
+  n_test:      number | null;
+  auc:         number | null;
+  dir_acc:     number | null;
+  train_start: string | null;
+  train_end:   string | null;
+};
+
+export type LstmPrediction = {
+  symbol:        string;
+  date:          string;
+  lstm_win_prob: number | null;
+};
+
 export type EnsembleFold = {
   symbol: string; test_year: string;
   n_test: string; xgb_auc: string; lgb_auc: string;
@@ -254,6 +271,8 @@ export default function MultiFactorPanel({
   xgbPredictions  = [],
   ensembleFolds       = [],
   ensemblePredictions = [],
+  lstmFolds           = [],
+  lstmPredictions     = [],
 }: {
   data:                 MultifactorRow[];
   calibSummary?:        CalibSummaryRow[];
@@ -263,12 +282,15 @@ export default function MultiFactorPanel({
   xgbPredictions?:      XgbPrediction[];
   ensembleFolds?:       EnsembleFold[];
   ensemblePredictions?: EnsemblePrediction[];
+  lstmFolds?:           LstmFold[];
+  lstmPredictions?:     LstmPrediction[];
 }) {
   const [sym, setSym] = useState("BTC");
   const [showInfo, setShowInfo] = useState(false);
   const [showCalibInfo, setShowCalibInfo] = useState(false);
   const [showXgbInfo, setShowXgbInfo] = useState(false);
   const [showEnsInfo, setShowEnsInfo] = useState(false);
+  const [showLstmInfo, setShowLstmInfo] = useState(false);
 
   const symKey  = `${sym}USDT`;
   const symData = data.filter((r) => r.symbol === symKey);
@@ -1144,6 +1166,131 @@ export default function MultiFactorPanel({
               </table>
             </div>
             <p className="mt-2 text-xs text-gray-600">Ensemble = (XGBoost prob + LightGBM prob) / 2 · Purged walk-forward · Rolling 3y · ▲ = ensemble beats both individual models in that fold</p>
+          </div>
+        );
+      })()}
+
+      {/* ── Bi-LSTM Section ─────────────────────────────────────── */}
+      {lstmFolds.length > 0 && (() => {
+        const symFolds = lstmFolds.filter(r => r.symbol === symKey);
+        const symPred  = lstmPredictions.find(r => r.symbol === symKey);
+        if (symFolds.length === 0 && !symPred) return null;
+
+        const avgAuc    = symFolds.length > 0 ? symFolds.reduce((s, r) => s + (r.auc ?? 0), 0) / symFolds.length : null;
+        const avgDirAcc = symFolds.length > 0 ? symFolds.reduce((s, r) => s + (r.dir_acc ?? 0), 0) / symFolds.length : null;
+        const prob      = symPred?.lstm_win_prob ?? null;
+        const probPct   = prob != null ? prob * 100 : null;
+        const probColor = prob != null && prob >= 0.55 ? "text-green-400" : prob != null && prob < 0.45 ? "text-red-400" : "text-yellow-400";
+
+        let icon = "–", titleColor = "text-gray-400", enText = "", zhText = "";
+        if (prob != null && prob >= 0.55) {
+          icon = "✓"; titleColor = "text-green-400";
+          enText = `Bi-LSTM predicts ${(prob*100).toFixed(1)}% win probability for ${sym} — above the 55% edge threshold. Avg AUC = ${avgAuc != null ? avgAuc.toFixed(3) : "—"}, avg DirAcc = ${avgDirAcc != null ? (avgDirAcc*100).toFixed(1)+"%" : "—"} across ${symFolds.length} walk-forward folds. The sequence model detects a favourable pattern in the recent 30-day factor history.`;
+          zhText = `Bi-LSTM 預測 ${sym} 勝率 ${(prob*100).toFixed(1)}%，高於 55% 優勢門檻。平均 AUC = ${avgAuc != null ? avgAuc.toFixed(3) : "—"}，平均方向準確率 = ${avgDirAcc != null ? (avgDirAcc*100).toFixed(1)+"%" : "—"}（${symFolds.length} 個折）。序列模型在最近 30 天的因子走勢中識別到有利 pattern。`;
+        } else if (prob != null && prob < 0.45) {
+          icon = "↓"; titleColor = "text-red-400";
+          enText = `Bi-LSTM win probability for ${sym}: ${(prob*100).toFixed(1)}% — model leans bearish. Avg AUC = ${avgAuc != null ? avgAuc.toFixed(3) : "—"}, avg DirAcc = ${avgDirAcc != null ? (avgDirAcc*100).toFixed(1)+"%" : "—"}. The recent 30-day factor sequence does not show a favourable setup.`;
+          zhText = `Bi-LSTM 預測 ${sym} 勝率 ${(prob*100).toFixed(1)}%，模型偏空。平均 AUC = ${avgAuc != null ? avgAuc.toFixed(3) : "—"}，平均方向準確率 = ${avgDirAcc != null ? (avgDirAcc*100).toFixed(1)+"%" : "—"}。最近 30 天的因子序列未顯示有利的進場設置。`;
+        } else {
+          icon = "–"; titleColor = "text-gray-400";
+          enText = `Bi-LSTM win probability for ${sym}: ${prob != null ? (prob*100).toFixed(1)+"%" : "—"} (neutral). Avg AUC = ${avgAuc != null ? avgAuc.toFixed(3) : "—"}, avg DirAcc = ${avgDirAcc != null ? (avgDirAcc*100).toFixed(1)+"%" : "—"} across ${symFolds.length} folds. No strong directional signal from the sequence model at this time.`;
+          zhText = `Bi-LSTM 預測 ${sym} 勝率 ${prob != null ? (prob*100).toFixed(1)+"%" : "—"}（中性）。平均 AUC = ${avgAuc != null ? avgAuc.toFixed(3) : "—"}，平均方向準確率 = ${avgDirAcc != null ? (avgDirAcc*100).toFixed(1)+"%" : "—"}（${symFolds.length} 個折）。序列模型目前無明顯方向性信號。`;
+        }
+
+        return (
+          <div className="mt-6 rounded-xl border border-gray-800 bg-gray-900/60 px-4 py-4">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3 mb-2 flex-wrap">
+              <div>
+                <p className="text-sm font-semibold text-gray-200">Bi-LSTM Sequence Model · 雙向序列預測</p>
+                <p className="text-xs text-gray-500 mt-0.5">30-day factor sequence → 7-day win probability · 雙向 LSTM，捕捉序列時間依賴</p>
+              </div>
+              <button onClick={() => setShowLstmInfo(o => !o)} className="text-xs text-gray-500 hover:text-gray-300 whitespace-nowrap">
+                {showLstmInfo ? "▾" : "▸"} How to read this?
+              </button>
+            </div>
+
+            {/* Explainer */}
+            {showLstmInfo && (
+              <div className="mb-4 rounded-lg border border-gray-800 bg-white/[0.02] p-3 text-xs leading-relaxed">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="font-semibold text-gray-400 uppercase tracking-wider mb-1.5">English</p>
+                    <p className="text-gray-300 mb-2"><em>The core question: does the sequence of factor values over the past 30 days contain predictive information beyond a single day's snapshot?</em></p>
+                    <p className="text-gray-400 mb-2"><strong className="text-gray-300">Bi-LSTM</strong> reads the last 30 days of all factor values as a sequence — like reading a sentence rather than just the last word. It can learn patterns like "funding rate rising for 10 straight days" that a snapshot model like XGBoost cannot capture directly.</p>
+                    <p className="text-gray-400"><strong className="text-gray-300">Bidirectional</strong> means it scans the 30-day window both forward and backward, capturing the overall shape of the period — not just its trend.</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-400 uppercase tracking-wider mb-1.5">中文</p>
+                    <p className="text-gray-300 mb-2"><em>核心問題：過去 30 天的因子走勢序列，是否包含單日快照以外的預測信息？</em></p>
+                    <p className="text-gray-400 mb-2"><strong className="text-gray-300">Bi-LSTM</strong> 把過去 30 天的所有因子值當作一條序列讀取——像讀一句話而不只是最後一個字。它能學到「資金費率連續上升 10 天」這種 XGBoost 快照模型無法直接捕捉的 pattern。</p>
+                    <p className="text-gray-400"><strong className="text-gray-300">雙向</strong>代表它同時從正向和反向掃描這 30 天的窗口，捕捉整段時間的整體形態。</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Dynamic insight */}
+            <div className={`rounded-lg border border-gray-700 bg-white/[0.03] px-3 py-3 mb-4`}>
+              <div className={`font-medium mb-2 text-sm ${titleColor}`}>{icon} Bi-LSTM current prediction · 當前 Bi-LSTM 預測解讀</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <p className="text-gray-300 text-sm">{enText}</p>
+                <p className="text-gray-500 text-sm">{zhText}</p>
+              </div>
+            </div>
+
+            {/* Stats row */}
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              <div className="rounded-lg bg-gray-800/60 px-3 py-2.5 text-center">
+                <p className="text-xs text-gray-500 mb-1">Win Prob · 勝率</p>
+                <p className={`text-lg font-bold font-mono ${probColor}`}>{probPct != null ? probPct.toFixed(1)+"%" : "—"}</p>
+              </div>
+              <div className="rounded-lg bg-gray-800/60 px-3 py-2.5 text-center">
+                <p className="text-xs text-gray-500 mb-1">Avg AUC</p>
+                <p className="text-lg font-bold font-mono text-gray-200">{avgAuc != null ? avgAuc.toFixed(3) : "—"}</p>
+              </div>
+              <div className="rounded-lg bg-gray-800/60 px-3 py-2.5 text-center">
+                <p className="text-xs text-gray-500 mb-1">Avg DirAcc</p>
+                <p className="text-lg font-bold font-mono text-gray-200">{avgDirAcc != null ? (avgDirAcc*100).toFixed(1)+"%" : "—"}</p>
+              </div>
+            </div>
+
+            {/* Fold table */}
+            {symFolds.length > 0 && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-gray-800 text-gray-500">
+                      <th className="px-2 py-1.5 text-left">Year</th>
+                      <th className="px-2 py-1.5 text-center">n_train</th>
+                      <th className="px-2 py-1.5 text-center text-purple-400/70">AUC</th>
+                      <th className="px-2 py-1.5 text-center">DirAcc</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {symFolds.map((fold) => {
+                      const auc    = fold.auc ?? 0;
+                      const dirAcc = fold.dir_acc ?? null;
+                      return (
+                        <tr key={fold.test_year} className="border-t border-gray-800/60">
+                          <td className="py-1 pr-2 text-gray-400">{fold.test_year}</td>
+                          <td className="py-1 px-2 text-center text-gray-500">{fold.n_train?.toLocaleString()}</td>
+                          <td className={`py-1 px-2 text-center font-mono ${auc > 0.52 ? "text-purple-400" : "text-gray-500"}`}>{auc.toFixed(3)}</td>
+                          <td className={`py-1 px-2 text-center tabular-nums ${dirAcc != null && dirAcc >= 0.52 ? "text-green-400" : "text-gray-500"}`}>{dirAcc != null ? (dirAcc*100).toFixed(1)+"%" : "—"}</td>
+                        </tr>
+                      );
+                    })}
+                    <tr className="border-t border-gray-700 bg-gray-900/40">
+                      <td className="px-2 py-1.5 text-gray-400 font-medium">avg</td>
+                      <td className="px-2 py-1.5 text-center text-gray-500">—</td>
+                      <td className="px-2 py-1.5 text-center text-purple-400 font-medium">{avgAuc != null ? avgAuc.toFixed(3) : "—"}</td>
+                      <td className="px-2 py-1.5 text-center text-gray-400 font-medium">{avgDirAcc != null ? (avgDirAcc*100).toFixed(1)+"%" : "—"}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <p className="mt-2 text-xs text-gray-600">Bi-LSTM · 30-day lookback window · Purged walk-forward · Rolling 3y final model · Purple = AUC &gt; 0.52</p>
           </div>
         );
       })()}
