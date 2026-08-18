@@ -306,7 +306,7 @@ export default function MultiFactorPanel({
                 <em>The core question: right now, how many independent signals are simultaneously pointing to an oversold / bullish setup for this coin?</em>
               </p>
               <p className="text-gray-400 mb-2">
-                The <strong className="text-white">Multi-Factor Setup Score</strong> combines 13 different factors into a single 0–100 score. Think of it like a checklist — the more boxes ticked, the stronger the historical setup quality.
+                The <strong className="text-white">Multi-Factor Setup Score</strong> combines 15 independent factors into a single 0–100 score. Think of it like a checklist — the more boxes ticked, the stronger the historical setup quality.
               </p>
               <p className="text-gray-400 mb-3">
                 A high score does <strong className="text-white">not</strong> mean the price will definitely go up. It means that historically, when multiple signals aligned like this, the odds of a short-term bounce were higher than average.
@@ -318,19 +318,23 @@ export default function MultiFactorPanel({
                 <li><strong className="text-gray-400">30–49 Weak Setup</strong> — conditions are mixed or mostly neutral.</li>
                 <li><strong className="text-gray-600">0–29 No Setup</strong> — no meaningful alignment across factors.</li>
               </ul>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-3">What do the 13 factors measure?</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-3">What do the 15 factors measure?</p>
               <ul className="space-y-1 text-gray-400">
-                <li><strong className="text-gray-200">RSI Oversold Intensity</strong> — how deeply oversold the RSI is (RSI=20 → max score)</li>
-                <li><strong className="text-gray-200">Bollinger Deviation</strong> — how far price has fallen below the Bollinger Band</li>
-                <li><strong className="text-gray-200">GARCH Vol Regime</strong> — whether volatility is compressing (favourable) or expanding</li>
-                <li><strong className="text-gray-200">Fear & Greed Zone</strong> — whether market sentiment is in Extreme Fear (historically higher bounce rates)</li>
-                <li><strong className="text-gray-200">Month Seasonality</strong> — whether the current month historically has a positive bias</li>
-                <li><strong className="text-gray-200">Regime Favorability</strong> — whether the current market regime (bull/bear/sideways) has historically been favourable for signals</li>
-                <li><strong className="text-gray-200">Volume Surge</strong> — whether there is a volume spike on a down day (capitulation signal)</li>
-                <li><strong className="text-gray-200">Price Momentum</strong> — whether short-term momentum is negative enough to suggest oversold conditions</li>
-                <li><strong className="text-gray-200">Funding Rate 💹</strong> — 7-day average perpetual futures funding rate: negative = shorts paying longs (crowded short, potential squeeze)</li>
-                <li><strong className="text-gray-200">Long/Short Ratio ⚖️</strong> — top trader long/short account ratio: high short % = more room for a short squeeze</li>
-                <li><strong className="text-gray-200">Active Addresses 🔗</strong> — daily unique BTC on-chain addresses vs 30-day MA: shrinking addresses = fear/capitulation signal (BTC only; ETH/SOL = N/A)</li>
+                <li><strong className="text-gray-200">F1 RSI Oversold Intensity</strong> — how deeply oversold RSI-14 is (RSI=20 → max score). IC IR = +0.04.</li>
+                <li><strong className="text-gray-200">F2 Bollinger Deviation</strong> — how far price has fallen below the Bollinger Band. IC IR = +0.01.</li>
+                <li><strong className="text-gray-200">F3 GARCH Vol Regime</strong> — whether volatility is compressing (favourable) or expanding.</li>
+                <li><strong className="text-gray-200">F4 Fear & Greed Zone</strong> — whether sentiment is in Extreme Fear (historically higher bounce rates).</li>
+                <li><strong className="text-gray-200">F5 Month Seasonality</strong> — whether the current month historically has a positive bias. IC IR = +1.07 (Strong).</li>
+                <li><strong className="text-gray-200">F6 Regime Favorability</strong> — HMM posterior probability of Bull regime. IC IR = −0.20.</li>
+                <li><strong className="text-gray-200">F7 Volume Surge</strong> — volume spike on a down day (capitulation signal). IC IR = +0.38.</li>
+                <li><strong className="text-gray-200">F8 Price Momentum</strong> — short-term momentum negative enough to suggest oversold conditions.</li>
+                <li><strong className="text-gray-200">F9 Funding Rate</strong> — perpetual futures funding level: negative = crowded shorts, squeeze potential. IC IR = +1.41 (Strong).</li>
+                <li><strong className="text-gray-200">F11 Active Addresses</strong> — daily unique BTC on-chain addresses vs 30-day MA. BTC only; ETH/SOL = N/A. IC IR measured separately.</li>
+                <li><strong className="text-gray-200">F12 Turbulence Index</strong> — Mahalanobis distance across BTC/ETH/SOL: spikes signal systemic stress. Feature importance #2–3.</li>
+                <li><strong className="text-gray-200">F13 MVRV Valuation</strong> — Market Value / Realized Value: below 1.0 = deep value zone. IC IR = +1.76 (strongest factor).</li>
+                <li><strong className="text-gray-200">F14 Funding Rate Trend</strong> — 7-day directional change in funding rate. IC IR = +1.33 (Strong).</li>
+                <li><strong className="text-gray-200">F15 BTC Dominance</strong> — BTC market cap share change (Dashboard only; data accumulating).</li>
+                <li className="text-gray-600"><strong className="text-gray-500">F10 Long/Short Ratio</strong> — removed from XGBoost model; noise in out-of-sample testing.</li>
               </ul>
             </div>
             <div>
@@ -339,7 +343,7 @@ export default function MultiFactorPanel({
                 <em>核心問題：現在有多少個獨立指標同時指向這個幣的超賣／看漲設置？</em>
               </p>
               <p className="text-gray-400 mb-2">
-                <strong className="text-white">多因子設置評分</strong>把 13 個不同模型整合成一個 0–100 分。就像一份檢查清單——打勾的項目越多，歷史上設置質量越強。
+                <strong className="text-white">多因子設置評分</strong>把 15 個獨立因子整合成一個 0–100 分。就像一份檢查清單——打勾的項目越多，歷史上設置質量越強。
               </p>
               <p className="text-gray-400 mb-3">
                 高分<strong className="text-white">不代表</strong>價格一定會漲。它代表歷史上當多個信號同時出現時，短期反彈的概率比平均更高。
@@ -351,19 +355,23 @@ export default function MultiFactorPanel({
                 <li><strong className="text-gray-400">30–49 設置偏弱</strong> — 條件混合或大多中性。</li>
                 <li><strong className="text-gray-600">0–29 無明顯設置</strong> — 各因子之間無明顯對齊。</li>
               </ul>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-3">13 個因子各測量什麼？</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-3">15 個因子各測量什麼？</p>
               <ul className="space-y-1 text-gray-400">
-                <li><strong className="text-gray-200">RSI 超賣強度</strong> — RSI 有多超賣（RSI=20 → 最高分）</li>
-                <li><strong className="text-gray-200">布林帶偏離幅度</strong> — 價格跌破布林下軌的程度</li>
-                <li><strong className="text-gray-200">GARCH 波動率狀態</strong> — 波動率是否正在收縮（有利）或擴張</li>
-                <li><strong className="text-gray-200">恐懼貪婪指標分層</strong> — 市場情緒是否處於極度恐懼（歷史上反彈率更高）</li>
-                <li><strong className="text-gray-200">月份季節性偏向</strong> — 當前月份在歷史上是否有正向偏向</li>
-                <li><strong className="text-gray-200">Regime 信號有效性</strong> — 當前市場狀態（牛熊橫盤）歷史上對信號是否有利</li>
-                <li><strong className="text-gray-200">成交量放大訊號</strong> — 下跌日是否伴隨放量（恐慌性拋售信號）</li>
-                <li><strong className="text-gray-200">價格動量偏離</strong> — 短期動量是否足夠負向以暗示超賣</li>
-                <li><strong className="text-gray-200">期貨資金費率 💹</strong> — 7 天平均永續合約資金費率：負值代表空頭付費給多頭（空頭過多，有軋空潛力）</li>
-                <li><strong className="text-gray-200">大戶多空比 ⚖️</strong> — 大戶帳戶空頭佔比高 → 空頭壓力集中，反彈潛力更大</li>
-                <li><strong className="text-gray-200">BTC 鏈上活躍地址 🔗</strong> — 每日唯一地址數相對 30 日均線：地址萎縮代表用戶恐慌離場，歷史上常見底部特徵（僅 BTC；ETH/SOL 顯示 N/A）</li>
+                <li><strong className="text-gray-200">F1 RSI 超賣強度</strong> — RSI-14 有多超賣（RSI=20 → 最高分）。IC IR = +0.04。</li>
+                <li><strong className="text-gray-200">F2 布林帶偏離幅度</strong> — 價格跌破布林下軌的程度。IC IR = +0.01。</li>
+                <li><strong className="text-gray-200">F3 GARCH 波動率狀態</strong> — 波動率是否正在收縮（有利）或擴張。</li>
+                <li><strong className="text-gray-200">F4 恐懼貪婪分層</strong> — 市場情緒是否處於極度恐懼（歷史上反彈率更高）。</li>
+                <li><strong className="text-gray-200">F5 月份季節性</strong> — 當前月份在歷史上是否有正向偏向。IC IR = +1.07（Strong）。</li>
+                <li><strong className="text-gray-200">F6 Regime 有利性</strong> — HMM 牛市後驗概率。IC IR = −0.20。</li>
+                <li><strong className="text-gray-200">F7 成交量放大</strong> — 下跌日是否伴隨放量（恐慌性拋售信號）。IC IR = +0.38。</li>
+                <li><strong className="text-gray-200">F8 價格動量偏離</strong> — 短期動量是否足夠負向以暗示超賣。</li>
+                <li><strong className="text-gray-200">F9 資金費率水平</strong> — 負費率 = 空頭付給多頭，代表空頭擁擠有軋空潛力。IC IR = +1.41（Strong）。</li>
+                <li><strong className="text-gray-200">F11 BTC 鏈上活躍地址</strong> — 每日唯一地址 vs 30 日均值。僅 BTC；ETH/SOL 顯示 N/A。</li>
+                <li><strong className="text-gray-200">F12 市場異常指數</strong> — 三幣種馬氏距離：飆升代表系統性壓力事件。XGBoost 重要性排名 #2–3。</li>
+                <li><strong className="text-gray-200">F13 MVRV 估值</strong> — 市值/已實現市值：低於 1.0 = 深度低估區。IC IR = +1.76（最強因子）。</li>
+                <li><strong className="text-gray-200">F14 資金費率趨勢</strong> — 費率 7 日方向性變化。IC IR = +1.33（Strong）。</li>
+                <li><strong className="text-gray-200">F15 BTC 市場佔有率</strong> — BTC 佔有率 7 日變化（Dashboard 展示，數據累積中）。</li>
+                <li className="text-gray-600"><strong className="text-gray-500">F10 大戶多空比</strong> — 已從 XGBoost 移除；樣本外測試顯示為噪音。</li>
               </ul>
             </div>
           </div>
