@@ -151,8 +151,8 @@ export default function FundingRatePanel() {
     return {
       border: "border-gray-700", bg: "bg-white/[0.03]", icon: "–", titleColor: "text-gray-400",
       title: "Neutral funding conditions · 費率中性",
-      en: `${symLabel} funding rate is ${pct(rate)} — within neutral range. F9 = ${(f9*100).toFixed(0)}/100, F14 = ${(f14*100).toFixed(0)}/100. No extreme positioning signal at this time.`,
-      zh: `${symLabel} 資金費率 ${pct(rate)}，處於中性區間。F9 = ${(f9*100).toFixed(0)}/100，F14 = ${(f14*100).toFixed(0)}/100。目前無極端倉位信號。`,
+      en: `${symLabel} funding rate is ${pct(rate)} — within the neutral band (roughly −0.03% to +0.05%). This means neither longs nor shorts are paying a significant premium to hold positions. F9 = ${(f9*100).toFixed(0)}/100, F14 = ${(f14*100).toFixed(0)}/100. Neutral funding is the baseline "no edge" condition — the market is not crowded in either direction, so funding alone does not tilt the setup score. Watch for a breakout above +0.05% (crowded longs) or below −0.03% (crowded shorts) for a stronger signal.`,
+      zh: `${symLabel} 資金費率 ${pct(rate)}，處於中性區間（大約 −0.03% 至 +0.05%）。中性代表多頭和空頭都沒有為持倉支付明顯溢價——市場沒有向任何一方傾斜。F9 = ${(f9*100).toFixed(0)}/100，F14 = ${(f14*100).toFixed(0)}/100。中性費率是「無明確優勢」的基準狀態，費率本身不構成進場訊號。留意費率是否突破 +0.05%（多頭擁擠）或跌破 −0.03%（空頭擁擠），那才是值得關注的信號。`,
     };
   })();
 
