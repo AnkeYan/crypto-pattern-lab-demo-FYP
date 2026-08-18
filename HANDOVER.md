@@ -398,20 +398,21 @@ data/
 - **TurbulencePanel** — How to read this? 摺疊說明框 + 動態解說框 ✅
 - 主文件 + 副本同步，兩個 repo commit + push ✅
 
+### ✅ 已完成（本次對話 v23 UI + ML 升級）
+- **Pricing section + TierGate CTA** 更新（Free 3 / Pro 15 / Research 8）✅
+- **MultiFactorPanel 說明框** 13→15 因子，加 IC IR，F10 標記移除 ✅
+- **Bi-LSTM 模型**（analyze_lstm.py + /api/lstm + MultiFactorPanel LSTM section）✅
+  - Bi-LSTM walk-forward 結果：BTC AUC=0.525 / ETH AUC=0.548 / SOL AUC=0.501
+  - GitHub Actions 加入 tensorflow 依賴
+  - 前端 MultiFactorPanel 新增 Bi-LSTM section（動態解說 + fold table）
+
 ### 🔴 高優先
-1. **F16 Open Interest 變化率**（Bybit API 已有）
-   - 數據只有 30 天，需等累積 1 年後才加入 XGBoost
-   - 現在可先做 Dashboard panel（類似 F15）
-   
-2. **Pricing section 文字更新**（主文件 page.tsx）
-   - TierGate CTA 文字還有「6 models」/ 舊版描述，需對應新 tier 結構更新
+1. **F16 Open Interest 變化率**（Bybit API 已有）— 暫緩，等數據累積
 
 ### 🟡 中優先
-3. **SOL AUC 提升**（目前 0.514，最弱）
+2. **SOL AUC 提升**（目前 0.514 XGBoost / 0.501 LSTM，最弱）
    - 候選：SOL 專屬鏈上因子（Solana 活躍地址）
    - F15 BTC Dominance 加入 XGBoost 後可能改善（等數據累積）
-
-4. **多因子說明更新**（MultiFactorPanel 說明框還有部分舊文字）
 
 ### 🔵 長期 ML 分支
 - LSTM → RL(AUC 0.55+) → Transformer → GNN
