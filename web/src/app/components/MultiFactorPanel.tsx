@@ -268,6 +268,7 @@ export default function MultiFactorPanel({
   const [showInfo, setShowInfo] = useState(false);
   const [showCalibInfo, setShowCalibInfo] = useState(false);
   const [showXgbInfo, setShowXgbInfo] = useState(false);
+  const [showEnsInfo, setShowEnsInfo] = useState(false);
 
   const symKey  = `${sym}USDT`;
   const symData = data.filter((r) => r.symbol === symKey);
@@ -578,6 +579,45 @@ export default function MultiFactorPanel({
               </div>
             )}
 
+            {/* Dynamic insight — Historical Calibration */}
+            {currentBucketRow && (() => {
+              const wr       = currentBucketRow.win_rate;
+              const mean7d   = currentBucketRow.mean_7d;
+              const bucket   = currentPctBucket;
+              const isTop10  = bucket === "top 10%";
+              const isTop25  = bucket === "top 25%" || isTop10;
+              const isBot50  = bucket === "bottom 50%";
+              let border = "border-gray-700", bg = "bg-white/[0.03]", icon = "–", titleColor = "text-gray-400";
+              let enText = "", zhText = "";
+
+              if (isTop10 && wr >= 0.54) {
+                border = "border-green-500/30"; bg = "bg-green-500/5"; icon = "✓"; titleColor = "text-green-400";
+                enText = `${sym} score ${currentScore.toFixed(1)} is in the Top 10% of all historical days. Days at this score level have historically shown a ${(wr*100).toFixed(1)}% win rate with mean 7d return of ${mean7d >= 0 ? "+" : ""}${(mean7d*100).toFixed(2)}% (n=${currentBucketRow.n}). This is the highest-conviction bucket in the calibration.`;
+                zhText = `${sym} 當前分數 ${currentScore.toFixed(1)} 屬於歷史前 10% 的日子。這個分位數的日子歷史勝率 ${(wr*100).toFixed(1)}%，7d 平均回報 ${mean7d >= 0 ? "+" : ""}${(mean7d*100).toFixed(2)}%（n=${currentBucketRow.n}）。這是校準表中信心最高的分位數。`;
+              } else if (isTop25 && wr >= 0.53) {
+                border = "border-yellow-500/30"; bg = "bg-yellow-500/5"; icon = "~"; titleColor = "text-yellow-400";
+                enText = `${sym} score ${currentScore.toFixed(1)} is in the Top ${isTop10 ? "10" : "25"}% of historical days. Historical win rate at this level: ${(wr*100).toFixed(1)}%, mean 7d return ${mean7d >= 0 ? "+" : ""}${(mean7d*100).toFixed(2)}% (n=${currentBucketRow.n}). Setup is above average but not at peak historical strength.`;
+                zhText = `${sym} 當前分數 ${currentScore.toFixed(1)} 屬於歷史前 ${isTop10 ? "10" : "25"}% 的日子。歷史勝率 ${(wr*100).toFixed(1)}%，7d 平均回報 ${mean7d >= 0 ? "+" : ""}${(mean7d*100).toFixed(2)}%（n=${currentBucketRow.n}）。設置高於平均但未到歷史最強。`;
+              } else if (isBot50) {
+                border = "border-gray-700"; bg = "bg-white/[0.03]"; icon = "–"; titleColor = "text-gray-400";
+                enText = `${sym} score ${currentScore.toFixed(1)} is in the Bottom 50% of historical days — meaning current conditions are below the median setup quality. Historical win rate at this level: ${(wr*100).toFixed(1)}% (n=${currentBucketRow.n}). No strong historical edge at this score level.`;
+                zhText = `${sym} 當前分數 ${currentScore.toFixed(1)} 屬於歷史後 50% 的日子，低於中位數設置質量。這個分位數歷史勝率 ${(wr*100).toFixed(1)}%（n=${currentBucketRow.n}）。當前分數水平沒有明顯歷史優勢。`;
+              } else {
+                enText = `${sym} score ${currentScore.toFixed(1)} is in the ${currentPctLabel.en} of historical days. Historical win rate: ${(wr*100).toFixed(1)}%, mean 7d return ${mean7d >= 0 ? "+" : ""}${(mean7d*100).toFixed(2)}% (n=${currentBucketRow.n}).`;
+                zhText = `${sym} 當前分數 ${currentScore.toFixed(1)} 屬於歷史${currentPctLabel.zh}的日子。歷史勝率 ${(wr*100).toFixed(1)}%，7d 平均回報 ${mean7d >= 0 ? "+" : ""}${(mean7d*100).toFixed(2)}%（n=${currentBucketRow.n}）。`;
+              }
+
+              return (
+                <div className={`mb-4 rounded-lg border ${border} ${bg} px-4 py-3 text-sm`}>
+                  <div className={`font-medium mb-2 ${titleColor}`}>{icon} Historical calibration for current score · 當前分數的歷史校準</div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <p className="text-gray-300 text-sm">{enText}</p>
+                    <p className="text-gray-500 text-sm">{zhText}</p>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Current score percentile banner */}
             {currentBucketRow && (
               <div className="mb-4 px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-sm">
@@ -770,6 +810,40 @@ export default function MultiFactorPanel({
               </div>
             )}
 
+            {/* Dynamic insight — XGBoost */}
+            {(() => {
+              if (prob == null && avgAuc == null) return null;
+              const dirAccPct = avgDirAcc != null ? avgDirAcc * 100 : null;
+              const topFeat   = symImportance[0];
+              const topName   = topFeat?.feature_name ?? topFeat?.feature ?? "—";
+
+              let border = "border-gray-700", bg = "bg-white/[0.03]", icon = "–", titleColor = "text-gray-400";
+              let enText = "", zhText = "";
+
+              if (prob != null && prob >= 0.55 && avgAuc != null && avgAuc >= 0.52) {
+                border = "border-green-500/30"; bg = "bg-green-500/5"; icon = "✓"; titleColor = "text-green-400";
+                enText = `XGBoost currently shows a ${(prob*100).toFixed(1)}% win probability for ${sym} — above the 55% edge threshold. Model avg AUC = ${avgAuc.toFixed(3)}, avg DirAcc = ${dirAccPct != null ? dirAccPct.toFixed(1)+"%" : "—"} across ${symFolds.length} walk-forward folds. Top feature: ${topName}. This combination of elevated win probability and above-random AUC is relatively uncommon.`;
+                zhText = `XGBoost 目前預測 ${sym} 勝率 ${(prob*100).toFixed(1)}%，高於 55% 優勢門檻。模型平均 AUC = ${avgAuc.toFixed(3)}，平均方向準確率 = ${dirAccPct != null ? dirAccPct.toFixed(1)+"%" : "—"}（${symFolds.length} 個滾動驗證折）。最重要因子：${topName}。這種高勝率配合高於隨機的 AUC 組合相對罕見。`;
+              } else if (prob != null && prob <= 0.45) {
+                border = "border-red-500/20"; bg = "bg-red-500/[0.03]"; icon = "⚠"; titleColor = "text-red-400";
+                enText = `XGBoost's current win probability for ${sym} is ${(prob*100).toFixed(1)}% — below 45%, suggesting bearish model bias. Model avg AUC = ${avgAuc != null ? avgAuc.toFixed(3) : "—"}, avg DirAcc = ${dirAccPct != null ? dirAccPct.toFixed(1)+"%" : "—"}. This does not guarantee a decline, but the model does not see a favourable setup in today's factor values.`;
+                zhText = `XGBoost 目前預測 ${sym} 勝率 ${(prob*100).toFixed(1)}%，低於 45%，模型偏空。平均 AUC = ${avgAuc != null ? avgAuc.toFixed(3) : "—"}，平均方向準確率 = ${dirAccPct != null ? dirAccPct.toFixed(1)+"%" : "—"}。這不代表一定下跌，但模型在今天的因子數值中看不到有利的進場設置。`;
+              } else {
+                enText = `XGBoost win probability for ${sym}: ${prob != null ? (prob*100).toFixed(1)+"%" : "—"} (neutral range). Model avg AUC = ${avgAuc != null ? avgAuc.toFixed(3) : "—"}, avg DirAcc = ${dirAccPct != null ? dirAccPct.toFixed(1)+"%" : "—"} across ${symFolds.length} folds. Top contributing factor: ${topName}.`;
+                zhText = `XGBoost 預測 ${sym} 勝率 ${prob != null ? (prob*100).toFixed(1)+"%" : "—"}（中性區間）。平均 AUC = ${avgAuc != null ? avgAuc.toFixed(3) : "—"}，平均方向準確率 = ${dirAccPct != null ? dirAccPct.toFixed(1)+"%" : "—"}（${symFolds.length} 個折）。最重要因子：${topName}。`;
+              }
+
+              return (
+                <div className={`mb-4 rounded-lg border ${border} ${bg} px-4 py-3 text-sm`}>
+                  <div className={`font-medium mb-2 ${titleColor}`}>{icon} XGBoost current prediction · 當前 XGBoost 預測解讀</div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <p className="text-gray-300 text-sm">{enText}</p>
+                    <p className="text-gray-500 text-sm">{zhText}</p>
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Current prediction + avg AUC banner */}
             <div className="mb-4 px-3 py-2.5 rounded-lg bg-white/[0.04] border border-white/[0.06] text-sm">
               <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
@@ -912,16 +986,91 @@ export default function MultiFactorPanel({
 
         return (
           <div className="mt-6 rounded-xl border border-gray-800 bg-gray-950/40 p-4">
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-start justify-between mb-3">
               <div>
                 <p className="text-sm font-semibold text-gray-200">Ensemble Model · XGBoost + LightGBM</p>
                 <p className="text-xs text-gray-500">Soft voting average · 兩模型概率平均，抵消單模型偏差</p>
               </div>
-              {improvement > 0
-                ? <span className="text-xs text-green-400 font-medium">↑ AUC +{(improvement * 1000).toFixed(1)} pts vs XGB alone</span>
-                : <span className="text-xs text-gray-500 font-medium">≈ Similar to XGB alone</span>
-              }
+              <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                {improvement > 0
+                  ? <span className="text-xs text-green-400 font-medium">↑ AUC +{(improvement * 1000).toFixed(1)} pts vs XGB alone</span>
+                  : <span className="text-xs text-gray-500 font-medium">≈ Similar to XGB alone</span>
+                }
+                <button onClick={() => setShowEnsInfo((v) => !v)} className="text-xs text-gray-500 hover:text-gray-300 whitespace-nowrap">
+                  {showEnsInfo ? "▾" : "▸"} How to read this?
+                </button>
+              </div>
             </div>
+
+            {/* Explainer */}
+            {showEnsInfo && (
+              <div className="mb-4 rounded-lg border border-white/[0.07] bg-white/[0.03] p-4 text-sm leading-relaxed">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">English</p>
+                    <p className="text-gray-300 mb-2">
+                      <em>The core question: does combining XGBoost and LightGBM produce better predictions than either model alone?</em>
+                    </p>
+                    <p className="text-gray-400 mb-2">
+                      <strong className="text-white">Soft voting ensemble</strong> averages the win probability predicted by XGBoost and LightGBM. Because the two models have different biases, averaging them tends to reduce overconfident predictions and smooth out single-model errors.
+                    </p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-2">Reading the table</p>
+                    <ul className="space-y-1 text-gray-400 text-xs">
+                      <li>• <strong className="text-gray-300">▲ in Ensemble AUC</strong> — ensemble outperformed both individual models in that fold.</li>
+                      <li>• <strong className="text-gray-300">DirAcc</strong> — directional accuracy of the ensemble. 50% = coin flip; 55% = meaningful edge.</li>
+                      <li>• <strong className="text-gray-300">Ensemble Win Prob</strong> — the averaged model's current probability estimate for a 7d up move.</li>
+                      <li>• <strong className="text-gray-300">AUC improvement</strong> shown in the top-right badge — how many AUC points the ensemble gained vs XGBoost alone.</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">中文</p>
+                    <p className="text-gray-300 mb-2">
+                      <em>核心問題：XGBoost + LightGBM 組合是否比單一模型預測更準？</em>
+                    </p>
+                    <p className="text-gray-400 mb-2">
+                      <strong className="text-white">軟投票集成</strong>把兩個模型預測的勝率平均，因為兩個模型各有不同偏差，平均後能減少過度自信的預測，平滑單模型誤差。
+                    </p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 mt-2">如何看表格</p>
+                    <ul className="space-y-1 text-gray-400 text-xs">
+                      <li>• <strong className="text-gray-300">Ensemble AUC 有 ▲</strong> — 集成在那一折同時優於兩個單獨模型。</li>
+                      <li>• <strong className="text-gray-300">DirAcc</strong> — 集成的方向準確率。50% = 隨機；55% = 有實質優勢。</li>
+                      <li>• <strong className="text-gray-300">集成勝率</strong> — 目前集成模型估計的 7 天上漲概率。</li>
+                      <li>• <strong className="text-gray-300">AUC 提升</strong> — 右上角 badge 顯示集成相比單獨 XGBoost 提升了多少 AUC 點數。</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Dynamic insight — Ensemble */}
+            {ensPct != null && (() => {
+              const dirAccPct = avgDir * 100;
+              let border = "border-gray-700", bg = "bg-white/[0.03]", icon = "–", titleColor = "text-gray-400";
+              let enText = "", zhText = "";
+
+              if (ensPct >= 0.55 && avgEns >= 0.52) {
+                border = "border-green-500/30"; bg = "bg-green-500/5"; icon = "✓"; titleColor = "text-green-400";
+                enText = `The Ensemble model shows ${(ensPct*100).toFixed(1)}% win probability for ${sym} — above the 55% threshold. Avg ensemble AUC = ${avgEns.toFixed(3)}, avg DirAcc = ${dirAccPct.toFixed(1)}% across ${symFolds.length} folds.${improvement > 0 ? ` The ensemble gained +${(improvement*1000).toFixed(1)} AUC pts vs XGBoost alone, confirming the diversification benefit.` : ""}`;
+                zhText = `集成模型預測 ${sym} 勝率 ${(ensPct*100).toFixed(1)}%，高於 55% 門檻。平均集成 AUC = ${avgEns.toFixed(3)}，平均方向準確率 = ${dirAccPct.toFixed(1)}%（${symFolds.length} 個折）。${improvement > 0 ? `集成相比單獨 XGBoost 提升了 +${(improvement*1000).toFixed(1)} AUC 點，驗證了分散化效益。` : ""}`;
+              } else if (ensPct <= 0.45) {
+                border = "border-red-500/20"; bg = "bg-red-500/[0.03]"; icon = "⚠"; titleColor = "text-red-400";
+                enText = `Ensemble win probability for ${sym} is ${(ensPct*100).toFixed(1)}% — the combined model leans bearish. Avg AUC = ${avgEns.toFixed(3)}, avg DirAcc = ${dirAccPct.toFixed(1)}%. Neither XGBoost nor LightGBM sees a favourable setup in today's conditions.`;
+                zhText = `集成模型預測 ${sym} 勝率 ${(ensPct*100).toFixed(1)}%，組合模型偏空。平均 AUC = ${avgEns.toFixed(3)}，平均方向準確率 = ${dirAccPct.toFixed(1)}%。XGBoost 和 LightGBM 均未在今天的條件中看到有利設置。`;
+              } else {
+                enText = `Ensemble win probability for ${sym}: ${(ensPct*100).toFixed(1)}% (neutral). Avg AUC = ${avgEns.toFixed(3)}, avg DirAcc = ${dirAccPct.toFixed(1)}% across ${symFolds.length} folds.${improvement > 0 ? ` Ensemble gained +${(improvement*1000).toFixed(1)} AUC pts vs XGB alone.` : " Performance is similar to XGBoost alone."}`;
+                zhText = `集成模型預測 ${sym} 勝率 ${(ensPct*100).toFixed(1)}%（中性）。平均 AUC = ${avgEns.toFixed(3)}，平均方向準確率 = ${dirAccPct.toFixed(1)}%（${symFolds.length} 個折）。${improvement > 0 ? `集成相比 XGBoost 提升 +${(improvement*1000).toFixed(1)} AUC 點。` : "集成效果與單獨 XGBoost 相近。"}`;
+              }
+
+              return (
+                <div className={`mb-4 rounded-lg border ${border} ${bg} px-4 py-3 text-sm`}>
+                  <div className={`font-medium mb-2 ${titleColor}`}>{icon} Ensemble current prediction · 集成模型當前預測</div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <p className="text-gray-300 text-sm">{enText}</p>
+                    <p className="text-gray-500 text-sm">{zhText}</p>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Prediction banner */}
             {ensPct != null && (
