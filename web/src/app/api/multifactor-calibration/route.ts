@@ -21,6 +21,13 @@ type ScatterPoint = {
   win: number;
 };
 
+type VolRow = {
+  symbol: string;
+  date: string;
+  f7_cont: number;
+  f8_cont: number;
+};
+
 function numOrNull(v: string): number | null {
   if (v === "" || v === "None") return null;
   const n = Number(v);
@@ -51,6 +58,10 @@ export async function GET() {
     // Parse all rows into a minimal structure
     type Row = { symbol: string; score: number; pct_bucket: string; outcome_7d: number; win: number };
     const rows: Row[] = [];
+    const iDate  = idxOf("date");
+    const iF7    = idxOf("f7_cont");
+    const iF8    = idxOf("f8_cont");
+    const volRows: VolRow[] = [];
 
     for (const line of lines.slice(1)) {
       const parts = line.split(",");
@@ -65,6 +76,17 @@ export async function GET() {
         outcome_7d,
         win,
       });
+      // Collect f7/f8 for VolumeMomentumPanel
+      const f7 = iF7 >= 0 ? numOrNull(parts[iF7] ?? "") : null;
+      const f8 = iF8 >= 0 ? numOrNull(parts[iF8] ?? "") : null;
+      if (f7 !== null && f8 !== null) {
+        volRows.push({
+          symbol: parts[iSym] ?? "",
+          date:   parts[iDate] ?? "",
+          f7_cont: f7,
+          f8_cont: f8,
+        });
+      }
     }
 
     // ── Build summary ─────────────────────────────────────────────────────────
@@ -106,7 +128,19 @@ export async function GET() {
       }));
     }
 
-    return NextResponse.json({ summary, scatter });
+    // Only send last 90 rows per symbol to keep response small
+    const volBySymbol: Record<string, VolRow[]> = {};
+    for (const r of volRows) {
+      if (!volBySymbol[r.symbol]) volBySymbol[r.symbol] = [];
+      volBySymbol[r.symbol].push(r);
+    }
+    const volRowsTrimmed: VolRow[] = [];
+    for (const sym of SYMBOLS) {
+      const symRows = volBySymbol[sym] ?? [];
+      volRowsTrimmed.push(...symRows.slice(-90));
+    }
+
+    return NextResponse.json({ summary, scatter, rows: volRowsTrimmed });
   } catch (err) {
     console.error("/api/multifactor-calibration", err);
     return NextResponse.json({ error: "Failed to load data" }, { status: 500 });
