@@ -59,11 +59,52 @@ function dualLineSvg(
 </svg>`;
 }
 
+// ── 動態解說 ──────────────────────────────────────────────────────────────────
+function buildInsight(sym: string, f7: number, f8: number) {
+  const symLabel = sym.replace("USDT", "");
+  const highVol = f7 > 0.6;
+  const lowVol  = f7 < 0.4;
+  const bullMom = f8 > 0.6;
+  const bearMom = f8 < 0.4;
+
+  if (highVol && bullMom) return {
+    border: "border-green-500/30", bg: "bg-green-500/5", icon: "✓", titleColor: "text-green-400",
+    title: "Strong bullish surge · 量升價漲",
+    en: `${symLabel} is showing high volume (F7=${(f7*100).toFixed(0)}) with positive price momentum (F8=${(f8*100).toFixed(0)}). Volume is confirming the price move — this is the strongest bullish setup in this framework. Historically, volume-confirmed rallies tend to have follow-through.`,
+    zh: `${symLabel} 目前成交量放大（F7=${(f7*100).toFixed(0)}），同時價格動量向上（F8=${(f8*100).toFixed(0)}）。量配合價，是最理想的強勢信號。歷史上量價齊升的反彈往往有延續性。`,
+  };
+  if (highVol && bearMom) return {
+    border: "border-red-500/30", bg: "bg-red-500/5", icon: "⚠", titleColor: "text-red-400",
+    title: "High-vol sell-off · 量升價跌（留意）",
+    en: `${symLabel} is showing high volume (F7=${(f7*100).toFixed(0)}) but negative price momentum (F8=${(f8*100).toFixed(0)}). Large volume on a down move signals active selling pressure — not a favourable entry environment.`,
+    zh: `${symLabel} 成交量放大（F7=${(f7*100).toFixed(0)}），但價格動量向下（F8=${(f8*100).toFixed(0)}）。大量下跌代表有主動拋售，不是理想進場環境，要小心。`,
+  };
+  if (!highVol && !lowVol && bullMom) return {
+    border: "border-green-500/20", bg: "bg-green-500/[0.03]", icon: "~", titleColor: "text-green-300",
+    title: "Low-vol grind up · 低量慢漲",
+    en: `${symLabel} has bullish momentum (F8=${(f8*100).toFixed(0)}) but volume is not elevated (F7=${(f7*100).toFixed(0)}). Price is rising without strong conviction — the move may lack staying power without volume confirmation.`,
+    zh: `${symLabel} 動量偏正（F8=${(f8*100).toFixed(0)}），但成交量未有放大（F7=${(f7*100).toFixed(0)}）。低量慢漲缺乏市場信心支撐，持續性存疑，需等量能配合。`,
+  };
+  if (!highVol && !lowVol && bearMom) return {
+    border: "border-red-500/20", bg: "bg-red-500/[0.03]", icon: "~", titleColor: "text-red-300",
+    title: "Low-vol drift down · 低量慢跌",
+    en: `${symLabel} has bearish momentum (F8=${(f8*100).toFixed(0)}) on low volume (F7=${(f7*100).toFixed(0)}). This is a slow drift lower — less alarming than a high-vol sell-off, but momentum is still unfavourable.`,
+    zh: `${symLabel} 動量偏負（F8=${(f8*100).toFixed(0)}），成交量也未有放大（F7=${(f7*100).toFixed(0)}）。屬於低量慢跌，不如大量拋售那麼急，但動量仍然不利。`,
+  };
+  return {
+    border: "border-gray-700", bg: "bg-white/[0.03]", icon: "–", titleColor: "text-gray-400",
+    title: "Neutral · 中性",
+    en: `${symLabel} shows neutral conditions — volume (F7=${(f7*100).toFixed(0)}) and momentum (F8=${(f8*100).toFixed(0)}) are both in the mid-range. No strong directional signal from this factor pair at the moment.`,
+    zh: `${symLabel} 目前成交量（F7=${(f7*100).toFixed(0)}）和動量（F8=${(f8*100).toFixed(0)}）均處於中性區間，沒有明確的方向性信號。`,
+  };
+}
+
 export default function VolumeMomentumPanel() {
   const [calib, setCalib] = useState<CalibRow[]>([]);
   const [selectedSymbol, setSelectedSymbol] = useState("BTCUSDT");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -95,12 +136,13 @@ export default function VolumeMomentumPanel() {
   const latest = symData[symData.length - 1];
   const last90 = symData.slice(-90);
 
-  const vmLabel = latest ? volMomLabel(latest.f7_cont, latest.f8_cont) : null;
+  const vmLabel  = latest ? volMomLabel(latest.f7_cont, latest.f8_cont) : null;
+  const insight  = latest ? buildInsight(selectedSymbol, latest.f7_cont, latest.f8_cont) : null;
 
   return (
     <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-5">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-start justify-between mb-1">
         <div>
           <h2 className="text-base font-semibold text-slate-100">
             F7 + F8 · Volume &amp; Price Momentum
@@ -109,21 +151,72 @@ export default function VolumeMomentumPanel() {
             Volume surge × directional momentum · 成交量衝刺 × 方向動量
           </p>
         </div>
-        <div className="flex gap-1.5">
-          {SYMBOLS.map((s) => (
-            <button
-              key={s}
-              onClick={() => setSelectedSymbol(s)}
-              className={`px-2.5 py-1 text-xs rounded border font-medium transition-colors ${
-                selectedSymbol === s
-                  ? SYMBOL_COLOR[s].badge + " border-current"
-                  : "border-slate-600 text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              {s.replace("USDT", "")}
-            </button>
-          ))}
+        <button onClick={() => setOpen(o => !o)} className="text-xs text-gray-500 hover:text-gray-300 whitespace-nowrap ml-4 mt-1">
+          {open ? "▾" : "▸"} How to read this?
+        </button>
+      </div>
+
+      {/* Explainer */}
+      {open && (
+        <div className="mb-4 mt-3 rounded-lg border border-gray-800 bg-white/[0.03] p-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">English</p>
+              <p className="text-gray-300 mb-2">
+                <em>The core question: is volume confirming the price direction — or are they diverging?</em>
+              </p>
+              <p className="text-gray-400 mb-2">
+                <strong className="text-gray-300">F7 (Volume Surge)</strong> measures whether today&apos;s volume is elevated relative to the recent average. High volume means more market participants are active — but volume alone is neutral until you pair it with direction.
+              </p>
+              <p className="text-gray-400 mb-3">
+                <strong className="text-gray-300">F8 (Price Momentum)</strong> captures the 7d and 14d rolling return direction. A high score means sustained upward price action; a low score means sustained downward drift.
+              </p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">The four combinations</p>
+              <ul className="space-y-1 text-xs text-gray-400">
+                <li>• <span className="text-green-400 font-medium">F7↑ + F8↑</span> — Volume-confirmed rally. Strongest bullish signal.</li>
+                <li>• <span className="text-red-400 font-medium">F7↑ + F8↓</span> — High-volume sell-off. Active distribution — caution.</li>
+                <li>• <span className="text-green-300 font-medium">F7↓ + F8↑</span> — Low-vol grind up. Rising price without conviction.</li>
+                <li>• <span className="text-red-300 font-medium">F7↓ + F8↓</span> — Low-vol drift down. Slow bleed, less alarming.</li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">中文</p>
+              <p className="text-gray-300 mb-2">
+                <em>核心問題：成交量有沒有配合價格方向？還是量價背離？</em>
+              </p>
+              <p className="text-gray-400 mb-2">
+                <strong className="text-gray-300">F7（成交量衝刺）</strong>衡量今日成交量相對近期均值是否放大。量大代表市場參與者增加——但量本身是中性的，要配合方向才能解讀。
+              </p>
+              <p className="text-gray-400 mb-3">
+                <strong className="text-gray-300">F8（價格動量）</strong>反映 7 日和 14 日滾動回報的方向。分數高代表持續上漲；分數低代表持續下跌。
+              </p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">四種組合解讀</p>
+              <ul className="space-y-1 text-xs text-gray-400">
+                <li>• <span className="text-green-400 font-medium">F7↑ + F8↑</span> — 量升價漲，最理想的強勢信號</li>
+                <li>• <span className="text-red-400 font-medium">F7↑ + F8↓</span> — 大量下跌，主動拋售，小心</li>
+                <li>• <span className="text-green-300 font-medium">F7↓ + F8↑</span> — 低量慢漲，缺乏信心支撐</li>
+                <li>• <span className="text-red-300 font-medium">F7↓ + F8↓</span> — 低量慢跌，較溫和但方向不利</li>
+              </ul>
+            </div>
+          </div>
         </div>
+      )}
+
+      {/* Symbol tabs */}
+      <div className="flex gap-1.5 mt-3 mb-4">
+        {SYMBOLS.map((s) => (
+          <button
+            key={s}
+            onClick={() => setSelectedSymbol(s)}
+            className={`px-2.5 py-1 text-xs rounded border font-medium transition-colors ${
+              selectedSymbol === s
+                ? SYMBOL_COLOR[s].badge + " border-current"
+                : "border-slate-600 text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            {s.replace("USDT", "")}
+          </button>
+        ))}
       </div>
 
       {loading ? (
@@ -179,30 +272,16 @@ export default function VolumeMomentumPanel() {
             />
           </div>
 
-          {/* 說明框 */}
-          <div className="rounded-lg bg-slate-700/30 border border-slate-600/40 p-4 text-sm text-slate-300 space-y-2">
-            <p className="font-medium text-slate-100">📖 How to Read · 怎麼看</p>
-            <p>
-              <span className="text-slate-400">F7（成交量）：</span>
-              量是「市場信心的溫度計」。量放大而且是上漲的那種，是最健康的強勢信號；量放大而且是下跌的那種，要小心恐慌盤。
-              <br />
-              <span className="text-xs text-slate-500">
-                F7: Volume surge score. High score = volume above recent average. Requires direction check (F8) to interpret.
-              </span>
-            </p>
-            <p>
-              <span className="text-slate-400">F8（動量）：</span>
-              7 日和 14 日滾動回報的方向。連續幾天陽線、回報偏正，F8 分數就高；反之則低。
-              <br />
-              <span className="text-xs text-slate-500">
-                F8: Price momentum (7d / 14d rolling returns). High = sustained upward price action.
-              </span>
-            </p>
-            <p>
-              <span className="text-slate-400">怎麼配合用：</span>
-              F7 高 + F8 高 = 量升價漲，最理想。F7 高 + F8 低 = 大量拋售，警惕。F7 低 + F8 高 = 低量慢漲，不穩定。
-            </p>
-          </div>
+          {/* Dynamic insight */}
+          {insight && (
+            <div className={`rounded-lg border ${insight.border} ${insight.bg} px-4 py-3 text-sm`}>
+              <div className={`font-medium mb-2 ${insight.titleColor}`}>{insight.icon} {insight.title}</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <p className="text-gray-300 text-sm">{insight.en}</p>
+                <p className="text-gray-500 text-sm">{insight.zh}</p>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
