@@ -128,19 +128,7 @@ export async function GET() {
       }));
     }
 
-    // Only send last 90 rows per symbol to keep response small
-    const volBySymbol: Record<string, VolRow[]> = {};
-    for (const r of volRows) {
-      if (!volBySymbol[r.symbol]) volBySymbol[r.symbol] = [];
-      volBySymbol[r.symbol].push(r);
-    }
-    const volRowsTrimmed: VolRow[] = [];
-    for (const sym of SYMBOLS) {
-      const symRows = volBySymbol[sym] ?? [];
-      volRowsTrimmed.push(...symRows.slice(-90));
-    }
-
-    return NextResponse.json({ summary, scatter, rows: volRowsTrimmed });
+    return NextResponse.json({ summary, scatter, rows: volRows });
   } catch (err) {
     console.error("/api/multifactor-calibration", err);
     return NextResponse.json({ error: "Failed to load data" }, { status: 500 });
