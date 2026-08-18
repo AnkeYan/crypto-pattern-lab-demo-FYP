@@ -296,7 +296,7 @@ export default function FactorIcPanel() {
   return (
     <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
+      <div className="flex items-start justify-between mb-1">
         <div>
           <h2 className="text-base font-semibold text-zinc-100">
             Factor IC Analysis · 因子預測力驗證
@@ -306,26 +306,26 @@ export default function FactorIcPanel() {
             IC 衡量各因子與 7 天後回報的統計相關性
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <button onClick={() => setOpen(o => !o)} className="text-xs text-gray-500 hover:text-gray-300 whitespace-nowrap">
-            {open ? "▾" : "▸"} How to read this?
+        <button onClick={() => setOpen(o => !o)} className="text-xs text-gray-500 hover:text-gray-300 whitespace-nowrap ml-4 mt-1">
+          {open ? "▾" : "▸"} How to read this?
+        </button>
+      </div>
+
+      {/* Symbol tabs */}
+      <div className="flex gap-1 mt-3">
+        {(["BTCUSDT", "ETHUSDT", "SOLUSDT"] as const).map((s) => (
+          <button
+            key={s}
+            onClick={() => setSymbol(s)}
+            className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+              symbol === s
+                ? "bg-zinc-700 text-zinc-100"
+                : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            {SYMBOL_LABELS[s]}
           </button>
-          <div className="flex gap-1">
-            {(["BTCUSDT", "ETHUSDT", "SOLUSDT"] as const).map((s) => (
-              <button
-                key={s}
-                onClick={() => setSymbol(s)}
-                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                  symbol === s
-                    ? "bg-zinc-700 text-zinc-100"
-                    : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
-                }`}
-              >
-                {SYMBOL_LABELS[s]}
-              </button>
-            ))}
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Explainer */}
