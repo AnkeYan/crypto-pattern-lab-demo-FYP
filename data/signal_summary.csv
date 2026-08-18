@@ -1,4 +1,4 @@
 symbol,last_price,current_regime,rsi14,bb_lower,daily_ret,vol_zscore,sig_rsi,sig_bollinger,sig_drop3,sig_vol_spike,confluence_score
-BTCUSDT,63024.32,sideways,43.12,62437.02,0.000774,-1.941,False,False,False,False,0
-ETHUSDT,1880.91,sideways,51.06,1844.43,0.000137,-1.714,False,False,False,False,0
-SOLUSDT,75.27,sideways,50.75,71.73,-0.00073,-2.452,False,False,False,False,0
+BTCUSDT,62818.65,sideways,41.76,62320.34,-0.003263,-1.814,False,False,False,False,0
+ETHUSDT,1873.94,sideways,49.66,1843.13,-0.003703,-1.434,False,False,False,False,0
+SOLUSDT,74.54,sideways,47.63,71.75,-0.009742,-1.905,False,False,False,False,0
