@@ -75,6 +75,7 @@ export default function FundingRatePanel() {
   const [selectedSymbol, setSelectedSymbol] = useState("BTCUSDT");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -117,33 +118,100 @@ export default function FundingRatePanel() {
 
   const ratingInfo = latest ? rateLabel(latest.daily_avg) : null;
 
+  const symLabel = selectedSymbol.replace("USDT", "");
+
+  // Dynamic insight
+  const insight = (() => {
+    if (!latest) return null;
+    const rate = latest.daily_avg;
+    const negPct = latest.neg_pct_7d;
+    const f9 = f9Score ?? 0.5;
+    const f14 = f14Score ?? 0.5;
+
+    if (rate > 0.0005 && negPct < 0.2) return {
+      border: "border-red-500/30", bg: "bg-red-500/5", icon: "⚠", titleColor: "text-red-400",
+      title: "High positive funding — crowded longs · 多頭擁擠，費率偏高",
+      en: `${symLabel} funding rate is ${pct(rate)} — elevated positive territory. ${(negPct*100).toFixed(0)}% of the past 7d rates were negative. F9 score = ${(f9*100).toFixed(0)}/100. Historically, high sustained positive rates signal crowded long positioning and often precede pullbacks.`,
+      zh: `${symLabel} 資金費率 ${pct(rate)}，處於較高正值區間。過去 7 天中 ${(negPct*100).toFixed(0)}% 為負費率。F9 評分 = ${(f9*100).toFixed(0)}/100。歷史上持續高正費率代表多頭擁擠，往往是回調的前兆。`,
+    };
+    if (rate < -0.0003 || negPct > 0.6) return {
+      border: "border-green-500/30", bg: "bg-green-500/5", icon: "✓", titleColor: "text-green-400",
+      title: "Negative / low funding — short squeeze potential · 空頭溢價，反彈潛力",
+      en: `${symLabel} funding rate is ${pct(rate)}. ${(negPct*100).toFixed(0)}% of the past 7d rates were negative — shorts are paying longs. F9 score = ${(f9*100).toFixed(0)}/100. Negative funding historically correlates with oversold setups and potential short-squeeze bounces.`,
+      zh: `${symLabel} 資金費率 ${pct(rate)}。過去 7 天中 ${(negPct*100).toFixed(0)}% 為負費率——空頭在付費給多頭。F9 評分 = ${(f9*100).toFixed(0)}/100。負費率歷史上與超賣設置和潛在空頭回補反彈相關。`,
+    };
+    if (f14 > 0.6) return {
+      border: "border-green-500/20", bg: "bg-green-500/[0.03]", icon: "~", titleColor: "text-green-300",
+      title: "Funding rate declining — deleveraging signal · 費率下降，去槓桿訊號",
+      en: `${symLabel} current rate is ${pct(rate)} but F14 trend score = ${(f14*100).toFixed(0)}/100 indicates the rate is declining. A rapid drop from elevated rates signals active deleveraging — historically this has preceded price bottoms.`,
+      zh: `${symLabel} 當前費率 ${pct(rate)}，但 F14 趨勢評分 = ${(f14*100).toFixed(0)}/100，顯示費率正在下降。費率從高位快速下滑是去槓桿訊號，歷史上往往出現在價格底部附近。`,
+    };
+    return {
+      border: "border-gray-700", bg: "bg-white/[0.03]", icon: "–", titleColor: "text-gray-400",
+      title: "Neutral funding conditions · 費率中性",
+      en: `${symLabel} funding rate is ${pct(rate)} — within neutral range. F9 = ${(f9*100).toFixed(0)}/100, F14 = ${(f14*100).toFixed(0)}/100. No extreme positioning signal at this time.`,
+      zh: `${symLabel} 資金費率 ${pct(rate)}，處於中性區間。F9 = ${(f9*100).toFixed(0)}/100，F14 = ${(f14*100).toFixed(0)}/100。目前無極端倉位信號。`,
+    };
+  })();
+
   return (
-    <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-5">
+    <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-5">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-start justify-between mb-1">
         <div>
-          <h2 className="text-base font-semibold text-slate-100">
-            F9 + F14 · Funding Rate &amp; Trend
-          </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <h2 className="text-lg font-semibold">F9 + F14 · Funding Rate &amp; Trend</h2>
+          <p className="text-gray-500 text-sm mt-0.5">
             Perpetual futures funding sentiment · 永續合約資金費率情緒
           </p>
         </div>
-        <div className="flex gap-1.5">
-          {SYMBOLS.map((s) => (
-            <button
-              key={s}
-              onClick={() => setSelectedSymbol(s)}
-              className={`px-2.5 py-1 text-xs rounded border font-medium transition-colors ${
-                selectedSymbol === s
-                  ? SYMBOL_COLOR[s].badge + " border-current"
-                  : "border-slate-600 text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              {s.replace("USDT", "")}
-            </button>
-          ))}
+        <button onClick={() => setOpen(o => !o)} className="text-xs text-gray-500 hover:text-gray-300 whitespace-nowrap ml-4 mt-1">
+          {open ? "▾" : "▸"} How to read this?
+        </button>
+      </div>
+
+      {/* Explainer */}
+      {open && (
+        <div className="mb-4 mt-3 rounded-lg border border-gray-800 bg-white/[0.03] p-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">English</p>
+              <p className="text-gray-300 mb-2"><em>The core question: are traders paying a premium to be long — or short?</em></p>
+              <p className="text-gray-400 mb-2"><strong className="text-gray-300">F9 (Funding Rate Level)</strong> — Perpetual futures funding rate is paid every 8 hours by longs to shorts (positive rate) or shorts to longs (negative rate). A high positive rate means the market is crowded with longs — historically a contrarian bearish signal. Negative rates signal excessive short positioning — potential for a short squeeze.</p>
+              <p className="text-gray-400 mb-3"><strong className="text-gray-300">F14 (Funding Rate Trend)</strong> — Captures the 7-day change in funding rate direction. A rapid decline from elevated positive rates signals active deleveraging — historically this has preceded price bottoms.</p>
+              <ul className="space-y-1 text-xs text-gray-400">
+                <li>• <strong className="text-gray-300">F9 IC IR = +1.41 (Strong)</strong> — one of the most predictive factors across all 15.</li>
+                <li>• <strong className="text-gray-300">F14 IC IR = +1.33 (Strong)</strong> — trend direction adds independent signal beyond the level.</li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">中文</p>
+              <p className="text-gray-300 mb-2"><em>核心問題：交易者在為多頭還是空頭倉位付溢價？</em></p>
+              <p className="text-gray-400 mb-2"><strong className="text-gray-300">F9（費率水平）</strong>——永續合約每 8 小時收一次資金費，正費率由多頭付給空頭，負費率反之。費率高正值 = 市場多頭擁擠，歷史上是反向看跌信號；負費率 = 空頭過多，有潛在軋空彈升機會。</p>
+              <p className="text-gray-400 mb-3"><strong className="text-gray-300">F14（費率趨勢）</strong>——捕捉費率的 7 日變化方向。費率從高位快速下跌 = 主動去槓桿，歷史上往往出現在底部附近。</p>
+              <ul className="space-y-1 text-xs text-gray-400">
+                <li>• <strong className="text-gray-300">F9 IC IR = +1.41（Strong）</strong>——15 個因子中預測力最強的一批。</li>
+                <li>• <strong className="text-gray-300">F14 IC IR = +1.33（Strong）</strong>——趨勢方向提供費率水平以外的獨立信號。</li>
+              </ul>
+            </div>
+          </div>
         </div>
+      )}
+
+      {/* Symbol tabs */}
+      <div className="flex gap-1.5 mt-3 mb-4">
+        {SYMBOLS.map((s) => (
+          <button
+            key={s}
+            onClick={() => setSelectedSymbol(s)}
+            className={`px-2.5 py-1 text-xs rounded border font-medium transition-colors ${
+              selectedSymbol === s
+                ? SYMBOL_COLOR[s].badge + " border-current"
+                : "border-gray-700 text-gray-400 hover:text-gray-200"
+            }`}
+          >
+            {s.replace("USDT", "")}
+          </button>
+        ))}
       </div>
 
       {loading ? (
@@ -218,28 +286,16 @@ export default function FundingRatePanel() {
             </div>
           </div>
 
-          {/* 說明框 */}
-          <div className="rounded-lg bg-slate-700/30 border border-slate-600/40 p-4 text-sm text-slate-300 space-y-2">
-            <p className="font-medium text-slate-100">📖 How to Read · 怎麼看</p>
-            <p>
-              <span className="text-slate-400">F9（費率水平）：</span>
-              資金費率是多頭每 8 小時付給空頭的費用。費率越高，代表市場越「頂」——大家都看多、追多，歷史上這種時候往往是回調前兆。<br />
-              <span className="text-xs text-slate-500">
-                F9 (Funding Rate Level): High positive rates = crowded longs → historically precedes pullbacks.
-              </span>
-            </p>
-            <p>
-              <span className="text-slate-400">F14（費率趨勢）：</span>
-              F9 是「現在費率高不高」，F14 是「費率在往哪個方向走」。費率從高位急速下跌，是多頭平倉訊號，也可能是底部反轉的前兆。<br />
-              <span className="text-xs text-slate-500">
-                F14 (Funding Trend): Captures 7d change direction. Rapid decline from high rates signals deleveraging.
-              </span>
-            </p>
-            <p>
-              <span className="text-slate-400">IC IR：</span>
-              F9 IC IR = 1.41（Strong），F14 IC IR = 1.33（Strong）——兩個都是15個因子裡預測力最強的一批。
-            </p>
-          </div>
+          {/* Dynamic insight */}
+          {insight && (
+            <div className={`rounded-lg border ${insight.border} ${insight.bg} px-4 py-3 text-sm`}>
+              <div className={`font-medium mb-2 ${insight.titleColor}`}>{insight.icon} {insight.title}</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <p className="text-gray-300 text-sm">{insight.en}</p>
+                <p className="text-gray-500 text-sm">{insight.zh}</p>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

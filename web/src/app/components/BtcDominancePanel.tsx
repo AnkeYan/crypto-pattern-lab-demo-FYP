@@ -50,6 +50,7 @@ export default function BtcDominancePanel() {
   const [data, setData] = useState<DomRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -76,20 +77,82 @@ export default function BtcDominancePanel() {
     : latest.btc_dominance < 45 ? { text: "Altcoin season · 山寨幣季節", color: "text-purple-400" }
     : { text: "Balanced · 均衡市場", color: "text-slate-300" };
 
+  // Dynamic insight
+  const insight = (() => {
+    if (!latest || change7d === null) return null;
+    const dom = latest.btc_dominance;
+
+    if (dom > 60 && change7d > 0.5) return {
+      border: "border-yellow-500/30", bg: "bg-yellow-500/5", icon: "⚠", titleColor: "text-yellow-400",
+      title: "BTC dominance high and rising — risk-off · BTC 佔有率高且上升，市場避險",
+      en: `BTC dominance is ${dom.toFixed(2)}%, up ${change7d > 0 ? "+" : ""}${change7d.toFixed(2)}pp in 7 days. Capital is rotating into BTC — a risk-off signal. Altcoins (ETH/SOL) typically underperform when BTC dominance is expanding.`,
+      zh: `BTC 佔有率 ${dom.toFixed(2)}%，7 日上升 ${change7d > 0 ? "+" : ""}${change7d.toFixed(2)}pp。資金正流向比特幣，屬於避險模式。BTC 佔有率擴張時，山寨幣（ETH/SOL）通常表現落後。`,
+    };
+    if (dom < 45 && change7d < -0.5) return {
+      border: "border-purple-500/30", bg: "bg-purple-500/5", icon: "✓", titleColor: "text-purple-400",
+      title: "BTC dominance low and falling — altcoin season signal · 山寨季節信號",
+      en: `BTC dominance is ${dom.toFixed(2)}%, down ${change7d.toFixed(2)}pp in 7 days. Capital is rotating into altcoins — conditions favour ETH/SOL outperformance. Historically this pattern precedes altcoin season.`,
+      zh: `BTC 佔有率 ${dom.toFixed(2)}%，7 日下降 ${change7d.toFixed(2)}pp。資金輪動至山寨幣，有利於 ETH/SOL 跑贏。歷史上這種模式往往出現在山寨季節之前。`,
+    };
+    if (change7d > 1) return {
+      border: "border-yellow-500/20", bg: "bg-yellow-500/[0.03]", icon: "~", titleColor: "text-yellow-300",
+      title: "BTC dominance rising — watch altcoin pressure · 佔有率上升，留意山寨幣壓力",
+      en: `BTC dominance is ${dom.toFixed(2)}%, up ${change7d.toFixed(2)}pp this week. A notable rotation into BTC is underway — altcoins may face headwinds until this trend stabilises.`,
+      zh: `BTC 佔有率 ${dom.toFixed(2)}%，本週上升 ${change7d.toFixed(2)}pp。市場正在向比特幣輪動，在趨勢穩定前山寨幣可能面臨壓力。`,
+    };
+    return {
+      border: "border-gray-700", bg: "bg-white/[0.03]", icon: "–", titleColor: "text-gray-400",
+      title: "BTC dominance stable · 佔有率穩定",
+      en: `BTC dominance is ${dom.toFixed(2)}%, 7d change: ${change7d > 0 ? "+" : ""}${change7d.toFixed(2)}pp. No significant rotation signal at this time.`,
+      zh: `BTC 佔有率 ${dom.toFixed(2)}%，7 日變化 ${change7d > 0 ? "+" : ""}${change7d.toFixed(2)}pp。目前無明顯輪動信號。`,
+    };
+  })();
+
   return (
-    <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-5">
+    <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-5">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-start justify-between mb-1">
         <div>
-          <h2 className="text-base font-semibold text-slate-100">F15 · BTC Dominance</h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            BTC market cap share · BTC 市場佔有率
-          </p>
+          <h2 className="text-lg font-semibold">F15 · BTC Dominance</h2>
+          <p className="text-gray-500 text-sm mt-0.5">BTC market cap share · BTC 市場佔有率</p>
         </div>
-        <span className="px-2.5 py-1 text-xs rounded border border-yellow-500/30 bg-yellow-500/10 text-yellow-300 font-medium">
-          Dashboard Only
-        </span>
+        <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+          <span className="px-2 py-0.5 text-xs rounded border border-yellow-500/30 bg-yellow-500/10 text-yellow-300 font-medium">Dashboard Only</span>
+          <button onClick={() => setOpen(o => !o)} className="text-xs text-gray-500 hover:text-gray-300 whitespace-nowrap">
+            {open ? "▾" : "▸"} How to read this?
+          </button>
+        </div>
       </div>
+
+      {/* Explainer */}
+      {open && (
+        <div className="mb-4 mt-3 rounded-lg border border-gray-800 bg-white/[0.03] p-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">English</p>
+              <p className="text-gray-300 mb-2"><em>The core question: is capital flowing into BTC (risk-off) or rotating into altcoins (risk-on)?</em></p>
+              <p className="text-gray-400 mb-2"><strong className="text-gray-300">BTC Dominance</strong> = BTC market cap ÷ total crypto market cap. When dominance rises, BTC is gaining share — capital is moving defensively. When it falls, altcoins are outperforming — altcoin season conditions.</p>
+              <ul className="space-y-1 text-xs text-gray-400 mt-2">
+                <li>• <strong className="text-gray-300">&gt; 60%</strong> — High dominance: risk-off, BTC-driven market. ETH/SOL under pressure.</li>
+                <li>• <strong className="text-gray-300">45–60%</strong> — Balanced market.</li>
+                <li>• <strong className="text-gray-300">&lt; 45%</strong> — Low dominance: altcoin season conditions.</li>
+                <li>• <strong className="text-gray-300">F15 is Dashboard only</strong> — only 30 days of data. Will enter XGBoost once 1+ year accumulates.</li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">中文</p>
+              <p className="text-gray-300 mb-2"><em>核心問題：資金正在流向比特幣（避險），還是輪動到山寨幣（進攻）？</em></p>
+              <p className="text-gray-400 mb-2"><strong className="text-gray-300">BTC 佔有率</strong> = BTC 市值 ÷ 加密貨幣總市值。佔有率上升 = BTC 在搶走山寨幣的份額，市場偏防守；下降 = 山寨幣跑贏，山寨季節條件成立。</p>
+              <ul className="space-y-1 text-xs text-gray-400 mt-2">
+                <li>• <strong className="text-gray-300">&gt; 60%</strong> — 高佔有率：避險模式，BTC 主導，ETH/SOL 承壓。</li>
+                <li>• <strong className="text-gray-300">45–60%</strong> — 均衡市場。</li>
+                <li>• <strong className="text-gray-300">&lt; 45%</strong> — 低佔有率：山寨季節條件成立。</li>
+                <li>• <strong className="text-gray-300">F15 只作 Dashboard</strong>——目前只有 30 天數據，數據累積超過 1 年後才加入 XGBoost。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
@@ -136,21 +199,16 @@ export default function BtcDominancePanel() {
             <div dangerouslySetInnerHTML={{ __html: domSvg(data, 560, 100) }} />
           </div>
 
-          {/* 說明框 */}
-          <div className="rounded-lg bg-slate-700/30 border border-slate-600/40 p-4 text-sm text-slate-300 space-y-2">
-            <p className="font-medium text-slate-100">📖 How to Read · 怎麼看</p>
-            <p>
-              BTC 佔有率是「加密市場整體情緒指南針」——BTC 佔比上升，代表資金流向比特幣（避險模式），山寨幣（ETH/SOL）承壓；BTC 佔比下降，代表資金輪動到山寨幣（進攻模式）。
-              <br />
-              <span className="text-xs text-slate-500">
-                BTC dominance rising = risk-off rotation into BTC → bearish for ETH/SOL. Falling = altcoin season signal.
-              </span>
-            </p>
-            <p>
-              <span className="text-slate-400">⚠️ 限制：</span>
-              F15 目前只有 30 天歷史數據，不足以進入 XGBoost 訓練（XGBoost 需要多年數據才有效）。F15 只作 Dashboard 展示因子，等數據累積到 1 年以上才加入模型。
-            </p>
-          </div>
+          {/* Dynamic insight */}
+          {insight && (
+            <div className={`rounded-lg border ${insight.border} ${insight.bg} px-4 py-3 text-sm`}>
+              <div className={`font-medium mb-2 ${insight.titleColor}`}>{insight.icon} {insight.title}</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <p className="text-gray-300 text-sm">{insight.en}</p>
+                <p className="text-gray-500 text-sm">{insight.zh}</p>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

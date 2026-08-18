@@ -89,6 +89,7 @@ export default function TurbulencePanel() {
   const [data, setData] = useState<TurbRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -108,22 +109,82 @@ export default function TurbulencePanel() {
   const latest = data[data.length - 1];
   const lc = latest ? levelColor(latest.turbulence_level) : null;
 
+  // Dynamic insight
+  const insight = (() => {
+    if (!latest) return null;
+    const norm = latest.turbulence_norm;
+    const level = latest.turbulence_level;
+    const f12calm = (1 - norm) * 100;
+
+    if (level === "extreme") return {
+      border: "border-red-500/30", bg: "bg-red-500/5", icon: "⚠", titleColor: "text-red-400",
+      title: "Extreme turbulence — systemic stress detected · 極端市場動盪，系統性壓力",
+      en: `Market turbulence is at extreme levels (norm = ${(norm*100).toFixed(0)}/100, F12 calm score = ${f12calm.toFixed(0)}/100). BTC, ETH, and SOL are making unusually correlated large joint moves — a pattern historically associated with systemic events (e.g. exchange collapses, macro shocks). Exercise caution with new positions.`,
+      zh: `市場動盪達到極端水平（norm = ${(norm*100).toFixed(0)}/100，F12 平靜評分 = ${f12calm.toFixed(0)}/100）。BTC、ETH、SOL 三個幣種正在發生異常同步大幅移動——歷史上這種模式與系統性事件相關（如交易所崩塌、宏觀衝擊）。新倉位需謹慎。`,
+    };
+    if (level === "high") return {
+      border: "border-orange-500/20", bg: "bg-orange-500/[0.03]", icon: "~", titleColor: "text-orange-400",
+      title: "High turbulence — elevated joint volatility · 高度動盪，多幣種同步波動",
+      en: `Market turbulence is elevated (norm = ${(norm*100).toFixed(0)}/100, F12 calm = ${f12calm.toFixed(0)}/100). Three-coin joint returns are abnormally correlated. Not yet extreme, but volatility clusters — the probability of large moves in the next few days is above average.`,
+      zh: `市場動盪偏高（norm = ${(norm*100).toFixed(0)}/100，F12 平靜評分 = ${f12calm.toFixed(0)}/100）。三幣種聯動回報異常相關。尚未達極端，但波動率有聚集效應——未來幾天大幅移動的概率高於平均。`,
+    };
+    if (norm < 0.3) return {
+      border: "border-green-500/30", bg: "bg-green-500/5", icon: "✓", titleColor: "text-green-400",
+      title: "Market calm — low turbulence, good backdrop for signals · 市場平靜，有利信號背景",
+      en: `Market turbulence is low (norm = ${(norm*100).toFixed(0)}/100, F12 calm = ${f12calm.toFixed(0)}/100). The three-coin joint movement is within normal historical range. Low turbulence periods are typically more favourable for technical signals like RSI and Bollinger to work as expected.`,
+      zh: `市場動盪很低（norm = ${(norm*100).toFixed(0)}/100，F12 平靜評分 = ${f12calm.toFixed(0)}/100）。三幣種聯動在歷史正常範圍內。低動盪時期技術信號（RSI、布林帶）的有效性通常更高。`,
+    };
+    return {
+      border: "border-gray-700", bg: "bg-white/[0.03]", icon: "–", titleColor: "text-gray-400",
+      title: "Moderate turbulence · 中等動盪水平",
+      en: `Market turbulence is at a moderate level (norm = ${(norm*100).toFixed(0)}/100, F12 calm = ${f12calm.toFixed(0)}/100). Three-coin joint volatility is above low but not alarming. No extreme stress signal.`,
+      zh: `市場動盪處於中等水平（norm = ${(norm*100).toFixed(0)}/100，F12 平靜評分 = ${f12calm.toFixed(0)}/100）。三幣種聯動波動高於低位但不構成警報。無極端壓力信號。`,
+    };
+  })();
+
   return (
-    <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-5">
+    <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-5">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-start justify-between mb-1">
         <div>
-          <h2 className="text-base font-semibold text-slate-100">F12 · Market Turbulence Index</h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Mahalanobis distance across BTC/ETH/SOL · 三幣種馬氏距離
-          </p>
+          <h2 className="text-lg font-semibold">F12 · Market Turbulence Index</h2>
+          <p className="text-gray-500 text-sm mt-0.5">Mahalanobis distance across BTC/ETH/SOL · 三幣種馬氏距離</p>
         </div>
-        {latest && (
-          <span className={`px-2.5 py-1 text-xs rounded border font-medium ${lc?.badge}`}>
-            {latest.turbulence_level.charAt(0).toUpperCase() + latest.turbulence_level.slice(1)}
-          </span>
-        )}
+        <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+          {latest && <span className={`px-2 py-0.5 text-xs rounded border font-medium ${lc?.badge}`}>{latest.turbulence_level.charAt(0).toUpperCase() + latest.turbulence_level.slice(1)}</span>}
+          <button onClick={() => setOpen(o => !o)} className="text-xs text-gray-500 hover:text-gray-300 whitespace-nowrap">
+            {open ? "▾" : "▸"} How to read this?
+          </button>
+        </div>
       </div>
+
+      {/* Explainer */}
+      {open && (
+        <div className="mb-4 mt-3 rounded-lg border border-gray-800 bg-white/[0.03] p-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">English</p>
+              <p className="text-gray-300 mb-2"><em>The core question: are BTC, ETH, and SOL moving together in an unusual way?</em></p>
+              <p className="text-gray-400 mb-2"><strong className="text-gray-300">Turbulence Index</strong> (Kritzman &amp; Li, 2010) measures the Mahalanobis distance of the joint daily returns of BTC, ETH, and SOL from their historical mean. It captures not just how much each coin moves, but whether the combination is statistically abnormal.</p>
+              <p className="text-gray-400 mb-3">High turbulence = the three coins are making unusually large, correlated moves simultaneously — a hallmark of systemic stress events (Luna collapse, FTX, SVB).</p>
+              <ul className="space-y-1 text-xs text-gray-400">
+                <li>• <strong className="text-gray-300">F12 = 1 − turbulence</strong> (inverted) — calm market gets high score.</li>
+                <li>• Use alongside RSI: oversold RSI during low turbulence is a stronger setup than during high turbulence.</li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">中文</p>
+              <p className="text-gray-300 mb-2"><em>核心問題：BTC、ETH、SOL 三個幣種有沒有同時發生異常的聯動移動？</em></p>
+              <p className="text-gray-400 mb-2"><strong className="text-gray-300">Turbulence Index</strong>（Kritzman &amp; Li，2010）量的是 BTC/ETH/SOL 三幣種日回報組合偏離歷史均值的馬氏距離。它不只看單個幣種波動多大，而是看三個幣種「組合起來」是否統計上異常。</p>
+              <p className="text-gray-400 mb-3">高動盪 = 三個幣種同時發生大幅異常聯動——這是系統性壓力事件的特徵（Luna 崩塌、FTX 暴雷、SVB 危機）。</p>
+              <ul className="space-y-1 text-xs text-gray-400">
+                <li>• <strong className="text-gray-300">F12 = 1 − 動盪指數</strong>（取反）——市場越平靜，評分越高。</li>
+                <li>• 配合 RSI 使用：低動盪時 RSI 超賣比高動盪時更可靠。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
@@ -168,24 +229,16 @@ export default function TurbulencePanel() {
             <div dangerouslySetInnerHTML={{ __html: turbulenceSvg(data, 560, 140) }} />
           </div>
 
-          {/* 說明框 */}
-          <div className="rounded-lg bg-slate-700/30 border border-slate-600/40 p-4 text-sm text-slate-300 space-y-2">
-            <p className="font-medium text-slate-100">📖 How to Read · 怎麼看</p>
-            <p>
-              Turbulence Index 是「異常同步移動偵測器」——它量的不是單個幣種波動有多大，而是 BTC/ETH/SOL 三個幣種有沒有同時往不尋常的方向大幅移動。
-              <br />
-              <span className="text-xs text-slate-500">
-                Turbulence Index (Kritzman & Li, 2010) measures Mahalanobis distance of multi-asset returns. High = unusual joint movement across BTC/ETH/SOL.
-              </span>
-            </p>
-            <p>
-              <span className="text-slate-400">為什麼有用：</span>
-              Luna 崩塌、FTX 暴雷、SVB 危機這些系統性事件，都會讓三個幣種同時大幅移動，Turbulence 會突然爆升。F12 = 1 - turbulence（取反），平靜市場得高分，適合配合 RSI 超賣信號使用。
-            </p>
-            <p className="text-xs text-slate-500">
-              ⚠️ 數據從 2021-05-20 起，需要 BTC/ETH/SOL 三幣種同時有數據才能計算協方差矩陣。
-            </p>
-          </div>
+          {/* Dynamic insight */}
+          {insight && (
+            <div className={`rounded-lg border ${insight.border} ${insight.bg} px-4 py-3 text-sm`}>
+              <div className={`font-medium mb-2 ${insight.titleColor}`}>{insight.icon} {insight.title}</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <p className="text-gray-300 text-sm">{insight.en}</p>
+                <p className="text-gray-500 text-sm">{insight.zh}</p>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

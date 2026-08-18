@@ -67,6 +67,7 @@ export default function MvrvPanel() {
   const [selectedSymbol, setSelectedSymbol] = useState("BTCUSDT");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -93,31 +94,95 @@ export default function MvrvPanel() {
   // Score history: last 90 rows
   const scoreHistory = symData.slice(-90);
 
+  const symLabel = selectedSymbol.replace("USDT", "");
+
+  // Dynamic insight
+  const insight = (() => {
+    if (!latest) return null;
+    const mvrv = latest.mvrv;
+    const f13 = latest.f13_norm;
+
+    if (mvrv > 3.5) return {
+      border: "border-red-500/30", bg: "bg-red-500/5", icon: "⚠", titleColor: "text-red-400",
+      title: "MVRV overheated — profit-taking zone · MVRV 過熱，獲利了結壓力大",
+      en: `${symLabel} MVRV = ${mvrv.toFixed(2)} — in the overheated zone (> 3.5). The average holder is sitting on significant unrealised profit, creating strong profit-taking pressure. F13 score = ${(f13*100).toFixed(0)}/100. Historically, MVRV > 3.5 has preceded major market tops.`,
+      zh: `${symLabel} MVRV = ${mvrv.toFixed(2)}，處於過熱區間（> 3.5）。市場持有者平均帳面利潤豐厚，獲利了結壓力大。F13 評分 = ${(f13*100).toFixed(0)}/100。歷史上 MVRV > 3.5 往往在大頂附近出現。`,
+    };
+    if (mvrv > 2.5) return {
+      border: "border-orange-500/20", bg: "bg-orange-500/[0.03]", icon: "~", titleColor: "text-orange-400",
+      title: "MVRV elevated — caution zone · MVRV 偏高，注意頂部風險",
+      en: `${symLabel} MVRV = ${mvrv.toFixed(2)} — elevated but not yet extreme. F13 score = ${(f13*100).toFixed(0)}/100. The market is in profit but below the overheated threshold. Monitor for further expansion toward 3.5.`,
+      zh: `${symLabel} MVRV = ${mvrv.toFixed(2)}，偏高但尚未極端。F13 評分 = ${(f13*100).toFixed(0)}/100。市場整體有利潤但未到過熱門檻。留意是否繼續向 3.5 擴張。`,
+    };
+    if (mvrv < 1.0) return {
+      border: "border-blue-500/30", bg: "bg-blue-500/5", icon: "✓", titleColor: "text-blue-400",
+      title: "MVRV below 1 — deep value / capitulation zone · MVRV 低於 1，深度底部",
+      en: `${symLabel} MVRV = ${mvrv.toFixed(2)} — below 1.0, meaning the average holder is at a loss. F13 score = ${(f13*100).toFixed(0)}/100. Historically, MVRV < 1 has been a reliable long-term bottom signal. This is where patient capital accumulates.`,
+      zh: `${symLabel} MVRV = ${mvrv.toFixed(2)}，低於 1.0，市場平均持有者處於虧損狀態。F13 評分 = ${(f13*100).toFixed(0)}/100。歷史上 MVRV < 1 是可靠的長期底部信號，是耐心資本的積累區域。`,
+    };
+    return {
+      border: "border-green-500/20", bg: "bg-green-500/[0.03]", icon: "~", titleColor: "text-green-400",
+      title: "MVRV fair value — healthy zone · MVRV 合理估值區間",
+      en: `${symLabel} MVRV = ${mvrv.toFixed(2)} — in the fair value zone (1.0–2.5). The market is healthy: holders have moderate unrealised gains but no extreme profit-taking pressure. F13 score = ${(f13*100).toFixed(0)}/100.`,
+      zh: `${symLabel} MVRV = ${mvrv.toFixed(2)}，處於合理估值區間（1.0–2.5）。市場健康：持有者有適度帳面利潤但無極端獲利了結壓力。F13 評分 = ${(f13*100).toFixed(0)}/100。`,
+    };
+  })();
+
   return (
-    <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-5">
+    <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-5">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-start justify-between mb-1">
         <div>
-          <h2 className="text-base font-semibold text-slate-100">F13 · MVRV Valuation</h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Market Value / Realized Value · 市值相對已實現價值
-          </p>
+          <h2 className="text-lg font-semibold">F13 · MVRV Valuation</h2>
+          <p className="text-gray-500 text-sm mt-0.5">Market Value / Realized Value · 市值相對已實現價值</p>
         </div>
-        <div className="flex gap-1.5">
-          {SYMBOLS.map((s) => (
-            <button
-              key={s}
-              onClick={() => setSelectedSymbol(s)}
-              className={`px-2.5 py-1 text-xs rounded border font-medium transition-colors ${
-                selectedSymbol === s
-                  ? SYMBOL_COLOR[s].badge + " border-current"
-                  : "border-slate-600 text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              {s.replace("USDT", "")}
-            </button>
-          ))}
+        <button onClick={() => setOpen(o => !o)} className="text-xs text-gray-500 hover:text-gray-300 whitespace-nowrap ml-4 mt-1">
+          {open ? "▾" : "▸"} How to read this?
+        </button>
+      </div>
+
+      {/* Explainer */}
+      {open && (
+        <div className="mb-4 mt-3 rounded-lg border border-gray-800 bg-white/[0.03] p-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">English</p>
+              <p className="text-gray-300 mb-2"><em>The core question: is the average crypto holder in profit or at a loss — and by how much?</em></p>
+              <p className="text-gray-400 mb-2"><strong className="text-gray-300">MVRV</strong> = Market Cap ÷ Realised Cap. Realised Cap values each coin at the price it last moved on-chain — a proxy for the market's aggregate cost basis. MVRV = 2 means the average holder has 2x unrealised profit.</p>
+              <ul className="space-y-1 text-xs text-gray-400 mt-2">
+                <li>• <strong className="text-red-400">&gt; 3.5</strong> — Overheated. Strong profit-taking pressure. Historically near market tops.</li>
+                <li>• <strong className="text-orange-400">2.5–3.5</strong> — Elevated. Watch for distribution.</li>
+                <li>• <strong className="text-green-400">1.0–2.5</strong> — Fair value. Healthy market.</li>
+                <li>• <strong className="text-blue-400">&lt; 1.0</strong> — Below cost basis. Capitulation / bottom zone.</li>
+                <li>• <strong className="text-gray-300">F13 IC IR = +1.76 (Strongest factor)</strong> — top predictor across all 15 factors.</li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">中文</p>
+              <p className="text-gray-300 mb-2"><em>核心問題：市場平均持有者在盈利還是虧損？盈虧幅度多大？</em></p>
+              <p className="text-gray-400 mb-2"><strong className="text-gray-300">MVRV</strong> = 市值 ÷ 已實現市值。已實現市值以每個幣種最後一次在鏈上移動時的價格計算——代表市場的平均持倉成本。MVRV = 2 代表平均持有者有 2 倍帳面利潤。</p>
+              <ul className="space-y-1 text-xs text-gray-400 mt-2">
+                <li>• <strong className="text-red-400">&gt; 3.5</strong> — 過熱。獲利了結壓力大，歷史上接近市場頂部。</li>
+                <li>• <strong className="text-orange-400">2.5–3.5</strong> — 偏高，留意派發跡象。</li>
+                <li>• <strong className="text-green-400">1.0–2.5</strong> — 合理估值，市場健康。</li>
+                <li>• <strong className="text-blue-400">&lt; 1.0</strong> — 低於持倉成本，恐慌拋售/底部區域。</li>
+                <li>• <strong className="text-gray-300">F13 IC IR = +1.76（最強因子）</strong>——15 個因子中預測力最高。</li>
+              </ul>
+            </div>
+          </div>
         </div>
+      )}
+
+      {/* Symbol tabs */}
+      <div className="flex gap-1.5 mt-3 mb-4">
+        {SYMBOLS.map((s) => (
+          <button key={s} onClick={() => setSelectedSymbol(s)}
+            className={`px-2.5 py-1 text-xs rounded border font-medium transition-colors ${
+              selectedSymbol === s ? SYMBOL_COLOR[s].badge + " border-current" : "border-gray-700 text-gray-400 hover:text-gray-200"
+            }`}>
+            {s.replace("USDT", "")}
+          </button>
+        ))}
       </div>
 
       {loading ? (
@@ -196,26 +261,19 @@ export default function MvrvPanel() {
             />
           </div>
 
-          {/* 說明框 */}
-          <div className="rounded-lg bg-slate-700/30 border border-slate-600/40 p-4 text-sm text-slate-300 space-y-2">
-            <p className="font-medium text-slate-100">📖 How to Read · 怎麼看</p>
-            <p>
-              MVRV 是「整個市場的持倉成本比較」——MVRV = 市值 ÷ 所有幣的平均持倉成本。
-              <br />
-              MVRV = 2 代表市場平均有 2 倍帳面利潤，大家有動力獲利了結；MVRV = 0.8 代表多數持倉者在虧損，是典型底部信號。
-              <br />
-              <span className="text-xs text-slate-500">
-                MVRV = Market Cap / Realized Cap. High MVRV = profit-taking pressure. Low MVRV = capitulation / bottom signal.
-              </span>
-            </p>
-            <p>
-              <span className="text-slate-400">IC IR = 1.76（最強因子）：</span>
-              MVRV 的滯後值（Lag7/Lag14）在 BTC/ETH 的 Walk-Forward 測試裡每次都進 Feature Importance Top-5，是預測 7 日回報最穩定的因子。
-            </p>
-            <p className="text-xs text-slate-500">
-              ⚠️ SOL 無獨立 MVRV 數據，以 BTC MVRV 作代理使用。
-            </p>
-          </div>
+          {/* Dynamic insight */}
+          {insight && (
+            <div className={`rounded-lg border ${insight.border} ${insight.bg} px-4 py-3 text-sm`}>
+              <div className={`font-medium mb-2 ${insight.titleColor}`}>{insight.icon} {insight.title}</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <p className="text-gray-300 text-sm">{insight.en}</p>
+                <p className="text-gray-500 text-sm">{insight.zh}</p>
+              </div>
+            </div>
+          )}
+          {selectedSymbol === "SOLUSDT" && (
+            <p className="text-xs text-gray-700 mt-1">⚠️ SOL 無獨立 MVRV 數據，以 BTC MVRV 作代理使用。</p>
+          )}
         </div>
       )}
     </div>

@@ -78,6 +78,7 @@ export default function ActiveAddressesPanel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showRecent, setShowRecent] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -103,28 +104,78 @@ export default function ActiveAddressesPanel() {
     : latest.ratio < 0.9 ? { text: "Below average · 低於均值", color: "text-red-400" }
     : { text: "Near average · 接近均值", color: "text-slate-300" };
 
+  // Dynamic insight
+  const insight = (() => {
+    if (!latest) return null;
+    const ratio = latest.ratio;
+    const addr = latest.addr_count;
+    const f11 = latest.f11_norm;
+
+    if (ratio > 1.2) return {
+      border: "border-green-500/30", bg: "bg-green-500/5", icon: "✓", titleColor: "text-green-400",
+      title: "Active addresses above average — on-chain activity rising · 活躍地址高於均值",
+      en: `BTC active addresses today: ${addr.toLocaleString()}, which is ${ratio.toFixed(2)}x the 30-day average — significantly above normal. F11 score = ${(f11*100).toFixed(0)}/100. Rising on-chain activity suggests real user engagement and potential capital inflow.`,
+      zh: `BTC 今日活躍地址 ${addr.toLocaleString()}，是 30 日均值的 ${ratio.toFixed(2)} 倍——明顯高於正常水平。F11 評分 = ${(f11*100).toFixed(0)}/100。鏈上活動增加代表真實用戶參與度上升，可能預示資金流入。`,
+    };
+    if (ratio < 0.8) return {
+      border: "border-red-500/20", bg: "bg-red-500/[0.03]", icon: "~", titleColor: "text-red-300",
+      title: "Active addresses below average — on-chain activity quiet · 活躍地址低於均值",
+      en: `BTC active addresses today: ${addr.toLocaleString()}, only ${ratio.toFixed(2)}x the 30-day average. F11 score = ${(f11*100).toFixed(0)}/100. Below-average activity may signal reduced participation or accumulation phase.`,
+      zh: `BTC 今日活躍地址 ${addr.toLocaleString()}，只有 30 日均值的 ${ratio.toFixed(2)} 倍。F11 評分 = ${(f11*100).toFixed(0)}/100。活躍度低於均值可能代表參與度下降或進入積累階段。`,
+    };
+    return {
+      border: "border-gray-700", bg: "bg-white/[0.03]", icon: "–", titleColor: "text-gray-400",
+      title: "Active addresses near average · 活躍地址接近均值",
+      en: `BTC active addresses today: ${addr.toLocaleString()} (${ratio.toFixed(2)}x 30d MA). F11 score = ${(f11*100).toFixed(0)}/100. On-chain activity is within normal range — no extreme signal.`,
+      zh: `BTC 今日活躍地址 ${addr.toLocaleString()}（30 日均值的 ${ratio.toFixed(2)} 倍）。F11 評分 = ${(f11*100).toFixed(0)}/100。鏈上活動在正常範圍內，無極端信號。`,
+    };
+  })();
+
   return (
-    <div className="rounded-xl border border-slate-700/60 bg-slate-800/40 p-5">
+    <div className="rounded-xl border border-gray-800 bg-gray-950/60 p-5">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-start justify-between mb-1">
         <div>
-          <h2 className="text-base font-semibold text-slate-100">
-            F11 · Active Addresses (BTC)
-          </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            On-chain unique addresses per day · 每日鏈上活躍地址數
-          </p>
+          <h2 className="text-lg font-semibold">F11 · Active Addresses (BTC)</h2>
+          <p className="text-gray-500 text-sm mt-0.5">On-chain unique addresses per day · 每日鏈上活躍地址數</p>
         </div>
-        <div className="flex gap-2 items-center">
-          <span className="text-xs text-slate-500">BTC only</span>
-          <button
-            onClick={() => setShowRecent((v) => !v)}
-            className="px-2.5 py-1 text-xs rounded border border-slate-600 text-slate-400 hover:text-slate-200 transition-colors"
-          >
+        <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+          <button onClick={() => setShowRecent((v) => !v)} className="px-2 py-0.5 text-xs rounded border border-gray-700 text-gray-400 hover:text-gray-200 transition-colors">
             {showRecent ? "All History" : "Last 1Y"}
+          </button>
+          <button onClick={() => setOpen(o => !o)} className="text-xs text-gray-500 hover:text-gray-300 whitespace-nowrap">
+            {open ? "▾" : "▸"} How to read this?
           </button>
         </div>
       </div>
+
+      {/* Explainer */}
+      {open && (
+        <div className="mb-4 mt-3 rounded-lg border border-gray-800 bg-white/[0.03] p-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">English</p>
+              <p className="text-gray-300 mb-2"><em>The core question: how many unique Bitcoin addresses are actively transacting today — and is that above or below normal?</em></p>
+              <p className="text-gray-400 mb-2"><strong className="text-gray-300">Active Addresses</strong> count the number of unique Bitcoin addresses that sent or received BTC in a given day. This is a direct measure of real network usage — unaffected by price speculation.</p>
+              <p className="text-gray-400 mb-3">The <strong className="text-gray-300">MA30 Ratio</strong> compares today's count to the 30-day average. A ratio above 1.1 suggests above-average on-chain activity; below 0.9 suggests below-average.</p>
+              <ul className="space-y-1 text-xs text-gray-400">
+                <li>• <strong className="text-gray-300">F11 Score</strong> — normalized ratio. Near 50 = average activity, high score = quiet (inverted: quiet = potentially oversold).</li>
+                <li>• <strong className="text-gray-300">BTC only</strong> — ETH/SOL do not have equivalent on-chain address data from Blockchain.com.</li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">中文</p>
+              <p className="text-gray-300 mb-2"><em>核心問題：今日有多少個比特幣地址在活躍交易？高於還是低於正常水平？</em></p>
+              <p className="text-gray-400 mb-2"><strong className="text-gray-300">活躍地址數</strong>統計當天有發送或接收比特幣的唯一地址數量。這是衡量真實網絡使用量最直接的指標——不受價格投機影響。</p>
+              <p className="text-gray-400 mb-3"><strong className="text-gray-300">MA30 比率</strong>是今日地址數與 30 日均值的比較。比率 &gt; 1.1 = 鏈上活動高於平均；&lt; 0.9 = 低於平均。</p>
+              <ul className="space-y-1 text-xs text-gray-400">
+                <li>• <strong className="text-gray-300">F11 評分</strong>——標準化比率。接近 50 = 正常活動；高分 = 偏靜（取反：活動越靜 = 可能超賣）。</li>
+                <li>• <strong className="text-gray-300">僅限 BTC</strong>——ETH/SOL 沒有 Blockchain.com 的對等鏈上地址數據。</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <p className="text-slate-400 text-sm py-8 text-center">Loading…</p>
@@ -167,24 +218,16 @@ export default function ActiveAddressesPanel() {
             <div dangerouslySetInnerHTML={{ __html: addrSvg(displayData, 560, 140) }} />
           </div>
 
-          {/* 說明框 */}
-          <div className="rounded-lg bg-slate-700/30 border border-slate-600/40 p-4 text-sm text-slate-300 space-y-2">
-            <p className="font-medium text-slate-100">📖 How to Read · 怎麼看</p>
-            <p>
-              活躍地址數是鏈上最直接的「真實使用量」指標——不是看市場情緒，而是看有多少人在實際用比特幣。地址數超出 30 日均值，代表鏈上活動增加，可能預示資金流入或用戶增長。
-              <br />
-              <span className="text-xs text-slate-500">
-                Active addresses = unique addresses sending/receiving BTC per day. Rising above MA30 signals increased on-chain activity.
-              </span>
-            </p>
-            <p>
-              <span className="text-slate-400">F11 評分邏輯：</span>
-              ratio（每日地址 ÷ MA30）越高，說明活躍度比近期平均高，但太高反而可能是過熱。F11 評分是把 ratio 轉換成 0–100 的分數，適中的活躍度得高分。
-            </p>
-            <p className="text-xs text-slate-500">
-              ⚠️ 只有 BTC 有活躍地址數據（Blockchain.com）。ETH/SOL 的 F11 在 XGBoost 已排除（固定 0.5 噪音）。
-            </p>
-          </div>
+          {/* Dynamic insight */}
+          {insight && (
+            <div className={`rounded-lg border ${insight.border} ${insight.bg} px-4 py-3 text-sm`}>
+              <div className={`font-medium mb-2 ${insight.titleColor}`}>{insight.icon} {insight.title}</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <p className="text-gray-300 text-sm">{insight.en}</p>
+                <p className="text-gray-500 text-sm">{insight.zh}</p>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
