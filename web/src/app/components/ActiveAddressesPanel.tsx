@@ -19,7 +19,7 @@ const EVENTS: { date: string; label: string }[] = [
   { date: "2024-03-01", label: "Halving rally" },
 ];
 
-function addrSvg(data: AddrRow[], width = 560, height = 140): string {
+function addrSvg(data: AddrRow[], width = 560, height = 155): string {
   if (data.length < 2) return "";
   const addrVals = data.map((d) => d.addr_count);
   const maVals = data.map((d) => d.ma30);
@@ -27,7 +27,7 @@ function addrSvg(data: AddrRow[], width = 560, height = 140): string {
   const minV = Math.min(...allVals);
   const maxV = Math.max(...allVals);
   const range = maxV - minV || 1;
-  const padL = 8, padR = 60, padT = 12, padB = 4;
+  const padL = 8, padR = 60, padT = 12, padB = 20; // padB 加高留年份空間
   const w = width - padL - padR;
   const h = height - padT - padB;
 
@@ -66,10 +66,29 @@ function addrSvg(data: AddrRow[], width = 560, height = 140): string {
     ];
   });
 
+  // X-axis year labels
+  const years = new Set<string>();
+  const yearTicks = data.flatMap((d, i) => {
+    const yr = d.date.slice(0, 4);
+    if (years.has(yr)) return [];
+    years.add(yr);
+    const x = toX(i);
+    const baseY = padT + h;
+    return [
+      `<line x1="${x.toFixed(1)}" y1="${baseY}" x2="${x.toFixed(1)}" y2="${(baseY + 4).toFixed(1)}" stroke="#4b5563" stroke-width="0.8"/>`,
+      `<text x="${(x + 2).toFixed(1)}" y="${(baseY + 13).toFixed(1)}" font-size="9" fill="#6b7280">${yr}</text>`,
+    ];
+  });
+
+  // X-axis baseline
+  const baseline = `<line x1="${padL}" y1="${padT + h}" x2="${padL + w}" y2="${padT + h}" stroke="#374151" stroke-width="0.8"/>`;
+
   return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
 ${bars}
 <polyline points="${maPts}" fill="none" stroke="#f59e0b" stroke-width="2"/>
 ${annotations.join("")}
+${baseline}
+${yearTicks.join("")}
 </svg>`;
 }
 
