@@ -385,6 +385,19 @@ data/
 - 架構重組（Research 精簡 / Validation 加 2 panels / Signals 加 Monte Carlo + Portfolio）✅
 - ensemble.py f14_lag7 KeyError 修復 ✅
 
+### ✅ 已完成（v23 UI 升級，本次對話）
+- **RegimeEfficacyPanel** — 動態雙語 Key Takeaway 升級（逐信號帶勝率/Edge/p值）✅
+- **VolumeMomentumPanel bug 修復** — API `/api/multifactor-calibration` 補回 `f7_cont/f8_cont rows` ✅
+- **VolumeMomentumPanel UI 升級** — Recharts ComposedChart + Brush 全量數據 + 3M/6M/1Y/2Y/All 快捷 ✅
+- **FactorIcPanel** — How to read this? 摺疊說明框 + 動態雙語解說框 ✅
+- **MultiFactorPanel** — Historical Calibration / XGBoost / Ensemble 三個動態解說框 + Ensemble 說明框 ✅
+- **FundingRatePanel** — How to read this? 摺疊說明框 + 動態解說框 ✅
+- **BtcDominancePanel** — How to read this? 摺疊說明框 + 動態解說框 ✅
+- **ActiveAddressesPanel** — How to read this? 摺疊說明框 + 動態解說框 ✅
+- **MvrvPanel** — How to read this? 摺疊說明框 + 動態解說框 ✅
+- **TurbulencePanel** — How to read this? 摺疊說明框 + 動態解說框 ✅
+- 主文件 + 副本同步，兩個 repo commit + push ✅
+
 ### 🔴 高優先
 1. **F16 Open Interest 變化率**（Bybit API 已有）
    - 數據只有 30 天，需等累積 1 年後才加入 XGBoost
