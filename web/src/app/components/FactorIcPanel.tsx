@@ -4,7 +4,7 @@
 // Tab 1: IC Summary Table（各因子 IC / IC IR 統計）
 // Tab 2: IC by Year（逐年走勢，Factor Decay 可視化）
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 type IcRow = {
   symbol: string;
@@ -236,6 +236,7 @@ export default function FactorIcPanel() {
   const [error, setError] = useState("");
   const [symbol, setSymbol] = useState("BTCUSDT");
   const [tab, setTab] = useState<"summary" | "decay">("summary");
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/factor-ic")
@@ -256,10 +257,46 @@ export default function FactorIcPanel() {
 
   const strongCount = rows.filter((r) => r.rating === "Strong" || r.rating === "Moderate").length;
 
+  // ── 動態解說 ──────────────────────────────────────────────────────────────────
+  const insight = useMemo(() => {
+    if (rows.length === 0) return null;
+    const top = rows[0];
+    const strongRows  = rows.filter(r => r.rating === "Strong");
+    const noiseRows   = rows.filter(r => r.rating === "Noise");
+    const symLabel    = SYMBOL_LABELS[symbol];
+    const topIr       = parseFloat(top.ic_ir);
+    const topIc       = parseFloat(top.mean_ic);
+    const topName     = top.factor_name.replace(/^F\d+ /, "");
+
+    if (strongRows.length >= 2) {
+      const names = strongRows.map(r => r.factor_name.replace(/^F\d+ /, "")).join(", ");
+      return {
+        border: "border-green-500/30", bg: "bg-green-500/5", icon: "✓", titleColor: "text-green-400",
+        title: `${strongRows.length} Strong factor${strongRows.length > 1 ? "s" : ""} found · 發現強力因子`,
+        en: `For ${symLabel}, ${strongRows.length} factors show strong and consistent predictive power (|IC IR| ≥ 1.0): ${names}. The top factor is ${topName} with IC IR = ${topIr >= 0 ? "+" : ""}${topIr.toFixed(2)} and mean IC = ${topIc >= 0 ? "+" : ""}${topIc.toFixed(4)}. These factors maintain above-zero IC across most years — a sign of durable, non-regime-dependent signal.`,
+        zh: `${symLabel} 有 ${strongRows.length} 個因子預測力強且穩定（|IC IR| ≥ 1.0）：${names}。表現最佳的是 ${topName}，IC IR = ${topIr >= 0 ? "+" : ""}${topIr.toFixed(2)}，均值 IC = ${topIc >= 0 ? "+" : ""}${topIc.toFixed(4)}。這些因子跨年 IC 持續為正，說明預測力耐久、不依賴單一牛熊環境。`,
+      };
+    }
+    if (strongRows.length === 1) {
+      return {
+        border: "border-blue-500/30", bg: "bg-blue-500/5", icon: "~", titleColor: "text-blue-400",
+        title: `1 Strong factor found · 發現 1 個強力因子`,
+        en: `For ${symLabel}, only ${topName} shows strong predictive power (IC IR = ${topIr >= 0 ? "+" : ""}${topIr.toFixed(2)}). Most other factors are Weak or Noise — their IC is near zero or unstable across years. This suggests the factor structure for ${symLabel} is concentrated in a single driver.`,
+        zh: `${symLabel} 只有 ${topName} 表現出強力預測力（IC IR = ${topIr >= 0 ? "+" : ""}${topIr.toFixed(2)}）。大部分其他因子屬於 Weak 或 Noise，IC 接近 0 或跨年不穩定。說明 ${symLabel} 的因子結構集中在單一驅動力。`,
+      };
+    }
+    return {
+      border: "border-gray-700", bg: "bg-white/[0.03]", icon: "–", titleColor: "text-gray-400",
+      title: `No strong factors · 暫無強力因子`,
+      en: `For ${symLabel}, no factor currently shows strong IC IR (≥ 1.0). The highest is ${topName} at IC IR = ${topIr >= 0 ? "+" : ""}${topIr.toFixed(2)}. ${noiseRows.length > 0 ? `${noiseRows.length} factor${noiseRows.length > 1 ? "s" : ""} are classified as Noise (|IR| < 0.2). ` : ""}This does not mean these factors are useless — in multi-factor combinations, weak signals can still contribute diversification value.`,
+      zh: `${symLabel} 目前沒有因子達到強力 IC IR（≥ 1.0）。最高的是 ${topName}，IC IR = ${topIr >= 0 ? "+" : ""}${topIr.toFixed(2)}。${noiseRows.length > 0 ? `有 ${noiseRows.length} 個因子屬於 Noise（|IR| < 0.2）。` : ""}這不代表這些因子沒用——在多因子組合中，弱信號仍可提供分散化價值。`,
+    };
+  }, [rows, symbol]);
+
   return (
     <section className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
         <div>
           <h2 className="text-base font-semibold text-zinc-100">
             Factor IC Analysis · 因子預測力驗證
@@ -269,25 +306,82 @@ export default function FactorIcPanel() {
             IC 衡量各因子與 7 天後回報的統計相關性
           </p>
         </div>
-        <div className="flex gap-1">
-          {(["BTCUSDT", "ETHUSDT", "SOLUSDT"] as const).map((s) => (
-            <button
-              key={s}
-              onClick={() => setSymbol(s)}
-              className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                symbol === s
-                  ? "bg-zinc-700 text-zinc-100"
-                  : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
-              }`}
-            >
-              {SYMBOL_LABELS[s]}
-            </button>
-          ))}
+        <div className="flex items-center gap-3">
+          <button onClick={() => setOpen(o => !o)} className="text-xs text-gray-500 hover:text-gray-300 whitespace-nowrap">
+            {open ? "▾" : "▸"} How to read this?
+          </button>
+          <div className="flex gap-1">
+            {(["BTCUSDT", "ETHUSDT", "SOLUSDT"] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setSymbol(s)}
+                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                  symbol === s
+                    ? "bg-zinc-700 text-zinc-100"
+                    : "bg-zinc-800 text-zinc-400 hover:text-zinc-200"
+                }`}
+              >
+                {SYMBOL_LABELS[s]}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
+      {/* Explainer */}
+      {open && (
+        <div className="mb-4 mt-3 rounded-lg border border-gray-800 bg-white/[0.03] p-4 text-sm">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">English</p>
+              <p className="text-gray-300 mb-2">
+                <em>The core question: which factors actually predict 7-day returns — and how consistently?</em>
+              </p>
+              <p className="text-gray-400 mb-2">
+                <strong className="text-gray-300">IC (Information Coefficient)</strong> is the Spearman rank correlation between a factor&apos;s value and the subsequent 7-day return. IC &gt; 0 means higher factor values tend to precede positive returns; IC &lt; 0 means the opposite.
+              </p>
+              <p className="text-gray-400 mb-3">
+                <strong className="text-gray-300">IC IR (Information Ratio)</strong> = mean IC ÷ std IC, measuring consistency across years. A high IR means the factor predicts reliably, not just in certain bull or bear years.
+              </p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Rating thresholds</p>
+              <ul className="space-y-1 text-xs text-gray-400">
+                <li>• <span className="text-green-400 font-medium">Strong</span> — |IC IR| ≥ 1.0. Durable, reliable signal.</li>
+                <li>• <span className="text-blue-400 font-medium">Moderate</span> — |IC IR| ≥ 0.5. Useful but less consistent.</li>
+                <li>• <span className="text-yellow-400 font-medium">Weak</span> — |IC IR| ≥ 0.2. Small edge, use with caution.</li>
+                <li>• <span className="text-zinc-500 font-medium">Noise</span> — |IC IR| &lt; 0.2. No consistent predictive power.</li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">中文</p>
+              <p className="text-gray-300 mb-2">
+                <em>核心問題：哪些因子真的能預測 7 天後的回報？預測力有多穩定？</em>
+              </p>
+              <p className="text-gray-400 mb-2">
+                <strong className="text-gray-300">IC（信息係數）</strong>= 因子值與 7 天後回報的 Spearman 排名相關係數。IC &gt; 0 代表因子值高時回報傾向正向，IC &lt; 0 代表反向。
+              </p>
+              <p className="text-gray-400 mb-3">
+                <strong className="text-gray-300">IC IR（信息比率）</strong>= IC 均值 ÷ IC 標準差，衡量跨年穩定性。IR 高 = 因子在牛熊不同市況下都能穩定預測，不只是「某年剛好靈」。
+              </p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">評級標準</p>
+              <ul className="space-y-1 text-xs text-gray-400">
+                <li>• <span className="text-green-400 font-medium">Strong</span> — |IC IR| ≥ 1.0，耐久型強力因子</li>
+                <li>• <span className="text-blue-400 font-medium">Moderate</span> — |IC IR| ≥ 0.5，有用但穩定性中等</li>
+                <li>• <span className="text-yellow-400 font-medium">Weak</span> — |IC IR| ≥ 0.2，邊緣優勢，謹慎使用</li>
+                <li>• <span className="text-zinc-500 font-medium">Noise</span> — |IC IR| &lt; 0.2，無持續預測力</li>
+              </ul>
+              <p className="text-gray-600 text-xs mt-3">
+                IC 接近 0 的因子（如 RSI、Bollinger）並非「無用」——在 Regime 篩選、多因子組合中仍可提供互補信息。
+              </p>
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-gray-800 text-xs text-gray-600">
+            <p><strong className="text-gray-500">IC by Year tab：</strong>Factor Decay 可視化——折線持續在 0 以上 = 耐久因子；忽上忽下 = 不穩定；整體下滑 = 衰退中。滑鼠懸停圖例可高亮單一因子。</p>
+          </div>
+        </div>
+      )}
+
       {/* Tab switcher */}
-      <div className="flex gap-1 mb-4 border-b border-zinc-800 pb-0">
+      <div className="flex gap-1 mb-4 border-b border-zinc-800 pb-0 mt-3">
         {([
           { key: "summary", label: "IC Summary" },
           { key: "decay",   label: "IC by Year · Factor Decay" },
@@ -306,41 +400,23 @@ export default function FactorIcPanel() {
         ))}
       </div>
 
-      {/* 說明框 */}
-      <div className="rounded-lg bg-zinc-800 border border-zinc-700 p-3 mb-4 text-xs text-zinc-400 space-y-1">
-        {tab === "summary" ? (
-          <>
-            <p>
-              <span className="text-zinc-200 font-medium">IC（Information Coefficient）</span>
-              {" "}= 因子值與 7 天後回報的 Spearman 相關係數。IC &gt; 0 表示因子值高時回報傾向正向，IC &lt; 0 表示反向。
-            </p>
-            <p>
-              <span className="text-zinc-200 font-medium">IC IR（Information Ratio）</span>
-              {" "}= IC 均值 ÷ IC 標準差，衡量穩定性。|IR| ≥ 1.0 = Strong；≥ 0.5 = Moderate；≥ 0.2 = Weak；其餘 = Noise。
-            </p>
-          </>
-        ) : (
-          <>
-            <p>
-              <span className="text-zinc-200 font-medium">Factor Decay（因子衰退）</span>
-              {" "}= 一個因子的預測力隨時間變化。折線持續在 0 以上 = 穩定因子；忽上忽下 = 不穩定；整體下滑 = 衰退中。
-            </p>
-            <p>
-              <span className="text-zinc-200 font-medium">怎麼看：</span>
-              滑鼠懸停在圖例名稱上可單獨高亮某個因子。IC IR 括號內數字是跨年穩定性指標，愈高愈持久。
-            </p>
-            <p className="text-zinc-500">
-              借鑑 WorldQuant：耐久型因子（MVRV、Turbulence）的 IC 跨年穩定；短暫型（Volume Surge）隨市場結構改變而衰退。
-            </p>
-          </>
-        )}
-      </div>
 
       {loading && <p className="text-zinc-500 text-sm">載入中…</p>}
       {error && <p className="text-red-400 text-sm">{error}</p>}
 
       {!loading && !error && rows.length > 0 && (
         <>
+          {/* Dynamic insight */}
+          {insight && (
+            <div className={`rounded-lg border ${insight.border} ${insight.bg} px-4 py-3 text-sm mb-4`}>
+              <div className={`font-medium mb-2 ${insight.titleColor}`}>{insight.icon} {insight.title}</div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <p className="text-gray-300 text-sm">{insight.en}</p>
+                <p className="text-gray-500 text-sm">{insight.zh}</p>
+              </div>
+            </div>
+          )}
+
           {tab === "summary" && (
             <>
               {/* 摘要 */}
