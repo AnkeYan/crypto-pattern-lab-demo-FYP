@@ -16,6 +16,8 @@ type FundingRow = {
 type CalibRow = {
   symbol: string;
   date: string;
+  f7_cont: number;
+  f8_cont: number;
   f9_cont: number;
   f14_cont: number;
 };

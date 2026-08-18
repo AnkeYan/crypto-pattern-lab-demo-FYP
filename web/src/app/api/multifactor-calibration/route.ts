@@ -26,6 +26,8 @@ type VolRow = {
   date: string;
   f7_cont: number;
   f8_cont: number;
+  f9_cont: number;
+  f14_cont: number;
 };
 
 function numOrNull(v: string): number | null {
@@ -61,6 +63,8 @@ export async function GET() {
     const iDate  = idxOf("date");
     const iF7    = idxOf("f7_cont");
     const iF8    = idxOf("f8_cont");
+    const iF9    = idxOf("f9_cont");
+    const iF14   = idxOf("f14_cont");
     const volRows: VolRow[] = [];
 
     for (const line of lines.slice(1)) {
@@ -76,15 +80,19 @@ export async function GET() {
         outcome_7d,
         win,
       });
-      // Collect f7/f8 for VolumeMomentumPanel
-      const f7 = iF7 >= 0 ? numOrNull(parts[iF7] ?? "") : null;
-      const f8 = iF8 >= 0 ? numOrNull(parts[iF8] ?? "") : null;
+      // Collect f7/f8/f9/f14 for VolumeMomentumPanel + FundingRatePanel
+      const f7  = iF7  >= 0 ? numOrNull(parts[iF7]  ?? "") : null;
+      const f8  = iF8  >= 0 ? numOrNull(parts[iF8]  ?? "") : null;
+      const f9  = iF9  >= 0 ? numOrNull(parts[iF9]  ?? "") : null;
+      const f14 = iF14 >= 0 ? numOrNull(parts[iF14] ?? "") : null;
       if (f7 !== null && f8 !== null) {
         volRows.push({
-          symbol: parts[iSym] ?? "",
-          date:   parts[iDate] ?? "",
+          symbol:  parts[iSym]  ?? "",
+          date:    parts[iDate] ?? "",
           f7_cont: f7,
           f8_cont: f8,
+          f9_cont:  f9  ?? 0.5,
+          f14_cont: f14 ?? 0.5,
         });
       }
     }
