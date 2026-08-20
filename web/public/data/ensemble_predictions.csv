@@ -1,4 +1,4 @@
 symbol,date,ensemble_win_prob,ensemble_expected_ret,calib_score,model
-BTCUSDT,2026-08-10,0.4851,-0.0108,13.6,ensemble_xgb+lgb_rolling3y
-ETHUSDT,2026-08-10,0.5014,-0.0068,13.4,ensemble_xgb+lgb_rolling3y
-SOLUSDT,2026-08-10,0.4902,-0.0006,12.6,ensemble_xgb+lgb_rolling3y
+BTCUSDT,2026-08-11,0.5304,-0.0131,16.3,ensemble_xgb+lgb_rolling3y
+ETHUSDT,2026-08-11,0.3665,-0.0151,12.7,ensemble_xgb+lgb_rolling3y
+SOLUSDT,2026-08-11,0.7106,0.0316,12.0,ensemble_xgb+lgb_rolling3y
