@@ -1,0 +1,228 @@
+
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CryptoPatternLab 誠實評估</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; font-size: 14px; line-height: 1.6; background: #fff; color: #1f2328; padding: 32px 16px; }
+  .container { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { color: #57606a; font-size: 13px; margin-bottom: 28px; }
+  h2 { font-size: 15px; font-weight: 700; margin: 28px 0 10px; border-left: 3px solid #3b82d4; padding-left: 10px; }
+  p, li { font-size: 13px; margin-bottom: 5px; }
+  ul { padding-left: 18px; margin: 6px 0 10px; }
+  .card { border: 1px solid #e5e7eb; border-radius: 6px; padding: 14px 18px; margin-bottom: 12px; }
+  .card-green { border-left: 4px solid #15803d; background: #f0fdf4; }
+  .card-red   { border-left: 4px solid #dc2626; background: #fff1f2; }
+  .card-yellow { border-left: 4px solid #d97706; background: #fffbeb; }
+  .card-blue  { border-left: 4px solid #3b82d4; background: #f0f9ff; }
+  .card-purple{ border-left: 4px solid #7c5cd8; background: #faf5ff; }
+  .card-title { font-weight: 700; font-size: 14px; margin-bottom: 8px; }
+  .tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
+  .tag-good { background: #dcfce7; color: #15803d; }
+  .tag-bad  { background: #fee2e2; color: #991b1b; }
+  .tag-med  { background: #fef3c7; color: #92400e; }
+  .tag-info { background: #dbeafe; color: #1d4ed8; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 10px 0; }
+  th { background: #f7f8fa; border: 1px solid #e5e7eb; padding: 7px 10px; font-weight: 600; text-align: left; }
+  td { border: 1px solid #e5e7eb; padding: 7px 10px; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  .verdict { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+  .v-good { background: #dcfce7; color: #15803d; }
+  .v-med  { background: #fef3c7; color: #92400e; }
+  .v-bad  { background: #fee2e2; color: #991b1b; }
+  .code { font-family: monospace; font-size: 11px; background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 3px; padding: 1px 5px; }
+  .step { display: flex; gap: 12px; margin: 8px 0; }
+  .step-num { background: #3b82d4; color: white; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+  .step-body strong { display: block; font-size: 13px; }
+  .step-body span { color: #57606a; font-size: 12px; }
+  hr { border: none; border-top: 1px solid #e5e7eb; margin: 24px 0; }
+  .honest-box { background: #1f2328; color: #e6edf3; border-radius: 6px; padding: 16px 18px; margin: 16px 0; font-size: 13px; line-height: 1.8; }
+  .honest-box .g { color: #56d364; }
+  .honest-box .r { color: #ff7b72; }
+  .honest-box .o { color: #ffa657; }
+  .honest-box .b { color: #79c0ff; }
+  footer { text-align: center; font-size: 12px; color: #57606a; border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 32px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>CryptoPatternLab — 誠實評估與改善建議</h1>
+<p class="subtitle">基於完整代碼審查的真實評估 — 不誇獎，不隱瞞</p>
+
+
+<div class="honest-box">
+<span class="g">✓ 做得好的：</span> 統計框架完整、Anti-overfitting 有意識、UX 設計清晰、自動化流程穩定
+<span class="r">✗ 真正的問題：</span> 預測層太弱（AUC 0.517–0.528 接近隨機）、因子大多靜態、模型層次不夠深
+<span class="o">→ 你的感覺是對的</span>，但問題沒有你想的那麼根本——不是「底層做錯了」，
+  而是「走到了一個合理的瓶頸，需要下一層工具才能突破」。
+</div>
+
+
+<h2>① 你做得比你以為的好（有根據）</h2>
+
+<div class="card card-green">
+  <div class="card-title">✅ Walk-Forward 設計是正確的</div>
+  <p>你的 <code class="code">analyze_walk_forward.py</code> 用了「滾動 3 年訓練窗口，測試下一年」，這是業界標準的時序驗證方法。很多所謂的「量化分析工具」根本不做這個，直接用同一段數據訓練和測試（look-ahead bias）。你有意識地避免了這個陷阱。</p>
+</div>
+
+<div class="card card-green">
+  <div class="card-title">✅ XGBoost Purged Walk-Forward 是對的</div>
+  <p>你的 <code class="code">analyze_xgboost.py</code> 加了 <code class="code">EMBARGO_DAYS=7</code> 禁區，防止 7 天 outcome 重疊的數據洩漏。這個細節大多數人做 ML 回測都會忽略。你做了。</p>
+</div>
+
+<div class="card card-green">
+  <div class="card-title">✅ Pattern Discovery vs Validation Split 是對的</div>
+  <p>固定 ≤2022 為 discovery，≥2023 為 validation，這是學術研究的標準做法，防止 overfitting。</p>
+</div>
+
+<div class="card card-green">
+  <div class="card-title">✅ 你已經知道 Regime 的重要性</div>
+  <p>你的 <code class="code">classify_regime()</code> 雖然是規則版（SMA50/200 + 30d return），但意識到「不同市場狀態下信號效力不同」這個想法本身是對的，很多工具完全沒有這個概念。</p>
+</div>
+
+<hr />
+
+
+<h2>② 真正的問題（說實話）</h2>
+
+<div class="card card-red">
+  <div class="card-title">❌ 問題 1：XGBoost AUC 0.517–0.528，接近隨機猜測</div>
+  <p><strong>AUC = 0.5 是完全隨機，AUC = 1.0 是完美預測。你現在是 0.517–0.528。</strong></p>
+  <p>這說明你現有的 11 個因子，對「7 天後漲跌」的預測力非常有限。即使在最好的情況（BTC top 25%），勝率只有 62.9%，接近但不是顯著超越 60% 的實用門檻。</p>
+  <p style="margin-top:6px"><strong>根本原因：</strong>你用的大多是「技術分析因子」（RSI、Bollinger、動量），這些因子在學術研究中已被反覆證明預測力很弱——它們是滯後指標，反映已發生的事，不是領先指標。</p>
+  <p style="margin-top:6px;color:#57606a;font-size:12px">你的 HANDOVER 自己也說了：F3 GARCH / F4 Fear&amp;Greed / F6 Regime 的 XGBoost 重要性 = 0%。說明這三個因子對模型完全沒用。</p>
+</div>
+
+<div class="card card-red">
+  <div class="card-title">❌ 問題 2：Regime 分類太粗糙</div>
+  <p>你用的是規則版 Regime（SMA50/200 + 30d return），這個分類有兩個問題：</p>
+  <ul>
+    <li><strong>只有 3 個狀態</strong>（Bull/Bear/Sideways），現實中市場有更多細分狀態（如「高波動 Bull」vs「低波動 Bull」）</li>
+    <li><strong>完全是滯後的</strong>：SMA200 需要 200 天數據，意味著你看到 Regime 改變時，其實已經晚了 6 個多月</li>
+    <li><strong>你的 Markov Chain 有硬規則</strong>：Bull ↔ Bear 直接轉換 = 0%（因為規則設計），這不是真實市場行為，是你的分類器限制</li>
+  </ul>
+</div>
+
+<div class="card card-red">
+  <div class="card-title">❌ 問題 3：大多數因子是靜態的，你說得對</div>
+  <table>
+    <tr><th>因子</th><th>靜態還是動態</th><th>問題</th></tr>
+    <tr><td>F3 GARCH</td><td><span class="verdict v-bad">靜態（當天快照）</span></td><td>校準版固定為 0，實際上沒用</td></tr>
+    <tr><td>F4 Fear &amp; Greed</td><td><span class="verdict v-bad">靜態（當天快照）</span></td><td>校準版固定為 0，r=0.007 與回報幾乎無相關</td></tr>
+    <tr><td>F5 Month Seasonality</td><td><span class="verdict v-bad">完全靜態</span></td><td>同一個月份每年給相同分數，不反映當下市場</td></tr>
+    <tr><td>F6 Regime</td><td><span class="verdict v-med">半動態</span></td><td>規則版，滯後嚴重</td></tr>
+    <tr><td>F10 L/S Ratio</td><td><span class="verdict v-bad">靜態（即時快照）</span></td><td>無歷史記錄，校準版固定 0</td></tr>
+    <tr><td>F1 RSI / F2 BB</td><td><span class="verdict v-good">動態</span></td><td>每天重新計算，最有用的兩個因子</td></tr>
+    <tr><td>F9 Funding Rate</td><td><span class="verdict v-good">動態</span></td><td>有逐日歷史，XGBoost #3–4 位</td></tr>
+    <tr><td>F11 Active Addresses</td><td><span class="verdict v-good">動態</span></td><td>BTC only，XGBoost #2 位</td></tr>
+  </table>
+</div>
+
+<div class="card card-red">
+  <div class="card-title">❌ 問題 4：只預測「漲跌方向」，沒有預測「幅度」</div>
+  <p>你的 XGBoost 是二元分類（win=1/0），只預測 7 天後漲還是跌，不預測漲多少。這有兩個問題：</p>
+  <ul>
+    <li>錯過了「小漲大跌」的風險，一個 +0.1% 的漲和 +20% 的漲被同樣對待</li>
+    <li>交易策略需要「期望值」（EV）而不只是「方向概率」：60% 概率漲 1% 但 40% 概率跌 5%，期望值是負的</li>
+  </ul>
+</div>
+
+<div class="card card-yellow">
+  <div class="card-title">⚠️ 問題 5：Pattern 分析是條件統計，不是預測模型</div>
+  <p>你的 <code class="code">analyze_patterns.py</code> 計算的是「跌超過 3% 後 7 天的平均回報」，這是<strong>描述性統計</strong>，不是預測模型。它告訴你「歷史上平均如何」，但無法告訴你「今天這個信號出現，接下來會怎樣」。</p>
+  <p>這不是錯的，但你要清楚它的定位是 <strong>research tool</strong>，不是 prediction engine。你的產品定位已經做到這個，問題是：<strong>用戶真正想要的是更接近「預測」的東西</strong>。</p>
+</div>
+
+<hr />
+
+
+<h2>③ 具體改善路線（按優先順序）</h2>
+
+<div class="card card-blue">
+  <div class="card-title">改善 1：加入領先指標替換靜態因子 <span class="tag tag-info">高優先</span></div>
+  <p>把效果差的靜態因子（F3/F4/F5/F6）替換成有預測力的領先指標：</p>
+  <table>
+    <tr><th>替換什麼</th><th>換成什麼</th><th>原因</th></tr>
+    <tr><td>F5 月份季節性（靜態）</td><td><strong>鏈上 Exchange Inflow/Outflow</strong></td><td>大量提幣到錢包 = 看漲信號；大量存入交易所 = 賣壓信號。數據源：Glassnode 免費層</td></tr>
+    <tr><td>F6 Regime（規則版）</td><td><strong>HMM（Hidden Markov Model）自動分類</strong></td><td>讓數據決定 Regime 邊界，而不是人工規則</td></tr>
+    <tr><td>F4 Fear &amp; Greed（弱）</td><td><strong>期權 Put/Call Ratio</strong></td><td>期權市場的大戶情緒，比零售 F&amp;G 更有預測力</td></tr>
+    <tr><td>新增</td><td><strong>Turbulence Index（F12）</strong></td><td>你已計劃加，機構級指標</td></tr>
+  </table>
+</div>
+
+<div class="card card-blue">
+  <div class="card-title">改善 2：把二元分類改成「期望值預測」 <span class="tag tag-info">高優先</span></div>
+  <p>現在：XGBoost 預測「漲跌概率」（binary）<br />
+  改成：預測「7 天期望回報」（regression）或「風險調整後回報」</p>
+  <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:4px;padding:10px;font-family:monospace;font-size:11px;margin:8px 0">
+    <span style="color:#57606a"># 現在：</span><br />
+    target = (close_7d &gt; close_today).astype(int)  <span style="color:#57606a"># 0 或 1</span><br /><br />
+    <span style="color:#57606a"># 改成：</span><br />
+    target = (close_7d - close_today) / close_today  <span style="color:#57606a"># 連續值，可正可負</span><br />
+    <span style="color:#57606a"># 模型改用 XGBRegressor，輸出期望回報率</span>
+  </div>
+  <p style="font-size:12px;color:#57606a">這讓你能說：「當前預測 7 天期望回報 +2.3%，風險調整後 Sharpe = 0.8」，比「60% 漲的概率」更有用。</p>
+</div>
+
+<div class="card card-blue">
+  <div class="card-title">改善 3：用 HMM 替換規則版 Regime <span class="tag tag-med">中優先</span></div>
+  <p>Hidden Markov Model 讓數據自己找出市場狀態，比你現在的 SMA 規則更精確：</p>
+  <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:4px;padding:10px;font-family:monospace;font-size:11px;margin:8px 0">
+    from hmmlearn import GaussianHMM<br />
+    model = GaussianHMM(n_components=3)  <span style="color:#57606a"># 3 種隱藏狀態</span><br />
+    model.fit(returns.reshape(-1, 1))<br />
+    regimes = model.predict(returns.reshape(-1, 1))
+  </div>
+  <p>HMM 能發現「數據驅動的市場狀態」，而不是你拍腦袋定的 SMA 規則。<code class="code">hmmlearn</code> 是 Python 標準庫，很容易加。</p>
+</div>
+
+<div class="card card-blue">
+  <div class="card-title">改善 4：加入 LSTM 作為預測層對比 <span class="tag tag-med">中優先</span></div>
+  <p>XGBoost 是「每天獨立預測」，它看不到時序連續性。LSTM 能捕捉「連續幾天的模式」：</p>
+  <ul>
+    <li>XGBoost：「今天 RSI=28，BB 偏差 -1.8，預測漲」</li>
+    <li>LSTM：「過去 14 天 RSI 從 65 跌到 28，動量加速下跌中，預測反彈」</li>
+  </ul>
+  <p>加一個 <code class="code">analyze_lstm.py</code> 對比 XGBoost vs LSTM 的 AUC，讓用戶看到兩者差異，對 Research tier 很有吸引力。</p>
+</div>
+
+<div class="card card-purple">
+  <div class="card-title">改善 5（長期）：加入鏈上數據（On-chain Data） <span class="tag tag-info">長期</span></div>
+  <p>你現在的 F11 Active Addresses 已經是鏈上數據的第一步（而且 XGBoost 重要性 #2！）。下一步可以加：</p>
+  <ul>
+    <li><strong>SOPR（Spent Output Profit Ratio）</strong>：賣家是否在盈利賣出，&lt;1 = 虧損割肉，歷史上是底部信號</li>
+    <li><strong>MVRV（Market Value to Realized Value）</strong>：整個市場的平均持倉成本，&lt;1 = 全市場虧損，歷史上是強烈底部信號</li>
+    <li><strong>Exchange Netflow</strong>：代幣淨流入/流出交易所</li>
+  </ul>
+  <p style="color:#57606a;font-size:12px">數據源：Glassnode 免費層（BTC/ETH 有），或 CryptoQuant API。這些是機構量化基金真正看的指標。</p>
+</div>
+
+<hr />
+
+
+<h2>④ 總結：你的感覺對嗎？</h2>
+
+<div class="card card-yellow">
+  <p><strong>你說「底層數據處理和概率預測都還沒有做好」——部分對，但不是全錯。</strong></p>
+  <p style="margin-top:8px">你的統計框架、Walk-Forward 設計、Anti-overfitting 意識都是正確的。這些是很多「量化工具」缺少的。</p>
+  <p style="margin-top:8px">你真正的問題是：<strong>你用的因子大多是技術指標（滯後），而市場最有預測力的信號是領先指標（鏈上數據、期權市場、資金流動）</strong>。這不是「底層做錯了」，而是「材料不夠好」。</p>
+  <p style="margin-top:8px"><strong>AUC 0.528 不是失敗，是誠實。</strong> 專業對沖基金花幾百萬美元研究，BTC 的可預測性也就在 AUC 0.55–0.60 之間。你用免費數據和基礎因子做到 0.528，是合理的起點，不是終點。</p>
+</div>
+
+<table>
+  <tr><th>你說的問題</th><th>真實情況</th><th>優先度</th></tr>
+  <tr><td>演算法太基礎</td><td>XGBoost 是對的選擇，問題是因子質量，不是算法</td><td><span class="verdict v-med">加 LSTM 對比即可</span></td></tr>
+  <tr><td>因子大多靜態</td><td>✅ 完全正確，F3/F4/F5/F6 效果幾乎為零</td><td><span class="verdict v-bad">高優先改善</span></td></tr>
+  <tr><td>監督式學習沒做好</td><td>部分對：二元分類可改為期望值回歸</td><td><span class="verdict v-bad">高優先改善</span></td></tr>
+  <tr><td>非監督式學習沒做好</td><td>✅ 正確：Regime 規則版太粗糙，應用 HMM</td><td><span class="verdict v-med">中優先</span></td></tr>
+  <tr><td>底層數據處理問題</td><td>數據管道本身沒問題，缺的是更好的數據來源（鏈上）</td><td><span class="verdict v-good">長期方向</span></td></tr>
+</table>
+
+<footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>

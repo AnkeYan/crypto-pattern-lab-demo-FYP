@@ -1,0 +1,218 @@
+
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>7 種策略完整解釋</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; font-size: 14px; line-height: 1.6; background: #fff; color: #1f2328; padding: 32px 16px; }
+  .container { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { color: #57606a; font-size: 13px; margin-bottom: 28px; }
+  h2 { font-size: 15px; font-weight: 700; margin: 28px 0 10px; border-left: 3px solid #3b82d4; padding-left: 10px; }
+  p, li { font-size: 13px; margin-bottom: 6px; }
+  ul { padding-left: 18px; margin: 6px 0 10px; }
+  .card { border: 1px solid #e5e7eb; border-radius: 6px; padding: 14px 18px; margin-bottom: 14px; }
+  .card-mvo { border-left: 4px solid #8c564b; background: #fdf8f5; }
+  .card-rl  { border-left: 4px solid #3b82d4; background: #f7f8fa; }
+  .card-dji { border-left: 4px solid #888; background: #f9f9f9; }
+  .card-green { border-left: 4px solid #15803d; background: #f0fdf4; }
+  .card-purple { border-left: 4px solid #7c5cd8; background: #faf5ff; }
+  .card-title { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+  .tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 1px 8px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
+  .tag-math { background: #fed7aa; color: #92400e; }
+  .tag-ai { background: #dbeafe; color: #1d4ed8; }
+  .tag-base { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+  .tag-winner { background: #dcfce7; color: #15803d; }
+  .tag-caution { background: #fef3c7; color: #92400e; }
+  .analogy { background: #fffbeb; border: 1px solid #fde68a; border-radius: 5px; padding: 10px 14px; margin: 8px 0; font-size: 13px; }
+  .insight { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 5px; padding: 10px 14px; margin: 8px 0; font-size: 13px; }
+  .warning { background: #fff1f2; border: 1px solid #fecdd3; border-radius: 5px; padding: 10px 14px; margin: 8px 0; font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 10px 0; }
+  th { background: #f7f8fa; border: 1px solid #e5e7eb; padding: 7px 10px; font-weight: 600; text-align: left; }
+  td { border: 1px solid #e5e7eb; padding: 7px 10px; vertical-align: top; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  .step { display: flex; gap: 12px; margin: 8px 0; }
+  .step-num { background: #3b82d4; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+  .step-body strong { display: block; font-size: 13px; }
+  .step-body span { color: #57606a; font-size: 12px; }
+  hr { border: none; border-top: 1px solid #e5e7eb; margin: 24px 0; }
+  footer { text-align: center; font-size: 12px; color: #57606a; border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 32px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>7 種策略完整解釋</h1>
+<p class="subtitle">由淺入深 — MVO 為什麼贏、RL 是什麼、兩者根本差異在哪</p>
+
+
+<h2>① 最根本的差異：數學 vs AI</h2>
+
+<div class="card card-mvo">
+  <div class="card-title">MVO（Mean-Variance Optimization）<span class="tag tag-math">傳統數學</span><span class="tag tag-winner">這次贏了</span></div>
+  <div class="analogy">
+    <strong>比喻：</strong>「一個老會計，翻看過去 10 年的帳本，用公式算出每種股票各買多少最穩」<br />
+    決定好配比後，<strong>整個交易期間一動不動</strong>。
+  </div>
+  <p><strong>做法：</strong></p>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body"><strong>看訓練期歷史數據（2014–2025）</strong><span>計算每隻股票的平均回報和相互關係（協方差）</span></div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body"><strong>用數學公式算出最優配比</strong><span>例如：AAPL 12%、MSFT 8%、NVDA 15%... 讓 Sharpe Ratio 最大</span></div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body"><strong>照這個配比買入，然後完全不動</strong><span>不管市場漲跌，配比固定到交易期結束</span></div>
+  </div>
+  <p style="margin-top:8px;color:#57606a;font-size:12px">創始人：哈里·馬科維茲（Harry Markowitz），1952年提出，1990年獲諾貝爾經濟學獎。</p>
+</div>
+
+<div class="card card-rl">
+  <div class="card-title">5 種 RL 算法（A2C / PPO / DDPG / SAC / TD3）<span class="tag tag-ai">AI 強化學習</span></div>
+  <div class="analogy">
+    <strong>比喻：</strong>「一個 AI 學生，每天看市場行情，不斷嘗試買賣，從虧損中學習，逐漸摸索出策略」<br />
+    <strong>每天都在動態調整</strong>，市場漲了多賣，跌了多買。
+  </div>
+  <p><strong>做法：</strong></p>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body"><strong>訓練期（2014–2025）不斷試錯</strong><span>每天觀察「現在股價、技術指標、持倉狀況」，決定買賣多少</span></div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body"><strong>按結果給獎懲（reward）</strong><span>賺了 → 正 reward；虧了 → 負 reward；AI 學習最大化 reward</span></div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body"><strong>交易期（2026）用學到的策略自動交易</strong><span>每天根據當天市場狀態動態決定買賣</span></div>
+  </div>
+</div>
+
+<div class="card card-dji">
+  <div class="card-title">DJI（道瓊斯指數）<span class="tag tag-base">最懶基準</span></div>
+  <div class="analogy"><strong>比喻：</strong>「完全不思考，直接把 100 萬全部平均分配買 DOW 30，然後睡覺等結果。」</div>
+  <p>這條線的意義：如果 AI 和 MVO 都跑不贏它，說明「什麼都不做」比所有策略都好，AI 完全沒有存在價值。</p>
+</div>
+
+<hr />
+
+
+<h2>② 5 種 RL 算法有什麼不同？</h2>
+<p style="color:#57606a;margin-bottom:12px">它們本質上做的是同一件事（強化學習），但學習方式和「性格」不同：</p>
+
+<table>
+  <tr>
+    <th>算法</th>
+    <th>性格比喻</th>
+    <th>技術特點</th>
+    <th>適合什麼市場</th>
+  </tr>
+  <tr>
+    <td><strong>A2C</strong></td>
+    <td>謹慎的會計師</td>
+    <td>同時學「做什麼」和「值多少分」，每步都小心</td>
+    <td>低波動、穩定市場</td>
+  </tr>
+  <tr>
+    <td><strong>PPO</strong></td>
+    <td>穩健的職業棋手</td>
+    <td>每次更新策略不走大步，防止學歪；OpenAI 最愛用</td>
+    <td>通用，最平衡</td>
+  </tr>
+  <tr>
+    <td><strong>DDPG</strong></td>
+    <td>激進的短線交易員</td>
+    <td>直接輸出確定買賣量，探索性強</td>
+    <td>高波動市場</td>
+  </tr>
+  <tr>
+    <td><strong>SAC</strong></td>
+    <td>保持多種可能性的策略師</td>
+    <td>額外獎勵「不確定性」，防止策略過度死板</td>
+    <td>不確定性高的市場</td>
+  </tr>
+  <tr>
+    <td><strong>TD3</strong></td>
+    <td>謙遜的 DDPG 改良版</td>
+    <td>用兩個評判員取低分，防止 AI 高估自己</td>
+    <td>需要精確執行的市場</td>
+  </tr>
+</table>
+
+<div class="insight">
+  <strong>關鍵：這 5 種算法都是「同一個想法（強化學習）的不同實現方式」。</strong><br />
+  就像同樣是炒菜，有人用大火快炒、有人慢火燉煮——方法不同，結果不同，沒有永遠最好的一種。
+</div>
+
+<hr />
+
+
+<h2>③ 為什麼 MVO 這次贏了？</h2>
+
+<div class="card card-green">
+  <p>這次 MVO 贏，<strong>不是因為 MVO 永遠更好</strong>，而是這個特定情況下的三個原因：</p>
+
+  <p style="margin-top:10px"><strong>原因 1：交易期太短（只有 52 天）</strong></p>
+  <p>RL 算法需要足夠長的時間來「發揮」學到的策略。52 天裡市場還沒出現足夠的規律給 AI 利用，MVO 的靜態配比反而更穩。</p>
+
+  <p style="margin-top:10px"><strong>原因 2：訓練數據和測試環境不同</strong></p>
+  <p>AI 在 2014–2025 的數據上訓練，但 2026 年初美股大跌（Trump 關稅衝擊），市場環境完全不同。AI 學到的經驗在新環境失效了。MVO 因為「不動」，反而沒有這個問題。</p>
+
+  <p style="margin-top:10px"><strong>原因 3：RL 訓練輪數不夠</strong></p>
+  <p>你跑的是 FinRL 的快速 example，訓練步數設定較少（A2C 只跑了 4000 步）。訓練更充分的 RL 通常能跑贏 MVO。</p>
+
+  <div class="warning" style="margin-top:10px">
+    <strong>⚠️ 重要：這次結果不代表「MVO 永遠比 AI 好」。</strong><br />
+    在較長時間段（1–5 年）、市場有明顯規律、訓練充分的情況下，RL 通常能跑贏 MVO。這就是 FinRL 論文能發表的原因。
+  </div>
+</div>
+
+<hr />
+
+
+<h2>④ 為什麼我建議做 Portfolio Optimization Panel？</h2>
+
+<div class="card card-purple">
+  <p><strong>不是因為 MVO 最好，而是因為它能回答用戶最實際的問題：</strong></p>
+
+  <p style="margin-top:10px"><strong>用戶的真實問題：</strong><br />
+  「我同時持有 BTC、ETH、SOL，到底各買多少才對？60% BTC + 30% ETH + 10% SOL？還是各三分之一？」</p>
+
+  <p style="margin-top:10px"><strong>MVO 的回答：</strong><br />
+  「根據這三個幣過去 5 年的歷史數據，如果你的目標是最大化 Sharpe Ratio（風險調整後回報），最優配比是 BTC 52% / ETH 31% / SOL 17%。」</p>
+
+  <p style="margin-top:10px"><strong>為什麼這個 panel 有付費價值：</strong></p>
+  <ul>
+    <li>這個問題沒有人給過清晰的答案</li>
+    <li>MVO 有數學根據（諾貝爾獎級別的理論），不是拍腦袋</li>
+    <li>每天數據更新，配比建議也會更新，用戶有回訪動機</li>
+    <li>不需要理解 RL 算法，普通用戶也能看懂一個 pie chart</li>
+  </ul>
+
+  <div class="insight" style="margin-top:10px">
+    後期可以在同一個 panel 加入「MVO 靜態配比 vs RL 動態調整」的比較，讓高端用戶（Research tier）看到更深的分析。但第一版只做 MVO 就已經很有價值了。
+  </div>
+</div>
+
+<hr />
+
+<h2>一句話記住每個概念</h2>
+<table>
+  <tr><th>概念</th><th>一句話</th></tr>
+  <tr><td>MVO</td><td>諾貝爾獎的數學公式：算出靜態最優配比，一動不動</td></tr>
+  <tr><td>RL（強化學習）</td><td>AI 每天試錯學習，動態調整買賣</td></tr>
+  <tr><td>A2C / PPO / DDPG / SAC / TD3</td><td>同一個 AI 想法的 5 種不同「性格」實現</td></tr>
+  <tr><td>DJI</td><td>什麼都不想直接買指數，最懶的基準線</td></tr>
+  <tr><td>MVO 這次贏的原因</td><td>交易期太短 + 市場環境突變，不是永遠最好</td></tr>
+  <tr><td>為什麼做 Portfolio Panel</td><td>回答用戶最實際的問題：BTC/ETH/SOL 各買多少？</td></tr>
+</table>
+
+<footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>

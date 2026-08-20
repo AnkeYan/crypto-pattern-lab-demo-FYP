@@ -1,4 +1,4 @@
-# CryptoPatternLab FYP 副本 項目交接文件 v23.0
+# CryptoPatternLab FYP 副本 項目交接文件 v24.0
 
 ## 產品定位
 AI-powered crypto pattern research assistant。
@@ -87,7 +87,7 @@ Bloomberg Terminal 的分析深度 + AI 自動翻譯成人話 + 專注 Crypto，
 ```
 /Users/nganyukkuen/Desktop/crypto-pattern-lab-export/
 ├── data/           ← CSV 分析結果
-├── scripts/        ← Python 腳本（與主文件完全相同）
+├── scripts/        ← Python 腳本（26個，含 analyze_lstm.py）
 └── web/            ← Next.js 網頁（無 Tier 邏輯）
 ```
 
@@ -98,9 +98,9 @@ git add -A && git stash && git pull --rebase && git stash pop && git add -A && g
 ```
 **⚠️ 重要**：副本有 GitHub Actions 每天 UTC 03:00 自動 commit CSV，push 前必須先 stash + pull --rebase。
 
-**GitHub Actions Python 依賴（已更新）：**
+**GitHub Actions Python 依賴（已更新，含 LSTM）：**
 ```
-pandas numpy requests scipy arch statsmodels yfinance xgboost scikit-learn hmmlearn PyPortfolioOpt lightgbm
+pandas numpy requests scipy arch statsmodels yfinance xgboost scikit-learn hmmlearn PyPortfolioOpt lightgbm tensorflow
 ```
 
 ---
@@ -134,14 +134,24 @@ f15 不進 XGBoost（只有 30 天數據）
 
 ---
 
-## XGBoost v4.1 + Ensemble 最新結果
+## XGBoost v4.1 + Ensemble + Bi-LSTM 最新結果
 
+### XGBoost + Ensemble
 ```
 BTC: XGB AUC=0.529 | Ensemble AUC=0.532 | DirAcc=52.1%
 ETH: XGB AUC=0.543 | Ensemble AUC=0.546 | DirAcc=48.9%
 SOL: XGB AUC=0.514 | Ensemble AUC=0.511 | DirAcc=48.5%
 ```
 Feature Importance Top-5（BTC）: f13_lag7 > f13_lag14 > f12_cont > f8_cont > f6_cont
+
+### Bi-LSTM（walk-forward，v24 新增）
+```
+BTC: Bi-LSTM AUC=0.525
+ETH: Bi-LSTM AUC=0.548
+SOL: Bi-LSTM AUC=0.501
+```
+ETH Bi-LSTM 略優於 XGBoost；整體與 XGBoost 持平。
+
 **主要指標：DirAcc（方向準確率），AUC 只作輔助**
 
 ---
@@ -161,6 +171,7 @@ Feature Importance Top-5（BTC）: f13_lag7 > f13_lag14 > f12_cont > f8_cont > f
 | F2 Bollinger | +0.01 | Noise |
 
 IC IR 低 ≠ 因子無用（RSI/Bollinger 是解釋性指標，XGBoost 自動學習真實重要性）
+IC IR > 1.0 = Strong factor（業界標準），共有 4 個強因子。
 
 ---
 
@@ -182,6 +193,7 @@ Signals   /signals    → Signal Intelligence（Pro）· Multi-Factor Score（Pr
                           Monte Carlo（Pro）
                           Regime Transition（Research）· Portfolio Optimization（Research）
                           WorkspaceTOC: 5個條目（purple）
+                          ⚠️ MultiFactorPanel 含 XGBoost + Ensemble + Bi-LSTM 三個 tab
 
 Factors   /factors    → Funding Rate（Pro）· BTC Dominance（Pro）
                           Active Addresses（Pro）· Drawdown Recovery（Pro）
@@ -212,7 +224,7 @@ Factors   /factors    → Funding Rate（Pro）· BTC Dominance（Pro）
 
 ---
 
-## 腳本清單（25個，run_update.sh 執行順序）
+## 腳本清單（26個，run_update.sh 執行順序）
 
 ```
 API調取-fetch_prices.py
@@ -237,13 +249,14 @@ analyze_multifactor_calibration.py
 analyze_factor_ic.py                 ← Spearman IC + IC IR
 analyze_xgboost.py
 analyze_ensemble.py                  ← XGBoost + LightGBM
+analyze_lstm.py                      ← Bi-LSTM walk-forward（v24 新增）
 analyze_consecutive_drop.py / analyze_drawdown_recovery.py / analyze_halving.py
 analyze_portfolio_optimization.py    ← 最後執行
 ```
 
 ---
 
-## 前端組件清單（v23，33個）
+## 前端組件清單（v24，33個）
 
 ### 共用
 | 組件 | 說明 |
@@ -270,9 +283,9 @@ analyze_portfolio_optimization.py    ← 最後執行
 | 組件 | Tier |
 |------|------|
 | PatternValidationPanel | Pro |
-| RegimeEfficacyPanel | Pro |
+| RegimeEfficacyPanel | Pro（動態雙語 Key Takeaway）|
 | RollingCorrelationChart | Pro |
-| VolumeMomentumPanel | Pro |
+| VolumeMomentumPanel | Pro（Recharts + Brush + 時間快捷）|
 | WalkForwardPanel | Research |
 | AcfPanel | Research |
 | FactorIcPanel | Research（含 IC by Year · Factor Decay tab）|
@@ -281,7 +294,7 @@ analyze_portfolio_optimization.py    ← 最後執行
 | 組件 | Tier |
 |------|------|
 | SignalIntelligencePanel | Pro |
-| MultiFactorPanel | Pro（Dashboard）/ Research（XGBoost+Ensemble）|
+| MultiFactorPanel | Pro（Dashboard）/ Research（XGBoost+Ensemble+Bi-LSTM）|
 | MonteCarloPanel | Pro |
 | RegimeTransitionPanel | Research |
 | PortfolioOptimizationPanel | Research |
@@ -289,17 +302,17 @@ analyze_portfolio_optimization.py    ← 最後執行
 ### Factors workspace
 | 組件 | Tier |
 |------|------|
-| FundingRatePanel | Pro |
-| BtcDominancePanel | Pro |
-| ActiveAddressesPanel | Pro |
+| FundingRatePanel | Pro（How to read this? + 動態解說框）|
+| BtcDominancePanel | Pro（How to read this? + 動態解說框）|
+| ActiveAddressesPanel | Pro（How to read this? + 動態解說框 + 年份軸）|
 | DrawdownRecoveryPanel | Pro |
-| MvrvPanel | Research |
-| TurbulencePanel | Research |
+| MvrvPanel | Research（How to read this? + 動態解說框）|
+| TurbulencePanel | Research（How to read this? + 動態解說框）|
 | GarchPanel | Research |
 
 ---
 
-## API Routes（30個）
+## API Routes（31個）
 
 ```
 /api/results / /api/summary / /api/fear-greed
@@ -310,6 +323,7 @@ analyze_portfolio_optimization.py    ← 最後執行
 /api/regime-transition / /api/multifactor
 /api/multifactor-calibration
 /api/xgboost / /api/ensemble
+/api/lstm                            ← v24 新增（Bi-LSTM walk-forward）
 /api/regime-signal-efficacy
 /api/consecutive-drop / /api/drawdown-recovery / /api/halving
 /api/portfolio-optimization
@@ -347,9 +361,24 @@ data/
 ├── regime_signal_efficacy.csv
 ├── ensemble_results.csv / ensemble_predictions.csv
 ├── btc_dominance_history.csv / btc_dominance_results.csv
-└── factor_ic_results.csv
+├── factor_ic_results.csv
+├── lstm_results.csv                 ← v24 新增
+└── lstm_predictions.csv             ← v24 新增
 ```
 所有 CSV 同時在 `data/` 和 `web/public/data/`（Vercel 用）。
+
+---
+
+## 參考文件（根目錄）
+
+```
+HANDOVER.md                  ← 本文件
+FYP_PRESENTATION.md          ← 2min + 5min FYP 匯報文稿 + Q&A + 數字速查
+cryptopatternlab.html        ← 系統誠實評估（早期分析，大部分建議已實作）
+finrl-cryptopatternlab.html  ← FinRL 整合建議（6 個機會，① ② ⑥ 已完成）
+artifact.html                ← Q&A 文檔（參考用）
+7.html                       ← MVO vs RL 策略解釋（參考用）
+```
 
 ---
 
@@ -372,50 +401,61 @@ data/
 
 ---
 
-## 當前未完成 / 下一步（v23 → v24）
+## 當前未完成 / 下一步（v24 → v25）
 
-### ✅ 已完成（v22–v23）
+### ✅ 已完成（v22–v23 基礎建設）
 - F14 Funding Rate Trend + F15 BTC Dominance（Dashboard only）✅
 - F11 ETH/SOL 噪音修復（幣種專屬 FEATURES）✅
 - Factor IC 分析（analyze_factor_ic.py + FactorIcPanel）✅
-- **Factor Decay 可視化**（IC by Year tab + SparkLine in table）✅
-- **Factors workspace**（/factors，7個 panels，4個 section）✅
-- **WorkspaceTOC**（四個 tab 全部有 sticky sidebar + mobile pill bar）✅
-- **Tier 重新設計**（Free 3 / Pro 15 / Research 8，難度原則）✅
+- Factor Decay 可視化（IC by Year tab + SparkLine in table）✅
+- Factors workspace（/factors，7個 panels，4個 section）✅
+- WorkspaceTOC（四個 tab 全部有 sticky sidebar + mobile pill bar）✅
+- Tier 重新設計（Free 3 / Pro 15 / Research 8，難度原則）✅
 - 架構重組（Research 精簡 / Validation 加 2 panels / Signals 加 Monte Carlo + Portfolio）✅
 - ensemble.py f14_lag7 KeyError 修復 ✅
 
-### ✅ 已完成（v23 UI 升級，本次對話）
-- **RegimeEfficacyPanel** — 動態雙語 Key Takeaway 升級（逐信號帶勝率/Edge/p值）✅
-- **VolumeMomentumPanel bug 修復** — API `/api/multifactor-calibration` 補回 `f7_cont/f8_cont rows` ✅
-- **VolumeMomentumPanel UI 升級** — Recharts ComposedChart + Brush 全量數據 + 3M/6M/1Y/2Y/All 快捷 ✅
-- **FactorIcPanel** — How to read this? 摺疊說明框 + 動態雙語解說框 ✅
-- **MultiFactorPanel** — Historical Calibration / XGBoost / Ensemble 三個動態解說框 + Ensemble 說明框 ✅
-- **FundingRatePanel** — How to read this? 摺疊說明框 + 動態解說框 ✅
-- **BtcDominancePanel** — How to read this? 摺疊說明框 + 動態解說框 ✅
-- **ActiveAddressesPanel** — How to read this? 摺疊說明框 + 動態解說框 ✅
-- **MvrvPanel** — How to read this? 摺疊說明框 + 動態解說框 ✅
-- **TurbulencePanel** — How to read this? 摺疊說明框 + 動態解說框 ✅
+### ✅ 已完成（v23 UI 升級）
+- **RegimeEfficacyPanel** — 動態雙語 Key Takeaway（逐信號帶勝率/Edge/p值）✅
+- **VolumeMomentumPanel** — bug 修復 + Recharts ComposedChart + Brush + 時間快捷 ✅
+- **FactorIcPanel** — How to read this? + 動態雙語解說框 ✅
+- **MultiFactorPanel** — Calibration/XGBoost/Ensemble 三個動態解說框 + 說明框 15因子更新 ✅
+- **FundingRatePanel** — How to read this? + 動態解說框 + F14 sparkline bug 修復 ✅
+- **BtcDominancePanel** — How to read this? + 動態解說框 ✅
+- **ActiveAddressesPanel** — How to read this? + 動態解說框 + 年份軸 + 預設 Last 1Y ✅
+- **MvrvPanel** — How to read this? + 動態解說框 ✅
+- **TurbulencePanel** — How to read this? + 動態解說框 ✅
+- 四個 tab TOC 與 panel 順序全部對齊 ✅
+- Pricing section 重寫（主文件）— Free 3/Pro 15/Research 8，tier 顏色點 ✅
+- TierGate CTA 文字更新（主文件）— 對應 v23 tier 結構 ✅
 - 主文件 + 副本同步，兩個 repo commit + push ✅
 
-### ✅ 已完成（本次對話 v23 UI + ML 升級）
-- **Pricing section + TierGate CTA** 更新（Free 3 / Pro 15 / Research 8）✅
-- **MultiFactorPanel 說明框** 13→15 因子，加 IC IR，F10 標記移除 ✅
-- **Bi-LSTM 模型**（analyze_lstm.py + /api/lstm + MultiFactorPanel LSTM section）✅
-  - Bi-LSTM walk-forward 結果：BTC AUC=0.525 / ETH AUC=0.548 / SOL AUC=0.501
+### ✅ 已完成（v24 ML 升級）
+- **Bi-LSTM 模型**（analyze_lstm.py + /api/lstm + MultiFactorPanel Bi-LSTM section）✅
+  - walk-forward 結果：BTC AUC=0.525 / ETH AUC=0.548 / SOL AUC=0.501
   - GitHub Actions 加入 tensorflow 依賴
   - 前端 MultiFactorPanel 新增 Bi-LSTM section（動態解說 + fold table）
+- **FYP_PRESENTATION.md** — 2min + 5min 匯報文稿 + Q&A + 數字速查 ✅
+- **4 個 HTML 參考文件** 複製到兩個 repo 根目錄 ✅
+- HANDOVER.md 更新至 v24.0（兩個 repo）✅
 
 ### 🔴 高優先
-1. **F16 Open Interest 變化率**（Bybit API 已有）— 暫緩，等數據累積
+1. **模擬盤驗證**
+   - 每天查 /signals，記錄信號，跑 3 個月驗證能否覆蓋交易成本
+
+2. **F16 Open Interest 變化率**（Bybit API 已有）
+   - 數據只有 30 天，需等累積 1 年後才加入 XGBoost
+   - 現在可先做 Dashboard panel（類似 F15）
 
 ### 🟡 中優先
-2. **SOL AUC 提升**（目前 0.514 XGBoost / 0.501 LSTM，最弱）
+3. **SOL AUC 提升**（目前 0.514 XGBoost / 0.501 LSTM，最弱）
    - 候選：SOL 專屬鏈上因子（Solana 活躍地址）
    - F15 BTC Dominance 加入 XGBoost 後可能改善（等數據累積）
 
+4. **RL Strategy Backtester**（FinRL 整合建議 ③）
+   - 把 15 因子作為 RL state 輸入，對比 buy-and-hold
+
 ### 🔵 長期 ML 分支
-- LSTM → RL(AUC 0.55+) → Transformer → GNN
+- RL（AUC 0.55+）→ Transformer → GNN
 - SOPR 鏈上指標（Glassnode）
 - 登入系統 + Stripe（前提：先有真實用戶）
 
@@ -430,6 +470,7 @@ data/
 - 監督學習分類：XGBoost Classifier
 - 監督學習回歸：XGBoost Regressor
 - 集成學習：XGBoost + LightGBM Soft Voting
+- 深度學習：Bi-directional LSTM（walk-forward）
 - 無監督序列：HMM GaussianHMM 3狀態
 - 統計學習：GARCH(1,1) + t分佈
 - 投資組合優化：Markowitz MVO

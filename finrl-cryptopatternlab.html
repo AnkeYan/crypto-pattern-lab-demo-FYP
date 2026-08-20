@@ -1,0 +1,496 @@
+
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FinRL × CryptoPatternLab 深度整合分析</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", system-ui, sans-serif; font-size: 14px; line-height: 1.6; background: #fff; color: #1f2328; padding: 32px 16px; }
+  .container { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 21px; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { color: #57606a; font-size: 13px; margin-bottom: 28px; }
+  h2 { font-size: 15px; font-weight: 700; margin: 32px 0 10px; color: #1f2328; border-left: 3px solid #3b82d4; padding-left: 10px; }
+  h3 { font-size: 13px; font-weight: 700; margin: 14px 0 5px; color: #1f2328; }
+  p { font-size: 13px; margin-bottom: 7px; }
+  ul { padding-left: 18px; margin: 6px 0 10px; }
+  li { font-size: 13px; margin-bottom: 4px; color: #1f2328; }
+  .toc { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 14px 18px; margin-bottom: 28px; }
+  .toc-title { font-weight: 700; font-size: 13px; margin-bottom: 8px; color: #57606a; text-transform: uppercase; letter-spacing: 0.05em; }
+  .toc a { display: block; font-size: 13px; color: #3b82d4; text-decoration: none; padding: 2px 0; }
+  .toc a:hover { text-decoration: underline; }
+  .toc-num { color: #57606a; margin-right: 6px; }
+  .item-card { border: 1px solid #e5e7eb; border-radius: 6px; margin-bottom: 28px; overflow: hidden; }
+  .item-header { padding: 14px 18px; border-bottom: 1px solid #e5e7eb; }
+  .item-header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .item-title { font-size: 15px; font-weight: 700; }
+  .score-box { text-align: right; flex-shrink: 0; }
+  .match-score { font-size: 22px; font-weight: 800; }
+  .match-label { font-size: 10px; color: #57606a; display: block; }
+  .s-high { color: #15803d; }
+  .s-mid { color: #3b82d4; }
+  .s-low { color: #c2410c; }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .tag { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; }
+  .tag-tier-pro { background: #dbeafe; color: #1d4ed8; }
+  .tag-tier-res { background: #ede9fe; color: #7c3aed; }
+  .tag-tier-new { background: #fef3c7; color: #92400e; }
+  .tag-effort { background: #f7f8fa; border: 1px solid #e5e7eb; color: #57606a; }
+  .tag-rec { background: #dcfce7; color: #15803d; }
+  .tag-later { background: #fef3c7; color: #92400e; }
+  .tag-no { background: #fee2e2; color: #991b1b; }
+  .item-body { padding: 16px 18px; background: #fff; }
+  .section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #57606a; margin-bottom: 4px; margin-top: 12px; }
+  .code-block { background: #1f2328; color: #e6edf3; border-radius: 5px; padding: 10px 14px; font-family: monospace; font-size: 11px; line-height: 1.8; margin: 8px 0; overflow-x: auto; }
+  .code-block .g { color: #56d364; }
+  .code-block .b { color: #79c0ff; }
+  .code-block .o { color: #ffa657; }
+  .code-block .dim { color: #8b949e; }
+  .divider { border: none; border-top: 1px solid #e5e7eb; margin: 28px 0; }
+  .verdict-row { display: flex; gap: 20px; padding: 10px 0; border-top: 1px solid #f0f0f0; margin-top: 10px; flex-wrap: wrap; }
+  .verdict-item { font-size: 12px; }
+  .verdict-item span { font-weight: 700; }
+  .highlight-box { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 5px; padding: 10px 13px; margin: 8px 0; font-size: 13px; }
+  .warning-box { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 5px; padding: 10px 13px; margin: 8px 0; font-size: 13px; }
+  .summary-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12px; }
+  .summary-table th { background: #f7f8fa; border: 1px solid #e5e7eb; padding: 7px 9px; font-weight: 600; text-align: left; }
+  .summary-table td { border: 1px solid #e5e7eb; padding: 7px 9px; vertical-align: middle; }
+  .summary-table tr:nth-child(even) td { background: #fafbfc; }
+  .pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+  .pill-green { background: #dcfce7; color: #15803d; }
+  .pill-yellow { background: #fef3c7; color: #92400e; }
+  .pill-red { background: #fee2e2; color: #991b1b; }
+  footer { text-align: center; font-size: 12px; color: #57606a; border-top: 1px solid #e5e7eb; padding-top: 16px; margin-top: 36px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>FinRL × CryptoPatternLab — 深度整合分析</h1>
+<p class="subtitle">所有機會的原理、知識點、匹配度評分與優先推薦 — 供你選擇是否操作</p>
+
+
+<div class="toc">
+  <div class="toc-title">目錄（共 6 個機會）</div>
+  <a href="#item1"><span class="toc-num">①</span>Turbulence Index 作為 F12 因子</a>
+  <a href="#item2"><span class="toc-num">②</span>Portfolio Optimization Panel（配比優化）</a>
+  <a href="#item3"><span class="toc-num">③</span>RL Strategy Backtester（AI 策略回測）</a>
+  <a href="#item4"><span class="toc-num">④</span>Multi-Factor Score → RL 執行鏈（量化 Agent）</a>
+  <a href="#item5"><span class="toc-num">⑤</span>Ensemble Strategy Comparison（多 RL 模型比較）</a>
+  <a href="#item6"><span class="toc-num">⑥</span>Crypto 換幣種：把 DOW 30 換成 BTC/ETH/SOL</a>
+</div>
+
+
+<h2>一眼總覽</h2>
+<table class="summary-table">
+  <tr>
+    <th>#</th><th>機會名稱</th><th>匹配度</th><th>Tier</th><th>開發天數</th><th>推薦</th>
+  </tr>
+  <tr>
+    <td>①</td><td>Turbulence Index（F12）</td><td><strong class="s-high">93/100</strong></td><td>Pro</td><td>1–2 天</td><td><span class="pill pill-green">立刻做</span></td>
+  </tr>
+  <tr>
+    <td>②</td><td>Portfolio Optimization Panel</td><td><strong class="s-high">88/100</strong></td><td>Research</td><td>3–5 天</td><td><span class="pill pill-green">優先做</span></td>
+  </tr>
+  <tr>
+    <td>③</td><td>RL Strategy Backtester</td><td><strong class="s-high">85/100</strong></td><td>Research+</td><td>1–2 週</td><td><span class="pill pill-green">計劃做</span></td>
+  </tr>
+  <tr>
+    <td>④</td><td>Multi-Factor → RL 執行鏈</td><td><strong class="s-mid">75/100</strong></td><td>旗艦</td><td>3–5 週</td><td><span class="pill pill-yellow">長期目標</span></td>
+  </tr>
+  <tr>
+    <td>⑤</td><td>Ensemble Strategy Comparison</td><td><strong class="s-mid">65/100</strong></td><td>Research</td><td>2–3 週</td><td><span class="pill pill-yellow">後期考慮</span></td>
+  </tr>
+  <tr>
+    <td>⑥</td><td>Crypto 換幣種（基礎整合）</td><td><strong class="s-high">90/100</strong></td><td>—</td><td>0.5 天</td><td><span class="pill pill-green">先做（測試用）</span></td>
+  </tr>
+</table>
+
+<hr class="divider" />
+
+
+<div class="item-card" id="item1">
+  <div class="item-header" style="background:#f0fdf4">
+    <div class="item-header-top">
+      <div>
+        <div class="item-title">① Turbulence Index → 加入 Multi-Factor Score 作為 F12</div>
+        <div class="tags">
+          <span class="tag tag-tier-pro">Pro tier</span>
+          <span class="tag tag-rec">立刻做</span>
+          <span class="tag tag-effort">開發 1–2 天</span>
+        </div>
+      </div>
+      <div class="score-box">
+        <div class="match-score s-high">93</div>
+        <span class="match-label">匹配度 /100</span>
+      </div>
+    </div>
+  </div>
+  <div class="item-body">
+
+    <div class="section-label">原理</div>
+    <p>Turbulence Index 由 Kritzman &amp; Li（2010）提出，是量化基金（橋水、Two Sigma 等）實際使用的風險指標。計算公式是：</p>
+    <div class="code-block">
+turbulence(t) = <span class="b">(r_t - μ)ᵀ × Σ⁻¹ × (r_t - μ)</span>
+
+<span class="dim"># r_t  = 當天各資產的回報向量</span>
+<span class="dim"># μ    = 歷史平均回報（rolling 視窗）</span>
+<span class="dim"># Σ⁻¹  = 歷史協方差矩陣的逆矩陣（馬氏距離）</span>
+<span class="dim"># 結果越高 = 市場行為越偏離歷史正常狀態</span>
+    </div>
+    <p>簡單說：<strong>不只看單個資產的波動，而是看「多個資產同時異常」的程度</strong>。2008 金融危機、2020 COVID 崩盤的 Turbulence 都極高。</p>
+
+    <div class="section-label">為什麼和你的項目高度匹配</div>
+    <ul>
+      <li>你現有的 F3 GARCH 只看「單幣種波動率是否收縮」，Turbulence 是「市場整體異常程度」，兩者互補不重疊</li>
+      <li>你已有 BTC + ETH + SOL 每日收盤數據，直接可以計算三幣種的 Turbulence</li>
+      <li>高 Turbulence 時統計信號失效（你的 Walk-Forward AUC 低），這個因子能讓 Multi-Factor Score 在市場異常時自動降分，更誠實</li>
+      <li>FinRL 已有現成代碼：<code>FeatureEngineer(use_turbulence=True).add_turbulence(df)</code></li>
+    </ul>
+
+    <div class="section-label">具體做什麼</div>
+    <div class="code-block">
+<span class="o"># 新建 scripts/analyze_turbulence.py</span>
+<span class="dim"># 1. 讀 BTCUSDT + ETHUSDT + SOLUSDT 的 close 價格</span>
+<span class="dim"># 2. 計算 lookback=252 天的 rolling turbulence</span>
+<span class="dim"># 3. 輸出 turbulence_history.csv（date, btc_turb, eth_turb, sol_turb）</span>
+
+<span class="o"># analyze_multifactor.py 加入 F12：</span>
+F12_turb_calm:  <span class="b">WEIGHTS["turbulence_calm"] = 0.07</span>
+<span class="dim"># 低 turbulence → 高分（市場平靜信號更可靠）</span>
+<span class="dim"># 高 turbulence → 低分（市場異常，信號失效風險高）</span>
+    </div>
+
+    <div class="section-label">用戶看到什麼</div>
+    <p>MultiFactorPanel 加一行：「🌊 Market Turbulence（市場異常指數）：Low / Moderate / Elevated」，配合說明：「當前市場行為與歷史正常狀態的偏差程度——橋水、Two Sigma 等量化基金都用這個指標來決定是否減倉。」</p>
+
+    <div class="section-label">付費吸引力</div>
+    <div class="highlight-box">這是機構量化基金實際使用的指標，普通散戶工具幾乎看不到。加入後你可以說：「12 個因子包含機構級 Turbulence Index」，明顯提升 Research tier 的溢價感。</div>
+
+    <div class="verdict-row">
+      <div class="verdict-item">技術難度：<span>低</span></div>
+      <div class="verdict-item">需要 FinRL 依賴：<span>否（可直接複製算法，3行代碼）</span></div>
+      <div class="verdict-item">影響現有代碼：<span>只加新腳本和新欄位</span></div>
+    </div>
+  </div>
+</div>
+
+
+<div class="item-card" id="item2">
+  <div class="item-header" style="background:#f0f9ff">
+    <div class="item-header-top">
+      <div>
+        <div class="item-title">② Portfolio Optimization Panel（三幣種配比優化）</div>
+        <div class="tags">
+          <span class="tag tag-tier-res">Research tier</span>
+          <span class="tag tag-rec">優先做</span>
+          <span class="tag tag-effort">開發 3–5 天</span>
+        </div>
+      </div>
+      <div class="score-box">
+        <div class="match-score s-high">88</div>
+        <span class="match-label">匹配度 /100</span>
+      </div>
+    </div>
+  </div>
+  <div class="item-body">
+
+    <div class="section-label">原理</div>
+    <p>傳統方法：<strong>Markowitz Efficient Frontier（1952）</strong>——給定歷史回報和協方差，找出風險調整後最優的資產配比。FinRL 加入了 <strong>RL 動態配置</strong>，每天根據市場狀態重新調整比例。</p>
+    <div class="code-block">
+<span class="dim"># 傳統方法（你可以用 PyPortfolioOpt，已裝好）</span>
+<span class="b">from pypfopt import EfficientFrontier, risk_models, expected_returns</span>
+mu = expected_returns.mean_historical_return(price_df)
+S  = risk_models.sample_cov(price_df)
+ef = EfficientFrontier(mu, S)
+weights = ef.max_sharpe()  <span class="g"># 最大化 Sharpe Ratio 的配比</span>
+<span class="dim"># 輸出：BTC 42%, ETH 35%, SOL 23%</span>
+
+<span class="dim"># RL 方法（FinRL env_portfolio_optimization）</span>
+<span class="dim"># Agent 每天觀察市場狀態，動態調整三幣種比例</span>
+    </div>
+    <p>兩者對比圖就是這個 panel 的核心——用戶能看到「靜態最優配比 vs AI 動態調整」哪個在歷史上表現更好。</p>
+
+    <div class="section-label">為什麼和你的項目高度匹配</div>
+    <ul>
+      <li>你的用戶定位是「持有 BTC/ETH/SOL 的活躍交易者」，<strong>「配比怎麼分才對」是他們每天都在想的問題</strong></li>
+      <li>你已裝好 <code>pyportfolioopt</code>（Backtest step 3 用過），直接可以用</li>
+      <li>你的數據（2014–今天）非常長，Markowitz 計算結果會很有說服力</li>
+      <li>沒有任何現有 crypto 工具給「三幣種最優配比」的答案，這是你的差異化</li>
+    </ul>
+
+    <div class="section-label">具體做什麼</div>
+    <div class="code-block">
+<span class="o"># 新建 scripts/analyze_portfolio_optimization.py</span>
+<span class="dim"># 輸出：</span>
+<span class="dim">#   portfolio_optimization.csv</span>
+<span class="dim">#     ├── markowitz_weights（BTC/ETH/SOL 靜態最優配比）</span>
+<span class="dim">#     ├── efficient_frontier（風險-回報曲線上的點）</span>
+<span class="dim">#     └── portfolio_value_history（等權 vs 最優配比的歷史曲線）</span>
+
+<span class="o"># 前端新建 PortfolioOptimizationPanel.tsx</span>
+<span class="dim"># 圖一：Efficient Frontier 散點圖（風險 vs 回報）</span>
+<span class="dim"># 圖二：最優配比 pie chart</span>
+<span class="dim"># 圖三：等權重 vs 最優配比的 portfolio value 歷史對比</span>
+    </div>
+
+    <div class="section-label">用戶看到什麼</div>
+    <p>「如果你從 2020 年開始同時持有 BTC、ETH、SOL，<strong>歷史上最優配比是 BTC 52% / ETH 31% / SOL 17%</strong>，年化 Sharpe Ratio 1.43，比三等份（Sharpe 1.21）高 18%。」</p>
+
+    <div class="section-label">付費吸引力</div>
+    <div class="highlight-box">這是一個用戶每次調整持倉前都會查的工具。答案每天都在變，用戶有回訪動機，有助於降低 churn（取消率）。</div>
+
+    <div class="verdict-row">
+      <div class="verdict-item">技術難度：<span>中</span></div>
+      <div class="verdict-item">需要 FinRL 依賴：<span>不需要（用 PyPortfolioOpt 即可，RL 部分可後期加）</span></div>
+      <div class="verdict-item">影響現有代碼：<span>只加新腳本和新 panel</span></div>
+    </div>
+  </div>
+</div>
+
+
+<div class="item-card" id="item3">
+  <div class="item-header" style="background:#faf5ff">
+    <div class="item-header-top">
+      <div>
+        <div class="item-title">③ RL Strategy Backtester（AI 自動交易策略回測）</div>
+        <div class="tags">
+          <span class="tag tag-tier-new">新 Research+ tier</span>
+          <span class="tag tag-rec">計劃做</span>
+          <span class="tag tag-effort">開發 1–2 週</span>
+        </div>
+      </div>
+      <div class="score-box">
+        <div class="match-score s-high">85</div>
+        <span class="match-label">匹配度 /100</span>
+      </div>
+    </div>
+  </div>
+  <div class="item-body">
+
+    <div class="section-label">原理</div>
+    <p>你現有的 Walk-Forward 和 Pattern Validation 是「這個統計信號在新數據上還有效嗎？」，RL Strategy Backtester 問的是：<strong>「如果讓 AI 自動根據這些信號買賣，能不能賺錢？」</strong></p>
+    <div class="code-block">
+<span class="dim"># RL 交易流程（FinRL CryptoEnv 的邏輯）</span>
+每天 Agent 觀察 state:
+  [現金, BTC持倉, ETH持倉, RSI, BB偏差, GARCH波動率, ...]
+         <span class="o">↓</span>
+輸出 action: [買/賣 BTC 多少, 買/賣 ETH 多少, ...]
+         <span class="o">↓</span>
+Env 執行交易，計算 reward = <span class="b">Δportfolio_value</span>
+         <span class="o">↓</span>
+Agent 從 reward 學習，下次做得更好
+    </div>
+    <p>最終輸出：RL Agent 策略 vs 買入持有 vs 你現有 Multi-Factor Score 訊號的歷史回報對比圖。</p>
+
+    <div class="section-label">為什麼和你的項目高度匹配</div>
+    <ul>
+      <li>你的 Multi-Factor Score 已有 11 個因子，直接可以作為 RL Agent 的 state 輸入——這是天然的結合點</li>
+      <li>你已有 XGBoost 預測「7天後漲跌概率」，RL Backtester 是這個方向的自然延伸</li>
+      <li>用戶問題永遠是「知道有信號，然後呢？」這個 panel 直接回答這個問題</li>
+    </ul>
+
+    <div class="section-label">和現有項目的連接</div>
+    <div class="code-block">
+<span class="dim"># 你現有的 Multi-Factor Score 直接變成 RL state：</span>
+state = [
+    cash_ratio,          <span class="dim"># 現有現金比例</span>
+    btc_holding,         <span class="dim"># 持倉</span>
+    <span class="b">f1_rsi_norm,         # 你現有 F1</span>
+    <span class="b">f2_bollinger_norm,   # 你現有 F2</span>
+    <span class="b">f8_momentum_norm,    # 你現有 F8</span>
+    <span class="b">turbulence_index,    # F12（新加）</span>
+    ...
+]
+<span class="g"># 不需要重新設計，直接復用你現有的 11 個因子</span>
+    </div>
+
+    <div class="section-label">用戶看到什麼</div>
+    <p>「你的 Multi-Factor Score 今天是 72/100。如果從 2022 年起每次分數 &gt; 60 就讓 AI Agent 自動買入，持有到分數 &lt; 40 賣出，歷史模擬年化回報 +34%，最大回撤 -28%。相比買入持有 BTC 的最大回撤 -65%，風險大幅降低。」</p>
+
+    <div class="section-label">付費吸引力</div>
+    <div class="highlight-box">把你的工具從「我給你數字，你自己判斷」升級成「我幫你模擬如果按這個策略執行會怎樣」。這是從 research tool 升級到 strategy tool 的關鍵一步，定價可從 $79 提升到 $129+。</div>
+
+    <div class="warning-box">⚠️ 注意：這個功能要清楚標明「歷史模擬，不構成投資建議」，保持 research tool 定位。</div>
+
+    <div class="verdict-row">
+      <div class="verdict-item">技術難度：<span>中高</span></div>
+      <div class="verdict-item">需要 FinRL：<span>用 FinRL CryptoEnv 邏輯，但建議自己重寫（避免依賴問題）</span></div>
+      <div class="verdict-item">影響現有代碼：<span>新增後端 Python + 新 panel，不改現有功能</span></div>
+    </div>
+  </div>
+</div>
+
+
+<div class="item-card" id="item4">
+  <div class="item-header" style="background:#fffbeb">
+    <div class="item-header-top">
+      <div>
+        <div class="item-title">④ Multi-Factor Score → RL 執行鏈（完整量化 Agent）</div>
+        <div class="tags">
+          <span class="tag tag-tier-new">旗艦 tier（全新定價）</span>
+          <span class="tag tag-later">長期目標</span>
+          <span class="tag tag-effort">開發 3–5 週</span>
+        </div>
+      </div>
+      <div class="score-box">
+        <div class="match-score s-mid">75</div>
+        <span class="match-label">匹配度 /100</span>
+      </div>
+    </div>
+  </div>
+  <div class="item-body">
+
+    <div class="section-label">原理</div>
+    <p>你的 HANDOVER 已寫了「完整量化 Agent 技術棧」。這是把現有的分析層延伸到決策層 + 執行層：</p>
+    <div class="code-block">
+<span class="dim"># 你已完成（Step 1 + 2）：</span>
+<span class="g">特徵工程（11 因子）→ XGBoost 預測（AUC 0.528）</span>
+
+<span class="dim"># FinRL 填補（Step 3）：</span>
+→ <span class="b">PPO / SAC Agent</span>（用你的因子作為 state，學習最優執行策略）
+→ <span class="b">風控層</span>（最大持倉、最大回撤限制）
+→ <span class="b">執行層</span>（交易所 API，長期目標）
+    </div>
+    <p>關鍵差異：XGBoost 只預測「漲跌概率」，RL Agent 直接學習「應該持有多少倉位」，考慮了交易成本和連續決策的影響。</p>
+
+    <div class="section-label">為什麼匹配度 75 而非更高</div>
+    <ul>
+      <li>技術完全可行，但開發週期長，且需要解決 FinRL 依賴問題（你今天親身體驗了）</li>
+      <li>執行層（交易所 API）涉及法律/監管風險，你定位是 research tool</li>
+      <li>「模擬執行」（③）已能滿足用戶 80% 的需求，這個是錦上添花</li>
+    </ul>
+
+    <div class="section-label">建議做法</div>
+    <p>先完成①②③後，把這個作為長期路線圖展示給用戶（提升品牌形象），不急於現在實現。</p>
+
+    <div class="verdict-row">
+      <div class="verdict-item">技術難度：<span>高</span></div>
+      <div class="verdict-item">建議時機：<span>完成①②③後，有付費用戶反饋再考慮</span></div>
+    </div>
+  </div>
+</div>
+
+
+<div class="item-card" id="item5">
+  <div class="item-header">
+    <div class="item-header-top">
+      <div>
+        <div class="item-title">⑤ Ensemble Strategy Comparison（A2C vs PPO vs DDPG）</div>
+        <div class="tags">
+          <span class="tag tag-tier-res">Research tier</span>
+          <span class="tag tag-later">後期考慮</span>
+          <span class="tag tag-effort">開發 2–3 週</span>
+        </div>
+      </div>
+      <div class="score-box">
+        <div class="match-score s-mid">65</div>
+        <span class="match-label">匹配度 /100</span>
+      </div>
+    </div>
+  </div>
+  <div class="item-body">
+
+    <div class="section-label">原理</div>
+    <p>FinRL 的 Ensemble 策略：同時訓練三個 RL 模型，每隔一段時間用 Sharpe Ratio 選最好的執行。原始論文（NeurIPS 2020）就是用這個框架發表的。</p>
+    <div class="code-block">
+A2C  (Advantage Actor-Critic)   → 穩定，適合低波動市場
+PPO  (Proximal Policy Opt.)     → 最常用，平衡穩定性和表現
+DDPG (Deep Deterministic PG)    → 適合高波動，探索性強
+<span class="g"># 每 63 天（一季）重新評估，選 Sharpe 最高的模型</span>
+    </div>
+
+    <div class="section-label">為什麼匹配度較低</div>
+    <ul>
+      <li>對你的目標用戶（活躍交易者、newsletter 作者）來說，「哪個 RL 算法更好」太技術性，付費動機弱</li>
+      <li>開發成本高，需要訓練三個模型，計算時間長</li>
+      <li>③ RL Strategy Backtester 已能覆蓋用戶核心需求，⑤ 是進階版本</li>
+      <li>更適合學術展示（你的 FYP 版本）而非商業版本</li>
+    </ul>
+
+    <div class="verdict-row">
+      <div class="verdict-item">建議：<span>完成③之後再考慮，或作為 FYP 版本的亮點</span></div>
+    </div>
+  </div>
+</div>
+
+
+<div class="item-card" id="item6">
+  <div class="item-header" style="background:#f0fdf4">
+    <div class="item-header-top">
+      <div>
+        <div class="item-title">⑥ FinRL 換幣種（基礎整合測試）</div>
+        <div class="tags">
+          <span class="tag tag-rec">先做（測試用）</span>
+          <span class="tag tag-effort">0.5 天</span>
+        </div>
+      </div>
+      <div class="score-box">
+        <div class="match-score s-high">90</div>
+        <span class="match-label">匹配度 /100</span>
+      </div>
+    </div>
+  </div>
+  <div class="item-body">
+
+    <div class="section-label">原理</div>
+    <p>把你剛做的 DOW 30 股票 example，換成 BTC/ETH/SOL，直接驗證 FinRL 的 crypto 能力，也讓你熟悉整個 pipeline 在 crypto 數據上的行為。</p>
+    <div class="code-block">
+<span class="dim"># 修改 FinRL_StockTrading_2026_1_data.py：</span>
+<span class="o">ticker_list = config_tickers.DOW_30_TICKER</span>  <span class="dim"># 刪掉這行</span>
+<span class="b">ticker_list = ["BTC-USD", "ETH-USD", "SOL-USD"]</span>  <span class="g"># 換這行</span>
+
+<span class="dim"># 其他不用改，然後跑 Step 2（train）和 Step 3（backtest）</span>
+<span class="dim"># 最終得到一張 crypto RL 策略的 backtest 結果圖</span>
+    </div>
+
+    <div class="section-label">這樣做的意義</div>
+    <ul>
+      <li>讓你親眼看到 RL 在 crypto 數據上的表現如何，有助於判斷③④值不值得做</li>
+      <li>同時讓你理解 FinRL 整個 pipeline 在你自己的數據上的行為</li>
+      <li>幾乎零成本，只需改一行代碼</li>
+    </ul>
+
+    <div class="verdict-row">
+      <div class="verdict-item">建議：<span>今天就可以試，作為對③④的可行性評估</span></div>
+    </div>
+  </div>
+</div>
+
+<hr class="divider" />
+
+
+<h2>我的建議順序</h2>
+<table class="summary-table">
+  <tr><th>順序</th><th>做什麼</th><th>理由</th></tr>
+  <tr>
+    <td><strong>今天</strong></td>
+    <td>⑥ 換幣種跑 FinRL crypto</td>
+    <td>零成本探索，理解 RL 在 crypto 的表現</td>
+  </tr>
+  <tr>
+    <td><strong>本週</strong></td>
+    <td>① Turbulence Index（F12）</td>
+    <td>最快完成，立刻提升 Multi-Factor Score 質量，有機構背書敘事</td>
+  </tr>
+  <tr>
+    <td><strong>下週</strong></td>
+    <td>② Portfolio Optimization Panel</td>
+    <td>用戶付費意願最強，現有依賴已裝好，差異化明顯</td>
+  </tr>
+  <tr>
+    <td><strong>下下週</strong></td>
+    <td>③ RL Strategy Backtester</td>
+    <td>產品升級的關鍵一步，有了①②的基礎後更容易做</td>
+  </tr>
+  <tr>
+    <td><strong>長期</strong></td>
+    <td>④ Multi-Factor → RL 執行鏈</td>
+    <td>有付費用戶後再做，確保方向正確</td>
+  </tr>
+</table>
+
+<footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>
