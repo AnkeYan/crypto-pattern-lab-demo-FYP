@@ -1,4 +1,4 @@
-# CryptoPatternLab FYP 副本 項目交接文件 v24.0
+# CryptoPatternLab FYP 副本 項目交接文件 v25.0
 
 ## 產品定位
 AI-powered crypto pattern research assistant。
@@ -87,7 +87,7 @@ Bloomberg Terminal 的分析深度 + AI 自動翻譯成人話 + 專注 Crypto，
 ```
 /Users/nganyukkuen/Desktop/crypto-pattern-lab-export/
 ├── data/           ← CSV 分析結果
-├── scripts/        ← Python 腳本（26個，含 analyze_lstm.py）
+├── scripts/        ← Python 腳本（27個，含 analyze_rl_backtest.py）
 └── web/            ← Next.js 網頁（無 Tier 邏輯）
 ```
 
@@ -192,7 +192,8 @@ Validation /validation → Pattern Validation（Pro）· Regime Efficacy（Pro�
 Signals   /signals    → Signal Intelligence（Pro）· Multi-Factor Score（Pro）
                           Monte Carlo（Pro）
                           Regime Transition（Research）· Portfolio Optimization（Research）
-                          WorkspaceTOC: 5個條目（purple）
+                          RL Backtester（Research）
+                          WorkspaceTOC: 6個條目（purple）
                           ⚠️ MultiFactorPanel 含 XGBoost + Ensemble + Bi-LSTM 三個 tab
 
 Factors   /factors    → Funding Rate（Pro）· BTC Dominance（Pro）
@@ -251,7 +252,8 @@ analyze_xgboost.py
 analyze_ensemble.py                  ← XGBoost + LightGBM
 analyze_lstm.py                      ← Bi-LSTM walk-forward（v24 新增）
 analyze_consecutive_drop.py / analyze_drawdown_recovery.py / analyze_halving.py
-analyze_portfolio_optimization.py    ← 最後執行
+analyze_portfolio_optimization.py
+analyze_rl_backtest.py               ← RL Strategy Backtester（v25 新增，最後執行）
 ```
 
 ---
@@ -298,6 +300,7 @@ analyze_portfolio_optimization.py    ← 最後執行
 | MonteCarloPanel | Pro |
 | RegimeTransitionPanel | Research |
 | PortfolioOptimizationPanel | Research |
+| RlBacktestPanel            | Research（equity curve + 指標表 + weight chart）|
 
 ### Factors workspace
 | 組件 | Tier |
@@ -327,6 +330,7 @@ analyze_portfolio_optimization.py    ← 最後執行
 /api/regime-signal-efficacy
 /api/consecutive-drop / /api/drawdown-recovery / /api/halving
 /api/portfolio-optimization
+/api/rl-backtest                     ← v25 新增
 /api/factor-ic
 /api/funding-rate-history
 /api/mvrv-history
@@ -363,7 +367,8 @@ data/
 ├── btc_dominance_history.csv / btc_dominance_results.csv
 ├── factor_ic_results.csv
 ├── lstm_results.csv                 ← v24 新增
-└── lstm_predictions.csv             ← v24 新增
+├── lstm_predictions.csv             ← v24 新增
+└── rl_backtest.csv                  ← v25 新增（equity/weights/metrics/meta）
 ```
 所有 CSV 同時在 `data/` 和 `web/public/data/`（Vercel 用）。
 
@@ -375,7 +380,7 @@ data/
 HANDOVER.md                  ← 本文件
 FYP_PRESENTATION.md          ← 2min + 5min FYP 匯報文稿 + Q&A + 數字速查
 cryptopatternlab.html        ← 系統誠實評估（早期分析，大部分建議已實作）
-finrl-cryptopatternlab.html  ← FinRL 整合建議（6 個機會，① ② ⑥ 已完成）
+finrl-cryptopatternlab.html  ← FinRL 整合建議（6 個機會，① ② ③ ⑥ 已完成）
 artifact.html                ← Q&A 文檔（參考用）
 7.html                       ← MVO vs RL 策略解釋（參考用）
 ```
@@ -438,6 +443,20 @@ artifact.html                ← Q&A 文檔（參考用）
 - **4 個 HTML 參考文件** 複製到兩個 repo 根目錄 ✅
 - HANDOVER.md 更新至 v24.0（兩個 repo）✅
 
+### ✅ 已完成（v25 RL Backtester）
+- **RL Strategy Backtester**（analyze_rl_backtest.py + /api/rl-backtest + RlBacktestPanel）✅
+  - 純 numpy 實作，無 FinRL/stable-baselines3 依賴
+  - REINFORCE 策略梯度 agent，30 維 state（10 因子 × 3 幣種）
+  - Walk-forward（3 年訓練 → 1 年測試），2 個 fold，out-of-sample 結果：
+    - RL Agent：Total +52.5%，Sharpe 0.239，MDD -80.6%
+    - Equal Weight：+407.6%，Sharpe 1.466，MDD -49.1%
+    - Buy & Hold BTC：+306.7%，Sharpe 1.557，MDD -28.1%
+    - MVO Max Sharpe：+550.6%，Sharpe 1.787，MDD -42.8%
+  - 結果符合 7.html 預測（訓練不足 + 短測試期，RL 跑不過靜態策略）
+  - 前端：equity curve + 指標表 + weight stacked area + 動態解讀框
+  - Signals workspace 新增第 6 個 panel（Research tier）
+  - HANDOVER.md 更新至 v25.0（兩個 repo）✅
+
 ### 🔴 高優先
 1. **模擬盤驗證**
    - 每天查 /signals，記錄信號，跑 3 個月驗證能否覆蓋交易成本
@@ -450,9 +469,6 @@ artifact.html                ← Q&A 文檔（參考用）
 3. **SOL AUC 提升**（目前 0.514 XGBoost / 0.501 LSTM，最弱）
    - 候選：SOL 專屬鏈上因子（Solana 活躍地址）
    - F15 BTC Dominance 加入 XGBoost 後可能改善（等數據累積）
-
-4. **RL Strategy Backtester**（FinRL 整合建議 ③）
-   - 把 15 因子作為 RL state 輸入，對比 buy-and-hold
 
 ### 🔵 長期 ML 分支
 - RL（AUC 0.55+）→ Transformer → GNN

@@ -6,15 +6,17 @@ import RegimeTransitionPanel, { RegimeTransitionRow } from "../components/Regime
 import MultiFactorPanel, { MultifactorRow, EnsembleFold, EnsemblePrediction, LstmFold, LstmPrediction } from "../components/MultiFactorPanel";
 import MonteCarloPanel from "../components/MonteCarloPanel";
 import PortfolioOptimizationPanel from "../components/PortfolioOptimizationPanel";
+import RlBacktestPanel from "../components/RlBacktestPanel";
 import TierGate from "../components/TierGate";
 import WorkspaceTOC, { TocSection } from "../components/WorkspaceTOC";
 
 const SIGNALS_SECTIONS: TocSection[] = [
-  { id: "signals-overview",    label: "Signal Intelligence",  labelZh: "信號智慧",     tier: "pro"      },
-  { id: "multifactor",         label: "Multi-Factor Score",   labelZh: "多因子評分",   tier: "pro"      },
-  { id: "monte-carlo",         label: "Monte Carlo",          labelZh: "蒙特卡洛",     tier: "pro"      },
-  { id: "regime-transition",   label: "Regime Transition",    labelZh: "狀態轉換",     tier: "research" },
-  { id: "portfolio-optimization", label: "Portfolio Optim.", labelZh: "配比優化",     tier: "research" },
+  { id: "signals-overview",       label: "Signal Intelligence",  labelZh: "信號智慧",     tier: "pro"      },
+  { id: "multifactor",            label: "Multi-Factor Score",   labelZh: "多因子評分",   tier: "pro"      },
+  { id: "monte-carlo",            label: "Monte Carlo",          labelZh: "蒙特卡洛",     tier: "pro"      },
+  { id: "regime-transition",      label: "Regime Transition",    labelZh: "狀態轉換",     tier: "research" },
+  { id: "portfolio-optimization", label: "Portfolio Optim.",     labelZh: "配比優化",     tier: "research" },
+  { id: "rl-backtester",          label: "RL Backtester",        labelZh: "RL 策略回測",  tier: "research" },
 ];
 
 type SignalSummary = {
@@ -106,7 +108,7 @@ export type CalibScatterPoint = {
 
 export default async function SignalsPage() {
   const BASE = baseUrl();
-  const [signalsRes, rtRes, mfRes, mfCalibRes, xgbRes, ensRes, lstmRes, garchRes, rcRes, portRes] = await Promise.all([
+  const [signalsRes, rtRes, mfRes, mfCalibRes, xgbRes, ensRes, lstmRes, garchRes, rcRes, portRes, rlRes] = await Promise.all([
     fetch(`${BASE}/api/signals`,                  { cache: "no-store" }),
     fetch(`${BASE}/api/regime-transition`,        { cache: "no-store" }),
     fetch(`${BASE}/api/multifactor`,              { cache: "no-store" }),
@@ -117,6 +119,7 @@ export default async function SignalsPage() {
     fetch(`${BASE}/api/garch`,                    { cache: "no-store" }),
     fetch(`${BASE}/api/rolling-correlation`,      { cache: "no-store" }),
     fetch(`${BASE}/api/portfolio-optimization`,   { cache: "no-store" }),
+    fetch(`${BASE}/api/rl-backtest`,              { cache: "no-store" }),
   ]);
 
   const { summary, confluence }: {
@@ -147,6 +150,8 @@ export default async function SignalsPage() {
   const rcData: RollingCorrRow[]      = await rcRes.json();
   type PortRow = { row_type: string; label: string; value: number | null; extra: string };
   const portData: PortRow[]           = await portRes.json();
+  type RlRow = { row_type: string; label: string; value: number | null; extra1: number | null; extra2: number | null; extra3: number | null };
+  const rlData: RlRow[]               = await rlRes.json();
 
   // Derive GARCH context per symbol for SignalIntelligencePanel
   const garchContext = Object.fromEntries(
@@ -247,6 +252,13 @@ export default async function SignalsPage() {
           <div id="portfolio-optimization" className="mt-8">
             <TierGate requiredTier="research" title="Portfolio Optimization (MVO)" description="Markowitz Mean-Variance Optimization — Max Sharpe (BTC 57% + SOL 43%) and Min Volatility allocations, efficient frontier, and historical performance comparison. 馬可維茲最優配比分析。">
               <PortfolioOptimizationPanel data={portData} />
+            </TierGate>
+          </div>
+
+          {/* ── 6. RL Strategy Backtester — Research ── */}
+          <div id="rl-backtester" className="mt-8">
+            <TierGate requiredTier="research" title="RL Strategy Backtester" description="Factor-driven RL agent (REINFORCE) trained on your 15-factor state vector — walk-forward out-of-sample equity curve vs Equal Weight, Buy & Hold BTC, and MVO. 15因子驅動的強化學習策略回測。">
+              <RlBacktestPanel data={rlData} />
             </TierGate>
           </div>
             </div>{/* end panels */}
