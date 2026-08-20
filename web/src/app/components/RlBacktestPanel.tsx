@@ -223,55 +223,50 @@ export default function RlBacktestPanel({ data }: Props) {
   }
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
+    <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-5">
       {/* header */}
-      <div className="flex items-start justify-between gap-4 mb-5">
-        <div>
-          <h3 className="text-base font-bold text-white">
-            RL Strategy Backtester
-            <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/30 align-middle">
-              Research
-            </span>
-          </h3>
-          <p className="text-xs text-gray-400 mt-1">
-            Factor-driven RL agent (REINFORCE) vs. static strategies &mdash; walk-forward out-of-sample
-            {testStart && ` · ${testStart} → ${testEnd}`}
-          </p>
+      <div className="mb-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h2 className="text-lg font-semibold">RL Strategy Backtester</h2>
         </div>
-        <button
-          onClick={() => setOpen(!open)}
-          className="text-xs text-gray-400 hover:text-white border border-gray-700 rounded px-2.5 py-1 whitespace-nowrap flex-shrink-0 transition-colors"
-        >
-          {open ? "Hide" : "How to read this?"}
-        </button>
+        <p className="text-gray-500 text-sm mt-1">
+          Factor-driven RL agent (REINFORCE) vs. static strategies — walk-forward out-of-sample
+          {testStart && <span className="text-gray-600"> · {testStart} → {testEnd}</span>}
+        </p>
       </div>
 
-      {/* explainer box */}
-      {open && (
-        <div className="mb-5 p-4 rounded-lg bg-gray-800 border border-gray-700 text-sm space-y-2">
-          <p className="font-semibold text-white">這是什麼？</p>
-          <p className="text-gray-300 text-xs leading-relaxed">
-            這個 Backtester 把你研究的 <strong className="text-white">{factorsUsed} 個因子值</strong>（MVRV、Turbulence、Funding Rate 等）作為 RL Agent 每天的觀察輸入（state），
-            用 REINFORCE 策略梯度算法在訓練期（{trainYears} 年滾動窗口）學習最優倉位分配，然後在測試期（out-of-sample）模擬執行。
-          </p>
-          <p className="font-semibold text-white mt-2">四條線分別是：</p>
-          <ul className="text-xs text-gray-300 space-y-1 list-none">
-            <li><span className="font-bold" style={{ color: COLORS.rl }}>── RL Agent</span>：每天根據 15 個因子動態調整 BTC/ETH/SOL 倉位比例</li>
-            <li><span className="font-bold" style={{ color: COLORS.ew }}>- - Equal Weight</span>：每天等量持有三幣種（各 1/3）</li>
-            <li><span className="font-bold" style={{ color: COLORS.btc }}>·· Buy & Hold BTC</span>：100% 持有 BTC，完全不交易</li>
-            <li><span className="font-bold" style={{ color: COLORS.mvo }}>─ · MVO Max Sharpe</span>：Markowitz 靜態最優配比（BTC 57% + SOL 43%）</li>
-          </ul>
-          <p className="font-semibold text-white mt-2">Sharpe Ratio 怎麼看？</p>
-          <p className="text-xs text-gray-300">
-            {'> 1.0 = 優秀（每單位風險賺超過 1 單位回報）'}<br />
-            {'0.5–1.0 = 可接受 | < 0.5 = 較弱'}<br />
-            MDD（最大回撤）越接近 0 越好。
-          </p>
-          <p className="text-xs text-gray-400 italic mt-1">
-            ⚠️ Walk-forward out-of-sample 模擬，包含 10bps 交易成本。不構成投資建議。
-          </p>
-        </div>
-      )}
+      {/* How to read — standard style */}
+      <div className="mb-4 mt-3">
+        <button
+          onClick={() => setOpen(!open)}
+          className="text-xs text-gray-500 hover:text-gray-300 transition-colors flex items-center gap-1"
+        >
+          <span>{open ? "▾" : "▸"}</span>
+          <span>How to read this? / 如何解讀？</span>
+        </button>
+        {open && (
+          <div className="mt-2 rounded-lg bg-white/[0.04] border border-white/[0.06] p-4 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <div className="text-[10px] font-bold uppercase text-gray-500 mb-1">ENGLISH</div>
+              <p className="text-gray-300 mb-2">This panel answers: <em>&ldquo;If I use the 15 research factors to drive an AI agent, can it beat static allocation strategies?&rdquo;</em></p>
+              <p className="text-gray-400 text-xs mb-1">The RL agent observes a <strong>{factorsUsed}-dimensional state vector</strong> (MVRV, Turbulence, Funding Rate, RSI, etc. × 3 coins) each day and learns to allocate across BTC/ETH/SOL using REINFORCE policy gradient.</p>
+              <p className="text-gray-400 text-xs mb-1"><strong>Walk-forward</strong>: {trainYears}-year rolling train window, 1-year test window — all results are out-of-sample.</p>
+              <p className="text-gray-400 text-xs mb-1"><strong>Sharpe Ratio</strong>: return ÷ risk. &gt;1.0 = excellent · 0.5–1.0 = acceptable · &lt;0.5 = weak.</p>
+              <p className="text-gray-400 text-xs"><strong>Max DD</strong>: largest peak-to-trough loss. Closer to 0% = better downside control.</p>
+              <p className="text-gray-400 text-xs mt-1 italic">Includes 10 bps transaction cost per trade. Not investment advice.</p>
+            </div>
+            <div>
+              <div className="text-[10px] font-bold uppercase text-gray-500 mb-1">中文</div>
+              <p className="text-gray-300 mb-2">這個面板回答：<em>「用 15 個研究因子驅動 AI，能否跑贏靜態配置策略？」</em></p>
+              <p className="text-gray-400 text-xs mb-1">RL Agent 每天觀察 <strong>{factorsUsed} 維狀態向量</strong>（MVRV、Turbulence、Funding Rate、RSI 等 × 3 幣種），用 REINFORCE 策略梯度學習 BTC/ETH/SOL 最優倉位配比。</p>
+              <p className="text-gray-400 text-xs mb-1"><strong>Walk-forward 驗證</strong>：{trainYears} 年滾動訓練窗口，1 年測試窗口，所有結果均為 out-of-sample（訓練期之外）。</p>
+              <p className="text-gray-400 text-xs mb-1"><strong>Sharpe Ratio</strong>：回報÷風險。&gt;1.0 = 優秀 · 0.5–1.0 = 可接受 · &lt;0.5 = 較弱。</p>
+              <p className="text-gray-400 text-xs"><strong>最大回撤（Max DD）</strong>：從峰值到最低點的最大虧損，越接近 0% 越好。</p>
+              <p className="text-gray-400 text-xs mt-1 italic">包含每筆 10bps 交易成本。不構成投資建議。</p>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* strategy toggles */}
       <div className="flex flex-wrap gap-2 mb-4">
