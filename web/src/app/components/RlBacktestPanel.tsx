@@ -204,10 +204,11 @@ export default function RlBacktestPanel({ data }: Props) {
   const toggle = (key: string) =>
     setVisible((v) => ({ ...v, [key]: !v[key] }));
 
-  // Derive interpretation text
+  // Derive interpretation
   const rlM  = metrics["RL Agent"];
   const mvoM = metrics["MVO (Max Sharpe)"];
   const btcM = metrics["Buy & Hold BTC"];
+  const ewM  = metrics["Equal Weight"];
 
   function interpretColor(sharpe: number) {
     if (sharpe >= 1.0) return "text-green-400";
@@ -215,12 +216,57 @@ export default function RlBacktestPanel({ data }: Props) {
     return "text-red-400";
   }
 
-  function rlVerdict(): string {
-    if (!rlM || !mvoM) return "";
-    if (rlM.sharpe >= mvoM.sharpe) return "RL Agent outperformed MVO on a risk-adjusted basis — the 15 factors provided useful signal.";
-    if (rlM.max_dd < mvoM.max_dd)  return "RL Agent had a smaller maximum drawdown than MVO — the factor-driven risk management worked.";
-    return `RL Agent underperformed MVO (Sharpe ${rlM.sharpe.toFixed(2)} vs ${mvoM.sharpe.toFixed(2)}) — consistent with findings in 7.html: short training periods and market regime shifts limit RL performance.`;
-  }
+  // Dynamic key takeaway — derived entirely from real backtest numbers
+  const takeaway = (() => {
+    if (!rlM || !mvoM || !btcM) return null;
+
+    const beatsMvo = rlM.sharpe >= mvoM.sharpe;
+    const beatsBtc = rlM.sharpe >= btcM.sharpe;
+    const allBeat  = beatsMvo && beatsBtc;
+    const bestBaseline = [
+      { label: "MVO", sharpe: mvoM.sharpe },
+      { label: "Buy & Hold BTC", sharpe: btcM.sharpe },
+      ...(ewM ? [{ label: "Equal Weight", sharpe: ewM.sharpe }] : []),
+    ].sort((a, b) => b.sharpe - a.sharpe)[0];
+
+    const gap = Math.abs(rlM.sharpe - bestBaseline.sharpe).toFixed(3);
+
+    if (allBeat) {
+      return {
+        border: "border-green-500/30", bg: "bg-green-500/5",
+        icon: "✓", titleColor: "text-green-400",
+        title: `RL Agent outperformed all baselines · 因子驅動 AI 跑贏所有基準策略`,
+        en: `The RL agent achieved Sharpe ${rlM.sharpe.toFixed(3)} vs the best baseline (${bestBaseline.label}) at ${bestBaseline.sharpe.toFixed(3)} — a +${gap} Sharpe advantage. This suggests the ${factorsUsed}-dimensional factor state (MVRV, Turbulence, Funding Rate, etc.) provided meaningful signal for dynamic allocation across BTC, ETH, and SOL.`,
+        zh: `RL Agent 取得 Sharpe ${rlM.sharpe.toFixed(3)}，優於最佳基準（${bestBaseline.label}）的 ${bestBaseline.sharpe.toFixed(3)}，Sharpe 領先 +${gap}。${factorsUsed} 維因子狀態（MVRV、Turbulence、Funding Rate 等）為動態配置提供了有效信號。`,
+      };
+    }
+    if (beatsMvo && !beatsBtc) {
+      return {
+        border: "border-yellow-500/30", bg: "bg-yellow-500/5",
+        icon: "~", titleColor: "text-yellow-400",
+        title: `RL Agent beat MVO but not Buy & Hold BTC · 跑贏 MVO，但未跑贏 BTC 買入持有`,
+        en: `The RL agent (Sharpe ${rlM.sharpe.toFixed(3)}) outperformed the static MVO portfolio (${mvoM.sharpe.toFixed(3)}) but trailed Buy & Hold BTC (${btcM.sharpe.toFixed(3)}). In the strong bull period tested, simply holding BTC proved hard to beat on a Sharpe basis.`,
+        zh: `RL Agent（Sharpe ${rlM.sharpe.toFixed(3)}）跑贏了靜態 MVO 組合（${mvoM.sharpe.toFixed(3)}），但落後於 BTC 買入持有（${btcM.sharpe.toFixed(3)}）。在測試的強牛市階段，單純持有 BTC 的 Sharpe 表現難以超越。`,
+      };
+    }
+    if (rlM.max_dd > -50 && mvoM.max_dd < -50) {
+      return {
+        border: "border-yellow-500/30", bg: "bg-yellow-500/5",
+        icon: "~", titleColor: "text-yellow-400",
+        title: `RL Agent showed better drawdown control · RL Agent 回撤控制較好`,
+        en: `While the RL agent lagged on total return, its maximum drawdown (${rlM.max_dd.toFixed(1)}%) was better-controlled than some baselines. This suggests the factor state provides risk-awareness, even if the absolute return is limited by training epochs.`,
+        zh: `雖然 RL Agent 總回報落後，但最大回撤（${rlM.max_dd.toFixed(1)}%）比部分基準更受控。這說明因子狀態提供了一定的風險感知能力，即使回報受訓練步數限制。`,
+      };
+    }
+    // default: underperformed
+    return {
+      border: "border-orange-500/20", bg: "bg-orange-500/[0.03]",
+      icon: "✗", titleColor: "text-orange-400",
+      title: `RL Agent underperformed static strategies · RL Agent 跑輸靜態策略`,
+      en: `RL Agent Sharpe ${rlM.sharpe.toFixed(3)} vs best baseline (${bestBaseline.label}) ${bestBaseline.sharpe.toFixed(3)} — a −${gap} gap. This is consistent with the finding in 7.html: with only ${trainYears} years of training data and 120 training epochs, REINFORCE does not explore the state space thoroughly enough to surpass a well-calibrated static portfolio. Increasing training epochs (currently 120) or extending the training window would likely close this gap.`,
+      zh: `RL Agent Sharpe ${rlM.sharpe.toFixed(3)}，落後於最佳基準（${bestBaseline.label}）${bestBaseline.sharpe.toFixed(3)}，差距 −${gap}。這與 7.html 的分析一致：${trainYears} 年訓練窗口加上有限的訓練步數（REINFORCE 120 輪），Agent 的策略空間探索不足以超越校準良好的靜態組合。增加訓練輪數或延長訓練窗口可望縮小差距。`,
+    };
+  })();
 
   return (
     <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-5">
@@ -289,86 +335,99 @@ export default function RlBacktestPanel({ data }: Props) {
 
       {/* equity curve */}
       {equity.length > 0 ? (
-        <div className="bg-gray-950 rounded-lg p-3 mb-4">
+        <div className="rounded-lg bg-slate-700/30 p-3 mb-4 overflow-x-auto">
+          <p className="text-xs text-slate-400 mb-2">
+            Portfolio Value History (base = $10,000) · 組合價值歷史走勢
+          </p>
           <EquityCurveSvg equity={equity} visible={visible} />
         </div>
       ) : (
-        <div className="bg-gray-950 rounded-lg p-6 text-center text-gray-500 text-xs mb-4">
+        <div className="rounded-lg bg-slate-700/30 p-6 text-center text-gray-500 text-xs mb-4">
           No equity data available
         </div>
       )}
 
       {/* metrics table */}
-      <div className="overflow-x-auto mb-4">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-gray-800">
-              <th className="text-left text-gray-400 font-medium py-2 pr-3">Strategy</th>
-              <th className="text-right text-gray-400 font-medium py-2 px-2">Total Return</th>
-              <th className="text-right text-gray-400 font-medium py-2 px-2">Ann. Return</th>
-              <th className="text-right text-gray-400 font-medium py-2 px-2">Sharpe</th>
-              <th className="text-right text-gray-400 font-medium py-2 pl-2">Max DD</th>
-            </tr>
-          </thead>
-          <tbody>
-            {STRATEGIES.map(({ key, label, color }) => {
-              const labelMap: Record<string, string> = {
-                rl:  "RL Agent",
-                ew:  "Equal Weight",
-                btc: "Buy & Hold BTC",
-                mvo: "MVO (Max Sharpe)",
-              };
-              const m = metrics[labelMap[key]];
-              if (!m) return null;
-              return (
-                <tr key={key} className="border-b border-gray-800/50">
-                  <td className="py-2 pr-3 font-semibold" style={{ color }}>
-                    {label}
-                  </td>
-                  <td className={`text-right py-2 px-2 font-mono ${m.total_ret >= 0 ? "text-green-400" : "text-red-400"}`}>
-                    {m.total_ret >= 0 ? "+" : ""}{m.total_ret.toFixed(1)}%
-                  </td>
-                  <td className={`text-right py-2 px-2 font-mono ${m.ann_ret >= 0 ? "text-green-400" : "text-red-400"}`}>
-                    {m.ann_ret >= 0 ? "+" : ""}{m.ann_ret.toFixed(1)}%
-                  </td>
-                  <td className={`text-right py-2 px-2 font-mono font-semibold ${interpretColor(m.sharpe)}`}>
-                    {m.sharpe.toFixed(3)}
-                  </td>
-                  <td className="text-right py-2 pl-2 font-mono text-red-400">
-                    {m.max_dd.toFixed(1)}%
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="mb-4">
+        <div className="text-xs text-gray-500 uppercase font-bold mb-2">
+          Strategy Comparison / 策略對比
+          <span className="ml-2 text-gray-600 normal-case font-normal">· out-of-sample {testStart && `${testStart} → ${testEnd}`}</span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-gray-800">
+                <th className="text-left text-gray-400 font-medium py-2 pr-3">Strategy</th>
+                <th className="text-right text-gray-400 font-medium py-2 px-2">Total Return</th>
+                <th className="text-right text-gray-400 font-medium py-2 px-2">Ann. Return</th>
+                <th className="text-right text-gray-400 font-medium py-2 px-2">Sharpe</th>
+                <th className="text-right text-gray-400 font-medium py-2 pl-2">Max DD</th>
+              </tr>
+            </thead>
+            <tbody>
+              {STRATEGIES.map(({ key, label, color }) => {
+                const labelMap: Record<string, string> = {
+                  rl:  "RL Agent",
+                  ew:  "Equal Weight",
+                  btc: "Buy & Hold BTC",
+                  mvo: "MVO (Max Sharpe)",
+                };
+                const m = metrics[labelMap[key]];
+                if (!m) return null;
+                return (
+                  <tr key={key} className="border-b border-gray-800/50">
+                    <td className="py-2 pr-3 font-semibold" style={{ color }}>
+                      {label}
+                    </td>
+                    <td className={`text-right py-2 px-2 font-mono ${m.total_ret >= 0 ? "text-green-400" : "text-red-400"}`}>
+                      {m.total_ret >= 0 ? "+" : ""}{m.total_ret.toFixed(1)}%
+                    </td>
+                    <td className={`text-right py-2 px-2 font-mono ${m.ann_ret >= 0 ? "text-green-400" : "text-red-400"}`}>
+                      {m.ann_ret >= 0 ? "+" : ""}{m.ann_ret.toFixed(1)}%
+                    </td>
+                    <td className={`text-right py-2 px-2 font-mono font-semibold ${interpretColor(m.sharpe)}`}>
+                      {m.sharpe.toFixed(3)}
+                    </td>
+                    <td className="text-right py-2 pl-2 font-mono text-red-400">
+                      {m.max_dd.toFixed(1)}%
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* RL agent weight chart */}
       {weights.length > 1 && visible.rl && (
-        <div className="mb-4">
-          <p className="text-xs text-gray-400 mb-1.5">
-            RL Agent monthly allocation &mdash; <span style={{ color: COLORS.btc }}>BTC</span> / <span style={{ color: "#627eea" }}>ETH</span> / <span style={{ color: "#9945ff" }}>SOL</span>
-          </p>
-          <div className="bg-gray-950 rounded-lg p-2">
+        <div className="mb-5">
+          <div className="text-xs text-gray-500 uppercase font-bold mb-2">
+            RL Agent Monthly Allocation / 月度倉位配比
+          </div>
+          <div className="rounded-lg bg-slate-700/30 p-3">
+            <div className="flex gap-3 text-xs text-gray-400 mb-1.5">
+              <span style={{ color: COLORS.btc }}>■ BTC</span>
+              <span style={{ color: "#627eea" }}>■ ETH</span>
+              <span style={{ color: "#9945ff" }}>■ SOL</span>
+            </div>
             <WeightChartSvg weights={weights} />
           </div>
         </div>
       )}
 
-      {/* dynamic verdict box */}
-      {rlM && (
-        <div className="rounded-lg border border-violet-500/20 bg-violet-500/5 p-3.5">
-          <p className="text-xs font-semibold text-violet-300 mb-1">📊 結果解讀 / Interpretation</p>
-          <p className="text-xs text-gray-300 leading-relaxed">{rlVerdict()}</p>
-          <p className="text-xs text-gray-400 mt-1.5 leading-relaxed">
-            RL Sharpe <span className={`font-mono font-bold ${interpretColor(rlM.sharpe)}`}>{rlM.sharpe.toFixed(3)}</span>
-            {" "}· MDD <span className="font-mono text-red-400">{rlM.max_dd.toFixed(1)}%</span>
-            {mvoM && <> · vs MVO Sharpe <span className="font-mono text-blue-400">{mvoM.sharpe.toFixed(3)}</span></>}
-            {btcM && <> · BTC B&H Sharpe <span className="font-mono text-orange-400">{btcM.sharpe.toFixed(3)}</span></>}
-          </p>
-          <p className="text-xs text-gray-500 mt-1.5">
-            訓練窗口 {trainYears} 年（滾動）· 狀態向量 {factorsUsed} 維（{Math.round(factorsUsed / 3)} 因子 × 3 幣種）· 交易成本 10 bps/side
+      {/* Dynamic key takeaway — matches PortfolioOptimizationPanel style */}
+      {takeaway && (
+        <div className={`rounded-lg border ${takeaway.border} ${takeaway.bg} px-4 py-3 text-sm`}>
+          <div className={`font-medium mb-2 ${takeaway.titleColor}`}>
+            {takeaway.icon} {takeaway.title}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <p className="text-gray-300 text-sm">{takeaway.en}</p>
+            <p className="text-gray-500 text-sm">{takeaway.zh}</p>
+          </div>
+          <p className="text-xs text-gray-600 mt-2 pt-2 border-t border-white/[0.05]">
+            Train window: {trainYears}y rolling · State: {factorsUsed}-dim ({Math.round(factorsUsed / 3)} factors × 3 coins) · TC: 10 bps/side
           </p>
         </div>
       )}
