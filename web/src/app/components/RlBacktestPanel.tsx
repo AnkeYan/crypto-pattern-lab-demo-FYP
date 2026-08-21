@@ -263,8 +263,8 @@ export default function RlBacktestPanel({ data }: Props) {
       border: "border-orange-500/20", bg: "bg-orange-500/[0.03]",
       icon: "✗", titleColor: "text-orange-400",
       title: `RL Agent underperformed static strategies · RL Agent 跑輸靜態策略`,
-      en: `RL Agent Sharpe ${rlM.sharpe.toFixed(3)} vs best baseline (${bestBaseline.label}) ${bestBaseline.sharpe.toFixed(3)} — a −${gap} gap. This is consistent with the finding in 7.html: with only ${trainYears} years of training data and 120 training epochs, REINFORCE does not explore the state space thoroughly enough to surpass a well-calibrated static portfolio. Increasing training epochs (currently 120) or extending the training window would likely close this gap.`,
-      zh: `RL Agent Sharpe ${rlM.sharpe.toFixed(3)}，落後於最佳基準（${bestBaseline.label}）${bestBaseline.sharpe.toFixed(3)}，差距 −${gap}。這與 7.html 的分析一致：${trainYears} 年訓練窗口加上有限的訓練步數（REINFORCE 120 輪），Agent 的策略空間探索不足以超越校準良好的靜態組合。增加訓練輪數或延長訓練窗口可望縮小差距。`,
+      en: `RL Agent Sharpe ${rlM.sharpe.toFixed(3)} vs best baseline (${bestBaseline.label}) ${bestBaseline.sharpe.toFixed(3)} — a −${gap} gap. The linear REINFORCE policy (120 epochs, ${trainYears}-year rolling window) captures directional factor signals but lacks the non-linear capacity to out-time a static MVO portfolio. Switching to a deeper policy network or adding a recurrent state would likely close this gap.`,
+      zh: `RL Agent Sharpe ${rlM.sharpe.toFixed(3)}，落後於最佳基準（${bestBaseline.label}）${bestBaseline.sharpe.toFixed(3)}，差距 −${gap}。線性 REINFORCE 策略（120 輪，${trainYears} 年滾動訓練窗口）能捕捉因子的方向性信號，但缺乏非線性容量以超越靜態 MVO 組合。引入更深的策略網絡或遞歸狀態可望縮小此差距。`,
     };
   })();
 

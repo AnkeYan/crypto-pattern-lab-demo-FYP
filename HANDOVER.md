@@ -1,4 +1,4 @@
-# CryptoPatternLab FYP 副本 項目交接文件 v25.0
+# CryptoPatternLab FYP 副本 項目交接文件 v26.0
 
 ## 產品定位
 AI-powered crypto pattern research assistant。
@@ -456,6 +456,16 @@ artifact.html                ← Q&A 文檔（參考用）
   - 前端：equity curve + 指標表 + weight stacked area + 動態解讀框
   - Signals workspace 新增第 6 個 panel（Research tier）
   - HANDOVER.md 更新至 v25.0（兩個 repo）✅
+
+### ✅ 已完成（v26 RL 腳本修復）
+- **analyze_rl_backtest.py 修復** ✅
+  - v25A+B 嘗試（500 epochs + TEST_YEARS=0.5 + Sharpe reward shaping）導致 RL Sharpe **-0.249**（嚴重退步）
+  - 診斷：Sharpe reward shaping 導致 in-sample 過擬合（in-sample Sharpe 0.98–1.02），out-of-sample catastrophically 失敗
+  - 進一步測試（去除 Sharpe shaping，保留 500 epochs + 0.5 test years）：結果仍 Sharpe -0.248 → 問題本質是 REINFORCE + 高度非平穩加密幣市場在短測試窗口下的分佈偏移
+  - **解決方案**：完全回退至原始 v25 參數（120 epochs + 1-year test window + raw log1p reward）
+  - 回退後 RL Sharpe 恢復 **0.238**（與 v25 一致）
+  - RlBacktestPanel.tsx key takeaway 文字更新（移除過時的 7.html 參考，說明線性 REINFORCE 局限性）
+  - 兩個 repo commit + push ✅
 
 ### 🔴 高優先
 1. **模擬盤驗證**

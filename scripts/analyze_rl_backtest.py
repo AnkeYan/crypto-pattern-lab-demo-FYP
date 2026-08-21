@@ -30,9 +30,9 @@ WEB_DATA = ROOT / "web" / "public" / "data"
 
 # ── hyperparameters ─────────────────────────────────────────────────────────
 TRAIN_YEARS  = 3        # rolling walk-forward train window (years)
-TEST_YEARS   = 1        # test window (years)
+TEST_YEARS   = 1.0      # test window (years) — 3 folds covers bull+bear
 LEARNING_RATE= 0.005
-EPOCHS       = 120      # training epochs per walk-forward fold
+EPOCHS       = 120      # REINFORCE epochs — fast enough for daily cron (~3 min)
 GAMMA        = 0.99     # reward discount
 TC_BPS       = 10       # transaction cost (basis points per side)
 INITIAL_CASH = 10_000.0
@@ -155,14 +155,14 @@ class CryptoEnv:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# 3. POLICY NETWORK (linear softmax — interpretable, fast)
+# 3. POLICY NETWORK (linear softmax)
 # ═══════════════════════════════════════════════════════════════════════════
 
 class LinearSoftmaxPolicy:
     """W: (N_ASSETS, STATE_DIM)  b: (N_ASSETS,)"""
     def __init__(self):
-        self.W = np.random.randn(N_ASSETS, STATE_DIM).astype(np.float32) * 0.01
-        self.b = np.zeros(N_ASSETS, dtype=np.float32)
+        self.W = np.random.randn(N_ASSETS, STATE_DIM).astype(np.float64) * 0.01
+        self.b = np.zeros(N_ASSETS, dtype=np.float64)
 
     def forward(self, state: np.ndarray) -> np.ndarray:
         logits = self.W @ state + self.b
@@ -170,14 +170,11 @@ class LinearSoftmaxPolicy:
         e = np.exp(logits)
         return e / e.sum()
 
-    def log_prob(self, state: np.ndarray, weights: np.ndarray) -> float:
-        probs = self.forward(state)
-        # approximate log-prob with entropy-like term (continuous action)
-        return float(np.dot(weights, np.log(probs + 1e-8)))
-
-    def update(self, grads_W, grads_b, lr: float):
-        self.W += lr * grads_W
-        self.b += lr * grads_b
+    def update(self, dW, db, lr: float):
+        dW = np.nan_to_num(dW, nan=0.0, posinf=0.0, neginf=0.0)
+        db = np.nan_to_num(db, nan=0.0, posinf=0.0, neginf=0.0)
+        self.W += lr * np.clip(dW, -1.0, 1.0)
+        self.b += lr * np.clip(db, -1.0, 1.0)
 
     def copy(self):
         p = LinearSoftmaxPolicy()
@@ -187,70 +184,82 @@ class LinearSoftmaxPolicy:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# 4. TRAINING (REINFORCE with baseline)
+# 4. TRAINING — REINFORCE with raw log-return reward (fast, no dependencies)
 # ═══════════════════════════════════════════════════════════════════════════
 
-def train(policy: LinearSoftmaxPolicy, train_df: pd.DataFrame, epochs: int) -> LinearSoftmaxPolicy:
+def train(policy: LinearSoftmaxPolicy, train_df: pd.DataFrame,
+          epochs: int) -> LinearSoftmaxPolicy:
+    """REINFORCE with:
+    - Raw log-return reward (log1p of daily net return)
+    - Annealed Dirichlet exploration noise
+    - Best-Sharpe policy tracking (for model selection)
+    All vectorised inside each epoch — completes in ~3 min for 3 folds × 120 epochs.
+    """
     best_policy = policy.copy()
     best_sharpe = -np.inf
 
     for epoch in range(epochs):
-        env = CryptoEnv(train_df)
-        state = env.reset()
-        episode_states, episode_actions, episode_rewards = [], [], []
+        env    = CryptoEnv(train_df)
+        state  = env.reset()
+        ep_states, ep_actions, ep_rewards = [], [], []
 
         done = False
         while not done:
-            weights = policy.forward(state)
-            # add small noise for exploration
-            noise = np.random.dirichlet(np.ones(N_ASSETS) * 3) * 0.05
-            weights = (1 - 0.05) * weights + noise
-            weights /= weights.sum()
+            probs     = policy.forward(state)
+            noise_α   = max(0.5, 3.0 * (1 - epoch / epochs))
+            noise     = np.random.dirichlet(np.ones(N_ASSETS) * noise_α)
+            eps_noise = max(0.0, 0.08 * (1 - epoch / epochs))
+            action    = (1 - eps_noise) * probs + eps_noise * noise
+            action   /= action.sum()
 
-            next_state, reward, done = env.step(weights)
-            episode_states.append(state)
-            episode_actions.append(weights)
-            episode_rewards.append(reward)
+            next_state, reward, done = env.step(action)
+
+            ep_states.append(state)
+            ep_actions.append(action)
+            ep_rewards.append(reward)   # raw log1p(net_return) from env.step
             state = next_state
 
-        # discounted returns
-        T = len(episode_rewards)
+        T       = len(ep_rewards)
+        rewards = np.array(ep_rewards)
+
+        # ── Discounted returns & baseline ─────────────────────────────────
         returns = np.zeros(T)
         G = 0.0
-        for t in reversed(range(T)):
-            G = episode_rewards[t] + GAMMA * G
+        for t in range(T - 1, -1, -1):
+            G = rewards[t] + GAMMA * G
             returns[t] = G
+        advantages = (returns - returns.mean()) / (returns.std() + 1e-8)
 
-        # baseline (mean)
-        baseline = returns.mean()
-        advantages = returns - baseline
+        # ── Vectorised policy gradient ─────────────────────────────────────
+        S   = np.array(ep_states)    # (T, STATE_DIM)
+        A   = np.array(ep_actions)   # (T, N_ASSETS)
+        adv = advantages             # (T,)
 
-        # policy gradient update
-        grad_W = np.zeros_like(policy.W)
-        grad_b = np.zeros_like(policy.b)
-        lr_decay = LEARNING_RATE * (1 / (1 + 0.01 * epoch))
+        # Batch forward pass
+        logits = S @ policy.W.T + policy.b     # (T, N_ASSETS)
+        logits -= logits.max(axis=1, keepdims=True)
+        probs_mat = np.exp(logits)
+        probs_mat /= probs_mat.sum(axis=1, keepdims=True)
 
-        for t in range(T):
-            s = episode_states[t]
-            a = episode_actions[t]
-            probs = policy.forward(s)
-            adv   = advantages[t]
+        # Softmax jacobian: d_log_pi = a/p - p  (since sum(a)=1)
+        d_log_pi = A / (probs_mat + 1e-8) - probs_mat   # (T, N_ASSETS)
 
-            # gradient of log π(a|s) w.r.t. logits (softmax jacobian)
-            jac = np.diag(probs) - np.outer(probs, probs)
-            d_log_pi = jac @ (a / (probs + 1e-8))   # shape (N_ASSETS,)
-            grad_W += adv * np.outer(d_log_pi, s)
-            grad_b += adv * d_log_pi
+        weighted = d_log_pi * adv[:, None]               # (T, N_ASSETS)
+        lr_decay = LEARNING_RATE * (1 / (1 + 0.005 * epoch))
+        dW = weighted.T @ S / T                          # (N_ASSETS, STATE_DIM)
+        db = weighted.mean(axis=0)                       # (N_ASSETS,)
+        policy.update(dW, db, lr_decay)
 
-        policy.update(grad_W / T, grad_b / T, lr_decay)
-
-        # track best Sharpe
-        rets_arr = np.array(episode_rewards)
-        if rets_arr.std() > 1e-8:
-            sharpe = (rets_arr.mean() / rets_arr.std()) * np.sqrt(252)
+        # ── Track best in-sample Sharpe (for model selection) ─────────────
+        raw_rets = np.array([h["net_return"] for h in env.history])
+        if raw_rets.std() > 1e-8:
+            sharpe = (raw_rets.mean() / raw_rets.std()) * np.sqrt(252)
             if sharpe > best_sharpe:
                 best_sharpe = sharpe
                 best_policy = policy.copy()
+
+        if (epoch + 1) % 100 == 0:
+            print(f"    epoch {epoch+1}/{epochs}  in-sample Sharpe={best_sharpe:.3f}")
 
     return best_policy
 
@@ -264,8 +273,8 @@ def run_backtest(df: pd.DataFrame):
     df = df.copy()
     df["date"] = pd.to_datetime(df["date"])
 
-    train_days = TRAIN_YEARS * 365
-    test_days  = TEST_YEARS  * 365
+    train_days = int(TRAIN_YEARS * 365)
+    test_days  = int(TEST_YEARS  * 365)
 
     # collect out-of-sample episodes
     all_history = []
@@ -283,6 +292,7 @@ def run_backtest(df: pd.DataFrame):
 
         policy = LinearSoftmaxPolicy()
         policy = train(policy, train_df, epochs=EPOCHS)
+        print(f"    → Training complete.")
 
         # run policy on test set
         env = CryptoEnv(test_df)
