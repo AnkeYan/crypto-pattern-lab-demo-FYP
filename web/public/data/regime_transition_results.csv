@@ -11,7 +11,7 @@ BTCUSDT,sideways,sideways,0,0.0,
 BTCUSDT,bull,__duration__,85,17.7,2.0|31.0
 BTCUSDT,bear,__duration__,73,10.9,1.0|13.0
 BTCUSDT,sideways,__duration__,157,11.8,2.0|18.0
-BTCUSDT,__snapshot__,bull,1,16.7,0.0|0.0|1.0
+BTCUSDT,__snapshot__,bull,2,20.5,0.0|0.0|1.0
 ETHUSDT,bull,bull,0,0.0,
 ETHUSDT,bull,bear,0,0.0,
 ETHUSDT,bull,sideways,58,1.0,
@@ -24,7 +24,7 @@ ETHUSDT,sideways,sideways,0,0.0,
 ETHUSDT,bull,__duration__,59,15.0,1.0|30.0
 ETHUSDT,bear,__duration__,60,13.8,1.0|22.2
 ETHUSDT,sideways,__duration__,118,10.9,1.0|15.0
-ETHUSDT,__snapshot__,bull,1,14.0,0.0|0.0|1.0
+ETHUSDT,__snapshot__,bull,2,20.2,0.0|0.0|1.0
 SOLUSDT,bull,bull,0,0.0,
 SOLUSDT,bull,bear,0,0.0,
 SOLUSDT,bull,sideways,33,1.0,
@@ -34,7 +34,7 @@ SOLUSDT,bear,sideways,58,1.0,
 SOLUSDT,sideways,bull,33,0.3626,
 SOLUSDT,sideways,bear,58,0.6374,
 SOLUSDT,sideways,sideways,0,0.0,
-SOLUSDT,bull,__duration__,34,17.1,1.2|22.8
+SOLUSDT,bull,__duration__,34,17.2,2.0|22.8
 SOLUSDT,bear,__duration__,58,9.7,1.0|10.8
 SOLUSDT,sideways,__duration__,91,9.1,1.0|11.5
-SOLUSDT,__snapshot__,bull,1,16.1,0.0|0.0|1.0
+SOLUSDT,__snapshot__,bull,2,20.2,0.0|0.0|1.0

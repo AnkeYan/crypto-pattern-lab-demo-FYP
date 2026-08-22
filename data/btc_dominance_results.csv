@@ -1,4 +1,4 @@
 symbol,date,btc_dominance,dom_7d_ago,dom_change_7d,direction,f15_cont,interpretation
-BTCUSDT,2026-08-21,58.9965,56.1709,2.8256,↑ rising,0.7355,BTC inflow signal
-ETHUSDT,2026-08-21,58.9965,56.1709,2.8256,↑ rising,0.2645,BTC dominance rising (cautious)
-SOLUSDT,2026-08-21,58.9965,56.1709,2.8256,↑ rising,0.2645,BTC dominance rising (cautious)
+BTCUSDT,2026-08-22,58.5312,55.7992,2.732,↑ rising,0.7277,BTC inflow signal
+ETHUSDT,2026-08-22,58.5312,55.7992,2.732,↑ rising,0.2723,BTC dominance rising (cautious)
+SOLUSDT,2026-08-22,58.5312,55.7992,2.732,↑ rising,0.2723,BTC dominance rising (cautious)
